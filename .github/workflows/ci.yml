@@ -61,7 +61,16 @@ jobs:
             fi
           else
             echo "⚠️ claude-code not in expected location, checking alternatives..."
-            find /usr -name "claude-code" 2>/dev/null || echo "No claude-code binary found"
+            echo "Searching for claude-code binary..."
+            find /usr -name "claude-code" 2>/dev/null || echo "No claude-code binary found in /usr"
+            find /opt -name "claude-code" 2>/dev/null || echo "No claude-code binary found in /opt"
+            find /home -name "claude-code" 2>/dev/null || echo "No claude-code binary found in /home"
+            echo "Checking npm global modules structure..."
+            ls -la /usr/local/lib/node_modules/ | grep claude || echo "No claude modules found"
+            echo "Checking if it's already in PATH..."
+            which claude-code || echo "Not in PATH"
+            echo "Checking npm prefix bin directory..."
+            ls -la /usr/local/bin/ | grep claude || echo "No claude in /usr/local/bin"
           fi
 
       - name: Install Gemini CLI
