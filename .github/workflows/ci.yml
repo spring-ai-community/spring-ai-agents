@@ -43,34 +43,25 @@ jobs:
           # Install Claude Code CLI from npm globally
           npm install -g @anthropic-ai/claude-code
           echo "✅ npm install completed"
-          # Find where npm installed it - use npm prefix instead of deprecated npm bin
-          NPM_PREFIX=$(npm prefix -g)
-          NPM_BIN="$NPM_PREFIX/bin"
-          echo "NPM_BIN: $NPM_BIN"
-          echo "$NPM_BIN" >> $GITHUB_PATH
-          echo "✅ Added NPM_BIN to PATH"
-          # Check the actual location
-          if [ -d "/usr/local/lib/node_modules/@anthropic-ai/claude-code/bin/" ]; then
-            echo "✅ Found claude-code in expected location"
-            ls -la /usr/local/lib/node_modules/@anthropic-ai/claude-code/bin/
-            # Create symlink if needed
-            if ! which claude-code; then
-              echo "Creating symlink..."
-              sudo ln -sf /usr/local/lib/node_modules/@anthropic-ai/claude-code/bin/claude-code /usr/local/bin/claude-code
-              echo "✅ Symlink created"
+          # Hardcode known installation path and create symlink
+          CLAUDE_PATH="/usr/local/lib/node_modules/@anthropic-ai/claude-code"
+          if [ -d "$CLAUDE_PATH" ]; then
+            echo "✅ Found claude-code package at $CLAUDE_PATH"
+            # Check for executable in bin directory or root
+            if [ -f "$CLAUDE_PATH/bin/claude-code" ]; then
+              echo "Found executable in bin/"
+              sudo ln -sf "$CLAUDE_PATH/bin/claude-code" /usr/local/bin/claude-code
+            elif [ -f "$CLAUDE_PATH/claude-code" ]; then
+              echo "Found executable in root"
+              sudo ln -sf "$CLAUDE_PATH/claude-code" /usr/local/bin/claude-code
+            else
+              echo "Checking package structure..."
+              find "$CLAUDE_PATH" -name "*claude*" -type f -executable 2>/dev/null || echo "No executable found"
             fi
+            echo "✅ Claude Code CLI setup completed"
           else
-            echo "⚠️ claude-code not in expected location, checking alternatives..."
-            echo "Searching for claude-code binary..."
-            find /usr -name "claude-code" 2>/dev/null || echo "No claude-code binary found in /usr"
-            find /opt -name "claude-code" 2>/dev/null || echo "No claude-code binary found in /opt"
-            find /home -name "claude-code" 2>/dev/null || echo "No claude-code binary found in /home"
-            echo "Checking npm global modules structure..."
-            ls -la /usr/local/lib/node_modules/ | grep claude || echo "No claude modules found"
-            echo "Checking if it's already in PATH..."
-            which claude-code || echo "Not in PATH"
-            echo "Checking npm prefix bin directory..."
-            ls -la /usr/local/bin/ | grep claude || echo "No claude in /usr/local/bin"
+            echo "❌ Claude Code package not found at expected location"
+            exit 1
           fi
 
       - name: Install Gemini CLI
@@ -95,28 +86,34 @@ jobs:
           echo "PATH: $PATH"
           echo ""
           echo "=== Claude Code CLI ==="
-          if ! which claude-code; then
-            echo "ERROR: Claude Code CLI not found in PATH"
-            echo "Checking npm installation..."
-            npm list -g @anthropic-ai/claude-code || true
-            ls -la /usr/local/lib/node_modules/@anthropic-ai/claude-code/bin/ || true
+          # Check if the symlink exists and works
+          if [ -L "/usr/local/bin/claude-code" ] && [ -f "/usr/local/bin/claude-code" ]; then
+            echo "✅ Claude Code CLI symlink exists"
+            /usr/local/bin/claude-code --version || exit 1
+            echo "✅ Claude Code CLI verified"
+          else
+            echo "ERROR: Claude Code CLI symlink not found"
+            ls -la /usr/local/bin/claude* 2>/dev/null || echo "No claude binaries in /usr/local/bin"
             exit 1
           fi
-          claude-code --version || exit 1
-          echo "✅ Claude Code CLI verified"
           echo ""
           echo "=== Gemini CLI ==="
-          if ! which gemini; then
-            echo "ERROR: Gemini CLI not found in PATH"
-            echo "Checking installation locations..."
-            ls -la "$HOME/.local/bin/" 2>/dev/null || echo ".local/bin not found"
-            ls -la "$HOME/bin/" 2>/dev/null || echo "bin not found"
-            find /usr/local -name "*gemini*" 2>/dev/null || echo "No gemini in /usr/local"
-            which genai 2>/dev/null && echo "Found genai command instead" || echo "No genai command either"
+          # Check hardcoded locations first
+          if [ -f "$HOME/.local/bin/gemini" ]; then
+            echo "✅ Found gemini in ~/.local/bin"
+            "$HOME/.local/bin/gemini" --version || exit 1
+            echo "✅ Gemini CLI verified"
+          elif [ -f "/usr/local/bin/gemini" ]; then
+            echo "✅ Found gemini in /usr/local/bin"
+            /usr/local/bin/gemini --version || exit 1
+            echo "✅ Gemini CLI verified"
+          else
+            echo "ERROR: Gemini CLI not found in expected locations"
+            echo "Quick fallback check..."
+            ls -la "$HOME/.local/bin/" 2>/dev/null | head -3 || echo ".local/bin not accessible"
+            ls -la /usr/local/bin/ 2>/dev/null | grep -i gemini || echo "No gemini in /usr/local/bin"
             exit 1
           fi
-          gemini --version || exit 1
-          echo "✅ Gemini CLI verified"
 
       - name: Build and test with Maven
         env:
