@@ -40,29 +40,9 @@ jobs:
 
       - name: Install Claude Code CLI
         run: |
-          # Install Claude Code CLI from npm globally
+          # Install Claude Code CLI from npm globally - npm handles the symlink automatically
           npm install -g @anthropic-ai/claude-code
-          echo "✅ npm install completed"
-          # Hardcode known installation path and create symlink
-          CLAUDE_PATH="/usr/local/lib/node_modules/@anthropic-ai/claude-code"
-          if [ -d "$CLAUDE_PATH" ]; then
-            echo "✅ Found claude-code package at $CLAUDE_PATH"
-            # Check for executable in bin directory or root
-            if [ -f "$CLAUDE_PATH/bin/claude-code" ]; then
-              echo "Found executable in bin/"
-              sudo ln -sf "$CLAUDE_PATH/bin/claude-code" /usr/local/bin/claude-code
-            elif [ -f "$CLAUDE_PATH/claude-code" ]; then
-              echo "Found executable in root"
-              sudo ln -sf "$CLAUDE_PATH/claude-code" /usr/local/bin/claude-code
-            else
-              echo "Checking package structure..."
-              find "$CLAUDE_PATH" -name "*claude*" -type f -executable 2>/dev/null || echo "No executable found"
-            fi
-            echo "✅ Claude Code CLI setup completed"
-          else
-            echo "❌ Claude Code package not found at expected location"
-            exit 1
-          fi
+          echo "✅ Claude Code CLI installed via npm"
 
       - name: Install Gemini CLI
         run: |
@@ -86,13 +66,17 @@ jobs:
           echo "PATH: $PATH"
           echo ""
           echo "=== Claude Code CLI ==="
-          # Check if the symlink exists and works
-          if [ -L "/usr/local/bin/claude-code" ] && [ -f "/usr/local/bin/claude-code" ]; then
-            echo "✅ Claude Code CLI symlink exists"
+          # Check if the symlink exists (it's actually named 'claude', not 'claude-code')
+          if [ -L "/usr/local/bin/claude" ] && [ -f "/usr/local/bin/claude" ]; then
+            echo "✅ Claude CLI symlink exists"
+            /usr/local/bin/claude --version || exit 1
+            echo "✅ Claude CLI verified"
+          elif [ -f "/usr/local/bin/claude-code" ]; then
+            echo "✅ Claude Code CLI found"
             /usr/local/bin/claude-code --version || exit 1
             echo "✅ Claude Code CLI verified"
           else
-            echo "ERROR: Claude Code CLI symlink not found"
+            echo "ERROR: Claude CLI not found"
             ls -la /usr/local/bin/claude* 2>/dev/null || echo "No claude binaries in /usr/local/bin"
             exit 1
           fi
