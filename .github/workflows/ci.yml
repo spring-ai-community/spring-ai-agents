@@ -43,8 +43,9 @@ jobs:
           # Install Claude Code CLI from npm globally
           npm install -g @anthropic-ai/claude-code
           echo "✅ npm install completed"
-          # Find where npm installed it and add to PATH
-          NPM_BIN=$(npm bin -g)
+          # Find where npm installed it - use npm prefix instead of deprecated npm bin
+          NPM_PREFIX=$(npm prefix -g)
+          NPM_BIN="$NPM_PREFIX/bin"
           echo "NPM_BIN: $NPM_BIN"
           echo "$NPM_BIN" >> $GITHUB_PATH
           echo "✅ Added NPM_BIN to PATH"
