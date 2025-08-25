@@ -42,13 +42,26 @@ jobs:
         run: |
           # Install Claude Code CLI from npm globally
           npm install -g @anthropic-ai/claude-code
+          echo "✅ npm install completed"
           # Find where npm installed it and add to PATH
           NPM_BIN=$(npm bin -g)
+          echo "NPM_BIN: $NPM_BIN"
           echo "$NPM_BIN" >> $GITHUB_PATH
-          # Also check the actual location
-          ls -la /usr/local/lib/node_modules/@anthropic-ai/claude-code/bin/ || true
-          # Create symlink if needed
-          sudo ln -sf /usr/local/lib/node_modules/@anthropic-ai/claude-code/bin/claude-code /usr/local/bin/claude-code || true
+          echo "✅ Added NPM_BIN to PATH"
+          # Check the actual location
+          if [ -d "/usr/local/lib/node_modules/@anthropic-ai/claude-code/bin/" ]; then
+            echo "✅ Found claude-code in expected location"
+            ls -la /usr/local/lib/node_modules/@anthropic-ai/claude-code/bin/
+            # Create symlink if needed
+            if ! which claude-code; then
+              echo "Creating symlink..."
+              sudo ln -sf /usr/local/lib/node_modules/@anthropic-ai/claude-code/bin/claude-code /usr/local/bin/claude-code
+              echo "✅ Symlink created"
+            fi
+          else
+            echo "⚠️ claude-code not in expected location, checking alternatives..."
+            find /usr -name "claude-code" 2>/dev/null || echo "No claude-code binary found"
+          fi
 
       - name: Install Gemini CLI
         run: |
