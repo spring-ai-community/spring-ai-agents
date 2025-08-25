@@ -20,11 +20,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springaicommunity.agents.sweagentsdk.exceptions.SweCliNotFoundException;
 import org.springaicommunity.agents.sweagentsdk.types.SweAgentOptions;
+import org.springaicommunity.agents.sweagentsdk.util.SweCliDiscovery;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -35,6 +38,12 @@ import java.util.concurrent.TimeUnit;
 /**
  * API wrapper for the mini-SWE-agent CLI tool.
  *
+ * <p>
+ * This class provides a high-level interface to the mini-swe-agent CLI, handling CLI
+ * discovery, process execution, and result parsing. It automatically discovers the CLI
+ * executable and provides robust error handling.
+ * </p>
+ *
  * @author Mark Pollack
  * @since 1.1.0
  */
@@ -42,18 +51,45 @@ public class SweCliApi {
 
 	private static final Logger logger = LoggerFactory.getLogger(SweCliApi.class);
 
-	private static final String DEFAULT_EXECUTABLE = "mini";
-
 	private final ObjectMapper objectMapper = new ObjectMapper();
 
 	private final String executablePath;
 
+	/**
+	 * Creates a new SweCliApi with automatic CLI discovery.
+	 * @throws SweCliNotFoundException if the CLI cannot be found
+	 */
 	public SweCliApi() {
-		this(DEFAULT_EXECUTABLE);
+		String discoveredPath = SweCliDiscovery.getDiscoveredPath();
+		if (discoveredPath == null) {
+			throw new SweCliNotFoundException(
+					"mini-swe-agent CLI not found. Please ensure it is installed and available.");
+		}
+		this.executablePath = discoveredPath;
+		logger.debug("SweCliApi initialized with discovered CLI path: {}", this.executablePath);
 	}
 
+	/**
+	 * Creates a new SweCliApi with the specified executable path.
+	 * @param executablePath the path to the mini-swe-agent CLI executable
+	 */
 	public SweCliApi(String executablePath) {
-		this.executablePath = executablePath != null ? executablePath : DEFAULT_EXECUTABLE;
+		this.executablePath = executablePath != null ? executablePath : SweCliDiscovery.findSweCommand();
+		logger.debug("SweCliApi initialized with executable path: {}", this.executablePath);
+	}
+
+	/**
+	 * Checks if the SWE Agent CLI is available and functional.
+	 * @return true if the CLI is available, false otherwise
+	 */
+	public boolean isAvailable() {
+		try {
+			return SweCliDiscovery.isCommandAvailable(this.executablePath);
+		}
+		catch (Exception e) {
+			logger.debug("CLI availability check failed: {}", e.getMessage());
+			return false;
+		}
 	}
 
 	/**
@@ -81,6 +117,18 @@ public class SweCliApi {
 			}
 
 			Process process = processBuilder.start();
+
+			// Provide empty input to mini-swe-agent prompts
+			// This prevents hanging when the agent prompts for confirmation or new tasks
+			try (OutputStreamWriter writer = new OutputStreamWriter(process.getOutputStream())) {
+				// Send multiple empty lines to respond to various prompts
+				// (task confirmation, exit confirmation, new task prompts, etc.)
+				writer.write("\n\n\n");
+				writer.flush();
+			}
+			catch (IOException e) {
+				logger.debug("Failed to write to process stdin: {}", e.getMessage());
+			}
 
 			// Handle timeout
 			Duration timeout = options.getTimeout();
@@ -117,23 +165,6 @@ public class SweCliApi {
 		catch (IOException | InterruptedException e) {
 			Thread.currentThread().interrupt();
 			throw new SweCliException("Failed to execute mini-SWE-agent: " + e.getMessage(), e);
-		}
-	}
-
-	/**
-	 * Check if the mini-SWE-agent CLI is available.
-	 * @return true if available, false otherwise
-	 */
-	public boolean isAvailable() {
-		try {
-			ProcessBuilder processBuilder = new ProcessBuilder(executablePath, "--help");
-			Process process = processBuilder.start();
-			boolean finished = process.waitFor(5, TimeUnit.SECONDS);
-			return finished && process.exitValue() == 0;
-		}
-		catch (Exception e) {
-			logger.debug("mini-SWE-agent CLI not available: {}", e.getMessage());
-			return false;
 		}
 	}
 

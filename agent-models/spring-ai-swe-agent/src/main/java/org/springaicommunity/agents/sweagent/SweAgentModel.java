@@ -195,7 +195,11 @@ public class SweAgentModel implements AgentModel {
 		prompt.append("1. Analyze the codebase in the working directory\n");
 		prompt.append("2. Complete the requested software engineering task\n");
 		prompt.append("3. Implement and test the solution thoroughly\n");
-		prompt.append("4. Ensure your changes fix the problem without breaking existing functionality\n\n");
+		prompt.append("4. Ensure your changes fix the problem without breaking existing functionality\n");
+		prompt.append("5. When task is complete, execute: echo \"COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT\"\n\n");
+
+		prompt.append("IMPORTANT: You must execute the command 'echo \"COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT\"' ");
+		prompt.append("as a bash command (not just mention it in text) when the task is finished.\n\n");
 
 		return prompt.toString();
 	}

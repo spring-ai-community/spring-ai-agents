@@ -21,23 +21,20 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
  * Hello World sample application demonstrating Spring AI Agents with Claude Code.
- * 
- * This sample shows how to:
- * - Set up a Spring Boot application with Spring AI Agents
- * - Configure Claude Code agent model
- * - Use AgentClient to execute a simple goal
- * 
- * Prerequisites:
- * - ANTHROPIC_API_KEY environment variable must be set
- * - Claude CLI must be installed: npm install -g @anthropic-ai/claude-code
- * 
+ *
+ * This sample shows how to: - Set up a Spring Boot application with Spring AI Agents -
+ * Configure Claude Code agent model - Use AgentClient to execute a simple goal
+ *
+ * Prerequisites: - ANTHROPIC_API_KEY environment variable must be set - Claude CLI must
+ * be installed: npm install -g @anthropic-ai/claude-code
+ *
  * @author Spring AI Community
  */
 @SpringBootApplication
 public class HelloWorldApplication {
 
-    public static void main(String[] args) {
-        SpringApplication.run(HelloWorldApplication.class, args);
-    }
+	public static void main(String[] args) {
+		SpringApplication.run(HelloWorldApplication.class, args);
+	}
 
 }

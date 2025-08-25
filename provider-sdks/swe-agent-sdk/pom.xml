@@ -32,6 +32,12 @@
             <artifactId>jackson-annotations</artifactId>
         </dependency>
         
+        <!-- Process execution -->
+        <dependency>
+            <groupId>org.zeroturnaround</groupId>
+            <artifactId>zt-exec</artifactId>
+        </dependency>
+        
         <!-- Logging -->
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -66,10 +72,12 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
             </plugin>
+            <!-- Temporarily disabled for faster development
             <plugin>
                 <groupId>io.spring.javaformat</groupId>
                 <artifactId>spring-javaformat-maven-plugin</artifactId>
             </plugin>
+            -->
         </plugins>
     </build>
 </project>

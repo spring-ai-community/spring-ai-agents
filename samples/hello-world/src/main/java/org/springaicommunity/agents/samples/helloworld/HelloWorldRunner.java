@@ -16,7 +16,6 @@
 
 package org.springaicommunity.agents.samples.helloworld;
 
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -28,72 +27,74 @@ import org.springaicommunity.agents.claudecode.ClaudeCodeAgentOptions;
 import org.springaicommunity.agents.claudecode.sdk.ClaudeCodeClient;
 
 /**
- * Command line runner that demonstrates a simple hello world example using Spring AI Agents.
- * 
- * This runner:
- * 1. Sets up Claude Code client and agent model
- * 2. Uses AgentClient to create a hello.txt file in the current directory
- * 3. Verifies the file was created and displays the contents
- * 
+ * Command line runner that demonstrates a simple hello world example using Spring AI
+ * Agents.
+ *
+ * This runner: 1. Sets up Claude Code client and agent model 2. Uses AgentClient to
+ * create a hello.txt file in the current directory 3. Verifies the file was created and
+ * displays the contents
+ *
  * @author Spring AI Community
  */
 @Component
 public class HelloWorldRunner implements CommandLineRunner {
 
-    private static final Logger log = LoggerFactory.getLogger(HelloWorldRunner.class);
-    private static final String HELLO_WORLD_GOAL = "Create a simple hello.txt file with the content 'Hello, World!'";
+	private static final Logger log = LoggerFactory.getLogger(HelloWorldRunner.class);
 
-    @Override
-    public void run(String... args) throws Exception {
-        log.info("Starting Spring AI Agents Hello World sample...");
+	private static final String HELLO_WORLD_GOAL = "Create a simple hello.txt file with the content 'Hello, World!'";
 
-        // Check if API key is set
-        String apiKey = System.getenv("ANTHROPIC_API_KEY");
-        if (apiKey == null || apiKey.isBlank()) {
-            log.error("ANTHROPIC_API_KEY environment variable is not set!");
-            log.error("Please set your API key: export ANTHROPIC_API_KEY='your-api-key-here'");
-            return;
-        }
+	@Override
+	public void run(String... args) throws Exception {
+		log.info("Starting Spring AI Agents Hello World sample...");
 
-        try {
-            // 1. Create Claude Code client (uses current directory by default)
-            ClaudeCodeClient claudeClient = ClaudeCodeClient.create();
+		// Check if API key is set
+		String apiKey = System.getenv("ANTHROPIC_API_KEY");
+		if (apiKey == null || apiKey.isBlank()) {
+			log.error("ANTHROPIC_API_KEY environment variable is not set!");
+			log.error("Please set your API key: export ANTHROPIC_API_KEY='your-api-key-here'");
+			return;
+		}
 
-            // 2. Configure agent options
-            ClaudeCodeAgentOptions options = ClaudeCodeAgentOptions.builder()
-                .model("claude-sonnet-4-0")
-                .yolo(true) // Allow agent to make changes
-                .build();
+		try {
+			// 1. Create Claude Code client (uses current directory by default)
+			ClaudeCodeClient claudeClient = ClaudeCodeClient.create();
 
-            // 3. Create agent model
-            ClaudeCodeAgentModel agentModel = new ClaudeCodeAgentModel(claudeClient, options);
+			// 2. Configure agent options
+			ClaudeCodeAgentOptions options = ClaudeCodeAgentOptions.builder()
+				.model("claude-sonnet-4-0")
+				.yolo(true) // Allow agent to make changes
+				.build();
 
-            // 4. Check if agent is available
-            if (!agentModel.isAvailable()) {
-                log.error("Claude Code agent is not available. Please ensure Claude CLI is installed:");
-                log.error("npm install -g @anthropic-ai/claude-code");
-                return;
-            }
+			// 3. Create agent model
+			ClaudeCodeAgentModel agentModel = new ClaudeCodeAgentModel(claudeClient, options);
 
-            // 5. Create AgentClient and execute goal
-            AgentClient agentClient = AgentClient.create(agentModel);
-            
-            log.info("Executing goal: {}", HELLO_WORLD_GOAL);
-            AgentClientResponse response = agentClient.goal(HELLO_WORLD_GOAL).run();
+			// 4. Check if agent is available
+			if (!agentModel.isAvailable()) {
+				log.error("Claude Code agent is not available. Please ensure Claude CLI is installed:");
+				log.error("npm install -g @anthropic-ai/claude-code");
+				return;
+			}
 
-            // 6. Check results
-            if (response.isSuccessful()) {
-                log.info("✅ Goal completed successfully!");
-                log.info("Agent response: {}", response.getResult());
-            } else {
-                log.error("❌ Goal execution failed: {}", response.getResult());
-            }
+			// 5. Create AgentClient and execute goal
+			AgentClient agentClient = AgentClient.create(agentModel);
 
-        } catch (Exception e) {
-            log.error("❌ Error running hello world sample: {}", e.getMessage(), e);
-            throw e;
-        }
-    }
+			log.info("Executing goal: {}", HELLO_WORLD_GOAL);
+			AgentClientResponse response = agentClient.goal(HELLO_WORLD_GOAL).run();
 
+			// 6. Check results
+			if (response.isSuccessful()) {
+				log.info("✅ Goal completed successfully!");
+				log.info("Agent response: {}", response.getResult());
+			}
+			else {
+				log.error("❌ Goal execution failed: {}", response.getResult());
+			}
+
+		}
+		catch (Exception e) {
+			log.error("❌ Error running hello world sample: {}", e.getMessage(), e);
+			throw e;
+		}
+	}
 
 }

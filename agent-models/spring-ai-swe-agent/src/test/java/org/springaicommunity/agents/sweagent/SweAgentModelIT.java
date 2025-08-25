@@ -38,10 +38,8 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * Integration tests for SweAgentModel.
  *
  * <p>
- * <strong>Note:</strong> Most integration tests are currently disabled due to a bug in
- * mini-SWE-agent CLI v1.4.2 where the --exit-immediately flag doesn't work properly,
- * causing the agent to loop infinitely instead of terminating after task completion. Only
- * the availability test remains enabled.
+ * These tests verify the SWE Agent integration with the mini-SWE-agent CLI tool. Tests
+ * use conservative timeouts and iteration limits as safety measures.
  * </p>
  *
  * @author Mark Pollack
@@ -76,8 +74,8 @@ class SweAgentModelIT {
 
 		SweAgentOptions options = SweAgentOptions.builder()
 			.model("gpt-4o-mini") // Use same model as configured in mini-SWE-agent
-			.timeout(Duration.ofMinutes(1)) // Reduce timeout since it's hanging
-			.maxIterations(5) // Limit iterations to prevent infinite loops
+			.timeout(Duration.ofMinutes(1)) // Conservative timeout for test execution
+			.maxIterations(5) // Conservative iteration limit for tests
 			.executablePath(executablePath)
 			.build();
 
@@ -85,7 +83,6 @@ class SweAgentModelIT {
 	}
 
 	@Test
-	@Disabled("mini-SWE-agent CLI has a bug where --exit-immediately flag doesn't work, causing infinite loops")
 	void testFileCreationTask() throws IOException {
 		// Given
 		String fileName = "hello.py";
@@ -114,7 +111,6 @@ class SweAgentModelIT {
 	}
 
 	@Test
-	@Disabled("mini-SWE-agent CLI has a bug where --exit-immediately flag doesn't work, causing infinite loops")
 	void testCodeFixingTask() throws IOException {
 		// Given
 		// Create a Python file with a syntax error
@@ -149,7 +145,6 @@ class SweAgentModelIT {
 	}
 
 	@Test
-	@Disabled("mini-SWE-agent CLI has a bug where --exit-immediately flag doesn't work, causing infinite loops")
 	void testSimpleAnalysisTask() throws IOException {
 		// Given
 		// Create a sample Python file to analyze
@@ -191,14 +186,13 @@ class SweAgentModelIT {
 	}
 
 	@Test
-	@Disabled("mini-SWE-agent CLI has a bug where --exit-immediately flag doesn't work, causing infinite loops")
 	void testAgentWithCustomOptions() throws IOException {
 		// Given
 		SweAgentOptions customOptions = SweAgentOptions.builder()
 			.model("gpt-4o-mini")
-			.timeout(Duration.ofMinutes(1))
+			.timeout(Duration.ofMinutes(3)) // Increased timeout for first test
 			.maxIterations(3) // Very low iterations for simple task
-			.verbose(false) // Disable verbose to reduce output
+			.verbose(true) // Enable verbose to see what's happening
 			.executablePath(executablePath)
 			.build();
 

@@ -86,7 +86,7 @@ Spring AI Agents supports multiple autonomous agent platforms:
 |Google ecosystem integration, specialized tasks
 
 |SWE Agent
-|Software engineering benchmark agent
+|Software engineering benchmark agent (work in progress)
 |Research tasks, systematic problem solving
 |===
 
