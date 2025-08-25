@@ -51,12 +51,36 @@ jobs:
 
       - name: Install Gemini CLI
         run: |
-          # Install Gemini CLI using curl
-          curl -fsSL https://cli.gemini.google.com/install.sh | bash
+          # Install Gemini CLI using the official installer
+          curl -fsSL https://raw.githubusercontent.com/google-gemini/gemini-cli/main/scripts/install.sh | bash
           # Add to PATH for this session
-          echo "$HOME/.gemini/bin" >> $GITHUB_PATH
-          # Verify installation
-          gemini --version || echo "Gemini CLI installed"
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          # Also try alternative installation path
+          echo "$HOME/bin" >> $GITHUB_PATH
+          # Make sure the binary is executable
+          chmod +x "$HOME/.local/bin/gemini" 2>/dev/null || true
+          chmod +x "$HOME/bin/gemini" 2>/dev/null || true
+
+      - name: Verify CLI installations
+        run: |
+          echo "=== PATH verification ==="
+          echo "PATH: $PATH"
+          echo ""
+          echo "=== Claude Code CLI ==="
+          which claude-code || echo "Claude Code CLI not found in PATH"
+          claude-code --version || echo "Claude Code CLI version check failed"
+          npm list -g @anthropic-ai/claude-code || echo "Claude Code npm package check failed"
+          echo ""
+          echo "=== Gemini CLI ==="
+          which gemini || echo "Gemini CLI not found in PATH"
+          ls -la "$HOME/.local/bin/" | grep gemini || echo "Gemini not found in .local/bin"
+          ls -la "$HOME/bin/" | grep gemini || echo "Gemini not found in bin"
+          find /usr/local -name "*gemini*" 2>/dev/null || echo "Gemini not found in /usr/local"
+          gemini --version || echo "Gemini CLI version check failed"
+          echo ""
+          echo "=== Environment ==="
+          env | grep -i gemini || echo "No Gemini env vars"
+          env | grep -i anthropic || echo "No Anthropic env vars"
 
       - name: Build and test with Maven
         env:
