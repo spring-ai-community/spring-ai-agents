@@ -201,7 +201,7 @@ public class AgentConfiguration {
     
     @Bean
     public ClaudeCodeClient claudeCodeClient() {
-        return ClaudeCodeClient.create(Paths.get(System.getProperty("user.dir")));
+        return ClaudeCodeClient.create();
     }
     
     @Bean

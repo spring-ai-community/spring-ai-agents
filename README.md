@@ -34,15 +34,14 @@ Transform autonomous CLI agents into pluggable Spring components:
 @Autowired
 private AgentClient agentClient;
 
-// Simple prompt execution
-String result = agentClient.prompt("Fix the failing test in UserServiceTest");
+// Simple goal execution
+String result = agentClient.run("Fix the failing test in UserServiceTest");
 
-// Advanced task configuration
-AgentCallResult result = agentClient.runTask()
+// Advanced goal configuration
+AgentClientResponse response = agentClient
     .goal("Generate comprehensive API documentation")
     .workingDirectory(projectRoot)
-    .includeFiles("src/main/java/com/example/controller/**")
-    .execute();
+    .run();
 ```
 
 ### Configuration
@@ -112,8 +111,7 @@ spring-ai-agents/
 ## Examples
 
 See the [`samples/`](samples/) directory for complete examples:
-- [`sample-cli/`](samples/sample-cli/) - Command-line agent runner
-- [`sample-swebench/`](samples/sample-swebench/) - SWE-bench evaluation demo
+- [`hello-world/`](samples/hello-world/) - Simple Spring Boot application demonstrating AgentClient basics
 
 ## Documentation
 

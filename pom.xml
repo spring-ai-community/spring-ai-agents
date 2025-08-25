@@ -48,6 +48,7 @@
         <module>agent-models/spring-ai-swe-agent</module>
         <module>spring-ai-agent-client</module>
         <module>docs</module>
+        <module>samples/hello-world</module>
         <!--
         <module>agent-models/spring-ai-swebench-agent</module>
         <module>agent-models/spring-ai-swebench-agent</module>

@@ -98,35 +98,29 @@ import org.springaicommunity.agents.claudecode.ClaudeCodeAgentModel;
 import org.springaicommunity.agents.claudecode.ClaudeCodeAgentOptions;
 import org.springaicommunity.agents.claudecode.sdk.ClaudeCodeClient;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
 public class HelloAgentWorld {
     public static void main(String[] args) {
-        // 1. Set up the working directory
-        Path workingDir = Paths.get(System.getProperty("user.dir"));
+        // 1. Create the Claude Code client
+        ClaudeCodeClient claudeClient = ClaudeCodeClient.create();
         
-        // 2. Create the Claude Code client
-        ClaudeCodeClient claudeClient = ClaudeCodeClient.create(workingDir);
-        
-        // 3. Configure agent options
+        // 2. Configure agent options
         ClaudeCodeAgentOptions options = ClaudeCodeAgentOptions.builder()
             .model("claude-sonnet-4-0")
             .yolo(true) // Allow agent to make changes
             .build();
             
-        // 4. Create the agent model
+        // 3. Create the agent model
         ClaudeCodeAgentModel agentModel = new ClaudeCodeAgentModel(claudeClient, options);
         
-        // 5. Create the AgentClient
+        // 4. Create the AgentClient
         AgentClient agentClient = AgentClient.create(agentModel);
         
-        // 6. Run a simple goal
+        // 5. Run a simple goal
         AgentClientResponse response = agentClient.run(
             "Create a simple Hello World Java class in a file called HelloWorld.java"
         );
         
-        // 7. Get the result
+        // 6. Get the result
         System.out.println("Agent completed the goal:");
         System.out.println(response.getResult());
         System.out.println("Success: " + response.isSuccessful());
@@ -138,13 +132,12 @@ public class HelloAgentWorld {
 
 Let's break down what happened in the example:
 
-1. **Working Directory**: We set up a working directory where the agent can create files
-2. **Client Creation**: We created a `ClaudeCodeClient` to communicate with the Claude CLI
-3. **Agent Options**: We configured the agent with a model and enabled "yolo" mode (allows modifications)
-4. **Agent Model**: We wrapped the client in a `ClaudeCodeAgentModel` for Spring AI integration
-5. **AgentClient**: We created an `AgentClient` - the main API for running tasks
-6. **Goal Execution**: We ran a goal using the simple `.run()` method
-7. **Result Access**: We got the result using `.getResult()` and checked success
+1. **Client Creation**: We created a `ClaudeCodeClient` to communicate with the Claude CLI (uses current directory by default)
+2. **Agent Options**: We configured the agent with a model and enabled "yolo" mode (allows modifications)
+3. **Agent Model**: We wrapped the client in a `ClaudeCodeAgentModel` for Spring AI integration
+4. **AgentClient**: We created an `AgentClient` - the main API for running tasks
+5. **Goal Execution**: We ran a goal using the simple `.run()` method
+6. **Result Access**: We got the result using `.getResult()` and checked success
 
 == Spring Boot Integration
 

@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: spring-ai-agents-hello-world
+  main:
+    banner-mode: "off"
+    web-application-type: none
+
+logging:
+  level:
+    org.springaicommunity.agents: INFO
+    org.springframework.boot: WARN
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
