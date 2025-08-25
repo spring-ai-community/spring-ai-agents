@@ -1,0 +1,39 @@
+site:
+  title: Spring AI Agents Reference
+  url: https://spring-ai-community.github.io/spring-ai-agents/
+  robots: allow
+
+git:
+  ensure_git_suffix: false  
+
+content:
+  sources:
+    - url: ./../../../..
+      branches: HEAD
+      start_path: docs/src/main/antora
+      worktrees: true
+
+asciidoc:
+  attributes:
+    page-related-doc-categories: java,ml,ai
+    page-pagination: ''
+    hide-uri-scheme: '@'
+    tabs-sync-option: '@'
+    chomp: 'all'
+    stem: 'asciimath'
+  sourcemap: true
+
+urls:
+  latest_version_segment_strategy: redirect:to
+  latest_version_segment: ''
+  redirect_facility: httpd
+
+runtime:
+  log:
+    failure_level: warn
+    format: pretty
+
+ui:
+  bundle:
+    url: https://github.com/spring-io/antora-ui-spring/releases/download/v0.4.17/ui-bundle.zip
+    snapshot: true

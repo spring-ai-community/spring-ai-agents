@@ -1,0 +1,464 @@
+= AgentClient vs ChatClient
+:page-title: AgentClient vs ChatClient Comparison
+:toc: left
+:tabsize: 2
+:sectnums:
+
+Spring AI Agents follows the same design patterns as Spring AI's `ChatClient` to provide a familiar experience for Spring developers. This page shows the similarities and differences between the two APIs.
+
+== API Comparison
+
+=== Basic Usage
+
+Both APIs follow the same fluent pattern for simple interactions:
+
+[cols="1,1"]
+|===
+|ChatClient |AgentClient
+
+a|
+[source,java]
+----
+String response = chatClient.prompt("What is Spring?").call().getResult().getOutput().getContent();
+----
+
+a|
+[source,java]
+----
+String response = agentClient.run("Create a Hello World class").getResult();
+----
+
+|===
+
+=== Fluent Configuration
+
+Both support fluent configuration with method chaining:
+
+[cols="1,1"]
+|===
+|ChatClient |AgentClient
+
+a|
+[source,java]
+----
+String response = chatClient.prompt("Explain Spring Boot")
+    .options(ChatOptionsBuilder.builder()
+        .withModel("gpt-4")
+        .withMaxTokens(1000)
+        .build())
+    .call()
+    .getResult()
+    .getOutput()
+    .getContent();
+----
+
+a|
+[source,java]
+----
+String response = agentClient.goal("Refactor UserService")
+    .workingDirectory("/path/to/project")
+    .options(ClaudeCodeAgentOptions.builder()
+        .model("claude-sonnet-4-0")
+        .maxTokens(8192)
+        .build())
+    .run()
+    .getResult();
+----
+
+|===
+
+== Key Differences
+
+=== Purpose and Scope
+
+[cols="1,1"]
+|===
+|ChatClient |AgentClient
+
+|**Conversational AI**
+- Text-in, text-out interactions
+- Stateless request/response model
+- No external tool access
+- Immediate responses
+
+|**Autonomous Goal Execution**
+- Goal-oriented execution
+- Multi-step workflows with planning
+- Full tool access (files, commands, web)
+- Variable execution time
+|===
+
+=== Input/Output Model
+
+[cols="1,1"]
+|===
+|ChatClient |AgentClient
+
+a|
+**Messages and Prompts**
+[source,java]
+----
+ChatResponse response = chatClient
+    .prompt("How do I create a REST API?")
+    .call();
+
+String content = response
+    .getResult()
+    .getOutput()
+    .getContent();
+----
+
+a|
+**Goals and Results**
+[source,java]
+----
+AgentClientResponse response = agentClient
+    .run("Create a REST API for User management");
+
+String result = response.getResult();
+boolean successful = response.isSuccessful();
+----
+
+|===
+
+=== Configuration Options
+
+[cols="1,1"]
+|===
+|ChatClient |AgentClient
+
+a|
+**Model Parameters**
+[source,java]
+----
+ChatOptions options = ChatOptionsBuilder.builder()
+    .withModel("gpt-4")
+    .withTemperature(0.7f)
+    .withMaxTokens(1000)
+    .build();
+
+chatClient.prompt("Generate code")
+    .options(options)
+    .call();
+----
+
+a|
+**Execution Environment**
+[source,java]
+----
+ClaudeCodeAgentOptions options = 
+    ClaudeCodeAgentOptions.builder()
+        .model("claude-sonnet-4-0")
+        .timeout(Duration.ofMinutes(10))
+        .build();
+
+agentClient.goal("Generate code")
+    .workingDirectory("/project/path")
+    .yolo(true)
+    .options(options)
+    .run();
+----
+
+|===
+
+== Spring Boot Integration
+
+Both integrate seamlessly with Spring Boot through auto-configuration:
+
+=== Configuration Classes
+
+[cols="1,1"]
+|===
+|ChatClient Configuration |AgentClient Configuration
+
+a|
+[source,java]
+----
+@Configuration
+public class ChatConfiguration {
+    
+    @Bean
+    public ChatClient chatClient(ChatModel chatModel) {
+        return ChatClient.create(chatModel);
+    }
+}
+----
+
+a|
+[source,java]
+----
+@Configuration
+public class AgentConfiguration {
+    
+    @Bean
+    public AgentClient agentClient(AgentModel agentModel) {
+        return AgentClient.create(agentModel);
+    }
+}
+----
+
+|===
+
+=== Controller Usage
+
+[cols="1,1"]
+|===
+|ChatClient in Controller |AgentClient in Controller
+
+a|
+[source,java]
+----
+@RestController
+public class ChatController {
+    
+    private final ChatClient chatClient;
+    
+    public ChatController(ChatClient chatClient) {
+        this.chatClient = chatClient;
+    }
+    
+    @PostMapping("/ask")
+    public String ask(@RequestBody String question) {
+        return chatClient.prompt(question)
+            .call()
+            .getResult()
+            .getOutput()
+            .getContent();
+    }
+}
+----
+
+a|
+[source,java]
+----
+@RestController
+public class TaskController {
+    
+    private final AgentClient agentClient;
+    
+    public TaskController(AgentClient agentClient) {
+        this.agentClient = agentClient;
+    }
+    
+    @PostMapping("/execute")
+    public String execute(@RequestBody String goal) {
+        AgentClientResponse response = agentClient.run(goal);
+        return response.getResult();
+    }
+}
+----
+
+|===
+
+== Response Handling
+
+=== Success/Failure Patterns
+
+[cols="1,1"]
+|===
+|ChatClient |AgentClient
+
+a|
+[source,java]
+----
+ChatResponse response = chatClient.prompt("Explain Java").call();
+
+// ChatClient responses are always "successful"
+// Error handling happens at transport level
+String content = response
+    .getResult()
+    .getOutput()
+    .getContent();
+----
+
+a|
+[source,java]
+----
+AgentClientResponse response = agentClient.run("Fix compilation errors");
+
+// Agents can fail or succeed
+if (response.isSuccessful()) {
+    System.out.println("Goal completed: " + response.getResult());
+} else {
+    System.err.println("Goal failed: " + response.getResult());
+}
+----
+
+|===
+
+=== Metadata Access
+
+[cols="1,1"]
+|===
+|ChatClient |AgentClient
+
+a|
+[source,java]
+----
+ChatResponse response = chatClient.prompt("Hello").call();
+
+// Access generation metadata
+Generation result = response.getResult();
+ChatGenerationMetadata metadata = result.getMetadata();
+
+String finishReason = metadata.getFinishReason();
+Usage usage = metadata.getUsage();
+----
+
+a|
+[source,java]
+----
+AgentClientResponse response = agentClient.run("Create tests");
+
+// Access execution metadata  
+AgentResponseMetadata metadata = response.getMetadata();
+
+Duration executionTime = metadata.getDuration();
+String agentModel = metadata.getModel();
+----
+
+|===
+
+== When to Use Each
+
+=== Use ChatClient When:
+
+* **Conversational interactions** - Q&A, explanations, content generation
+* **Text processing** - Summarization, translation, analysis
+* **Immediate responses** - Real-time chat, quick queries
+* **Stateless operations** - Each request is independent
+
+Example use cases:
+[source,java]
+----
+// Content generation
+String blogPost = chatClient.prompt("Write a blog post about Spring Security").call()...;
+
+// Data analysis
+String summary = chatClient.prompt("Summarize this sales report: " + data).call()...;
+
+// Q&A
+String answer = chatClient.prompt("How do I configure Spring Data JPA?").call()...;
+----
+
+=== Use AgentClient When:
+
+* **Goal execution** - Code generation, refactoring, debugging
+* **Multi-step workflows** - Complex development tasks requiring planning
+* **Tool interaction** - File manipulation, command execution, web research
+* **Project-specific work** - Tasks requiring codebase understanding
+
+Example use cases:
+[source,java]
+----
+// Code generation
+agentClient.run("Create a REST controller for User entity with CRUD operations");
+
+// Debugging
+agentClient.run("Find and fix the memory leak in the OrderService class");
+
+// Refactoring
+agentClient.run("Convert this project from JUnit 4 to JUnit 5");
+----
+
+== Migration Between APIs
+
+While the APIs are similar in structure, they serve different purposes. You typically won't migrate between them, but rather choose the appropriate one for each use case:
+
+[source,java]
+----
+@Service
+public class DevelopmentAssistantService {
+    
+    private final ChatClient chatClient;
+    private final AgentClient agentClient;
+    
+    public DevelopmentAssistantService(ChatClient chatClient, AgentClient agentClient) {
+        this.chatClient = chatClient;
+        this.agentClient = agentClient;
+    }
+    
+    // Use ChatClient for explanations
+    public String explainPattern(String patternName) {
+        return chatClient.prompt("Explain the " + patternName + " design pattern").call()
+            .getResult().getOutput().getContent();
+    }
+    
+    // Use AgentClient for implementation
+    public String implementPattern(String patternName, String context) {
+        return agentClient.run("Implement " + patternName + " pattern in " + context)
+            .getResult();
+    }
+}
+----
+
+== Best Practices
+
+=== Consistent Error Handling
+
+Both APIs benefit from consistent error handling patterns:
+
+[source,java]
+----
+@Component
+public class AIService {
+    
+    public String askQuestion(String question) {
+        try {
+            return chatClient.prompt(question).call()
+                .getResult().getOutput().getContent();
+        } catch (Exception e) {
+            log.error("Chat request failed: {}", e.getMessage());
+            throw new ServiceException("Unable to process question", e);
+        }
+    }
+    
+    public String executeTask(String goal) {
+        try {
+            AgentClientResponse response = agentClient.run(goal);
+            if (response.isSuccessful()) {
+                return response.getResult();
+            } else {
+                throw new GoalExecutionException("Goal failed: " + response.getResult());
+            }
+        } catch (Exception e) {
+            log.error("Goal execution failed: {}", e.getMessage());
+            throw new ServiceException("Unable to execute goal", e);
+        }
+    }
+}
+----
+
+=== Resource Management
+
+Both clients are thread-safe and designed for reuse:
+
+[source,java]
+----
+@Configuration
+public class AIConfiguration {
+    
+    // Both clients are singleton beans - thread-safe and efficient
+    @Bean
+    public ChatClient chatClient(ChatModel chatModel) {
+        return ChatClient.create(chatModel);
+    }
+    
+    @Bean  
+    public AgentClient agentClient(AgentModel agentModel) {
+        return AgentClient.create(agentModel);
+    }
+}
+----
+
+== Summary
+
+AgentClient and ChatClient share the same Spring AI design philosophy and fluent API patterns, making them familiar to Spring developers. The key difference is their purpose: ChatClient for conversational AI interactions, AgentClient for autonomous goal execution.
+
+Both APIs integrate seamlessly into Spring Boot applications and follow established Spring patterns for configuration, dependency injection, and error handling.
+
+== Next Steps
+
+* Explore the full xref:api/agentclient.adoc[AgentClient API] documentation
+* Learn about specific agent implementations in xref:api/claude-code-sdk.adoc[Claude Code SDK]
+* See practical examples in xref:samples.adoc[Sample Agents]

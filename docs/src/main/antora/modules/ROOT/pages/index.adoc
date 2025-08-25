@@ -1,0 +1,118 @@
+= Spring AI Agents
+:page-title: Spring AI Agents
+:toc: left
+:tabsize: 2
+:sectnums:
+
+Spring AI Agents is a community-maintained library that brings autonomous agents into mainstream Java enterprise development, making them as easy to use as any other Spring component.
+
+== Overview
+
+This library provides a unified abstraction for working with autonomous coding agents through the familiar Spring AI patterns. For now, autonomous agents are commonly packaged as CLI tools with various wrappers on top. We have taken inspiration from https://github.com/anthropics/claude-code-sdk-python[Claude Code SDK Python] and https://docs.anthropic.com/en/docs/claude-code/sdk[Anthropic's SDK documentation]. We have made autonomous agents portable and easy to consume for Java developers across a wide range of agent providers. More to come!
+
+== What Is an Agent?
+
+> **"An agent is AI-powered software that accomplishes a goal. Period."**
+> — Dharmesh Shah, HubSpot CTO and Agents.ai co-founder
+
+An **agent** is any AI system that can pursue and accomplish a goal. This broad definition covers many patterns, from conversational assistants to specialized developer tools.
+
+As the saying goes: *"An agent is a LLM in a loop"* — but the sophistication lies in how that loop is structured.
+
+Anthropic has identified https://www.anthropic.com/engineering/building-effective-agents[four key patterns for building effective agents]:
+
+* **Prompt chaining** — Break complex tasks into simpler, sequential steps
+* **Routing** — Direct queries to specialized agents or tools
+* **Parallelization** — Execute multiple tasks simultaneously  
+* **Evaluator-optimizer workflows** — Use agents to evaluate and improve outputs iteratively. This is the type of loop that agents perform to achieve goals effectively, in addition to many other techniques such as planning
+
+Spring AI has implemented these patterns as first-class abstractions. You can explore them in the https://docs.spring.io/spring-ai/reference/1.1-SNAPSHOT/api/effective-agents.html[Spring AI Effective Agents documentation] and see working examples in the https://github.com/spring-projects/spring-ai-examples/tree/main/agentic-patterns[agentic-patterns repository].
+
+== What Are Autonomous Agents?
+
+Autonomous agents are a specific type of agent that can achieve goals with minimal or no human supervision.
+
+Unlike traditional chat models that rely on back-and-forth human prompting, autonomous agents can:
+
+* **Plan and execute workflows** — break down a goal into steps and follow them
+* **Use tools and commands** — run shell commands, edit files, query APIs
+* **Understand codebases** — navigate, refactor, and extend complex projects
+* **Make decisions** — choose strategies and adapt as they progress
+
+=== Human-in-the-Loop vs Autonomous
+
+In practice, many workflows combine both:
+
+* **Human-in-the-loop agents** (e.g. Copilot, ChatGPT) are best for exploration, clarification, and oversight.
+* **Autonomous agents** are best for carrying out well-defined goals end-to-end inside developer workflows.
+
+=== A Progression of Agent Patterns
+
+Anthropic and others have shown that effective agents emerge from combining foundational patterns:
+
+* **Prompt chaining** — breaking problems into steps
+* **Routing** — choosing the right tool or agent
+* **Parallelization** — working on multiple subtasks at once
+* **Evaluator–optimizer workflows** — iterating until the goal is met
+
+Autonomous agents represent a **progression of these patterns**. In a very simple sense, they are *"LLMs in a loop"* — running, evaluating, and optimizing until the work is complete.
+
+A concrete example of this pattern is the "stupid 'LLM in a loop executing bash commands'" approach used by https://github.com/SWE-agent/mini-swe-agent[SWE-agent], which despite its humble description, proves remarkably effective at solving real software engineering problems.
+
+👉 **Spring AI Agents focuses on autonomous coding agents** — not because they replace human-in-the-loop tools, but because they complement them. By making autonomous agents portable and easy to consume for Java developers, we enable AI to be embedded throughout the development workflow: automated code generation and refactoring, CI/CD integration with pull request reviews and build optimization, comprehensive test suite generation, API documentation creation, database schema evolution and query optimization, security vulnerability scanning, and multi-agent collaborative workflows for complex development tasks. See practical examples in our xref:samples.adoc[Sample Agents] documentation.
+
+== Key Features
+
+* **ChatClient-style API** - Same fluent patterns Spring developers already know
+* **Multiple agent providers** - Claude Code, Gemini CLI, SWE Agent support (more to come!)
+* **Fluent API design** - Clean, intuitive interface following Spring patterns
+* **Spring Boot ready** - Auto-configuration and dependency injection support
+* **Production essentials** - Built-in error handling, timeouts, and metadata
+
+== Agent Providers
+
+Spring AI Agents supports multiple autonomous agent platforms:
+
+[cols="1,2,2"]
+|===
+|Provider |Description |Best For
+
+|Claude Code CLI
+|Anthropic's autonomous coding agent
+|General software development, debugging, refactoring
+
+|Gemini CLI  
+|Google's command-line coding agent
+|Google ecosystem integration, specialized tasks
+
+|SWE Agent
+|Software engineering benchmark agent
+|Research tasks, systematic problem solving
+|===
+
+== Requirements
+
+* Java 17 or higher
+* Maven 3.6.3 or higher
+* Agent CLI tools installed (Claude, Gemini, etc.)
+* Valid API keys for your chosen providers
+
+== Getting Started
+
+Get started using Spring AI Agents by following our xref:getting-started.adoc[Getting Started] guide.
+
+== Documentation
+
+* xref:api/agentclient.adoc[AgentClient API] - Learn the core API for running autonomous tasks
+* xref:api/agentclient-vs-chatclient.adoc[AgentClient vs ChatClient] - See how AgentClient follows ChatClient patterns
+* xref:api/claude-code-sdk.adoc[Claude Code SDK] - Java integration with Claude Code CLI
+* xref:api/gemini-cli-sdk.adoc[Gemini CLI SDK] - Java integration with Gemini CLI
+* xref:samples.adoc[Sample Agents] - Real-world agent examples and patterns
+
+== Contributing
+
+We welcome contributions to Spring AI Agents! Please see our xref:contribution-guidelines.adoc[Contribution Guidelines] for more information on how to get involved.
+
+== The Vision
+
+Spring AI Agents brings autonomous code reasoning and tool use into mainstream Java enterprise development. By following Spring AI's proven patterns and conventions, we make autonomous agents accessible to every Spring developer while maintaining the full power that makes autonomous agents revolutionary for software development tasks.

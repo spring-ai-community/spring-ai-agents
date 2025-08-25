@@ -1,0 +1,665 @@
+= Gemini CLI SDK
+:page-title: Gemini CLI SDK Documentation
+:toc: left
+:tabsize: 2
+:sectnums:
+
+The Gemini CLI SDK provides Java integration with Google's Gemini command-line coding agent, bringing Google's AI coding capabilities to Spring applications.
+
+== Overview
+
+Gemini CLI is Google's autonomous coding agent that can understand and modify codebases using Google's Gemini language models. The Spring AI Gemini integration makes these capabilities accessible from Java applications.
+
+== Installation
+
+=== Prerequisites
+
+1. **Install Gemini CLI**:
++
+[source,bash]
+----
+npm install -g @google/generative-ai-cli
+----
+
+2. **Set API Key**:
++
+[source,bash]
+----
+export GEMINI_API_KEY="your-api-key-here"
+----
++
+Get your API key from the https://ai.google.dev/[Google AI Studio].
+
+3. **Verify Installation**:
++
+[source,bash]
+----
+gemini --version
+----
+
+=== Maven Dependencies
+
+Add the following dependencies to your `pom.xml`:
+
+[source,xml]
+----
+<dependencies>
+    <!-- Core AgentClient API -->
+    <dependency>
+        <groupId>org.springaicommunity.agents</groupId>
+        <artifactId>spring-ai-agent-client</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </dependency>
+    
+    <!-- Gemini CLI integration -->
+    <dependency>
+        <groupId>org.springaicommunity.agents</groupId>
+        <artifactId>spring-ai-gemini</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </dependency>
+</dependencies>
+----
+
+== Basic Usage
+
+=== Quick Start
+
+[source,java]
+----
+import org.springaicommunity.agents.client.AgentClient;
+import org.springaicommunity.agents.client.AgentClientResponse;
+import org.springaicommunity.agents.gemini.GeminiAgentModel;
+import org.springaicommunity.agents.gemini.GeminiAgentOptions;
+import org.springaicommunity.agents.gemini.sdk.GeminiClient;
+
+import java.nio.file.Paths;
+
+public class GeminiExample {
+    public static void main(String[] args) {
+        // 1. Create the Gemini client
+        GeminiClient geminiClient = GeminiClient.create(
+            Paths.get(System.getProperty("user.dir"))
+        );
+        
+        // 2. Configure agent options
+        GeminiAgentOptions options = GeminiAgentOptions.builder()
+            .model("gemini-1.5-pro")
+            .yolo(true)
+            .build();
+            
+        // 3. Create the agent model
+        GeminiAgentModel agentModel = new GeminiAgentModel(geminiClient, options);
+        
+        // 4. Create AgentClient
+        AgentClient agentClient = AgentClient.create(agentModel);
+        
+        // 5. Execute a goal
+        AgentClientResponse response = agentClient.run(
+            "Create a simple Spring Boot REST controller for managing books"
+        );
+        
+        System.out.println("Result: " + response.getResult());
+        System.out.println("Success: " + response.isSuccessful());
+    }
+}
+----
+
+== Configuration
+
+=== GeminiClient
+
+The `GeminiClient` manages communication with the Gemini CLI:
+
+[source,java]
+----
+// Create with default working directory
+GeminiClient client = GeminiClient.create();
+
+// Create with specific working directory
+Path projectPath = Paths.get("/path/to/project");
+GeminiClient client = GeminiClient.create(projectPath);
+
+// Create with custom Gemini command path
+GeminiClient client = GeminiClient.create(
+    projectPath,
+    "/custom/path/to/gemini"
+);
+----
+
+=== GeminiAgentOptions
+
+Configure Gemini-specific behavior:
+
+[source,java]
+----
+GeminiAgentOptions options = GeminiAgentOptions.builder()
+    // Model selection
+    .model("gemini-1.5-pro")                // or "gemini-1.5-flash"
+    
+    // Execution settings
+    .yolo(true)                             // Allow modifications
+    .timeout(Duration.ofMinutes(10))        // Execution timeout
+    .maxTokens(8192)                        // Response length limit
+    
+    // Output preferences
+    .verbose(true)                          // Detailed logging
+    .outputFormat("json")                   // Structured output
+    
+    // Google-specific options
+    .temperature(0.3)                       // Creativity level
+    .candidateCount(1)                      // Number of response candidates
+    
+    .build();
+----
+
+=== Model Options
+
+Available Gemini models:
+
+[cols="1,2,1"]
+|===
+|Model |Description |Best For
+
+|`gemini-1.5-pro`
+|Most capable model with 1M token context window
+|Large codebases, complex refactoring, architectural changes
+
+|`gemini-1.5-flash`
+|Faster model optimized for speed and efficiency
+|Quick fixes, simple tasks, rapid iteration
+
+|`gemini-1.0-pro`
+|Previous generation model
+|Legacy support, specific use cases
+|===
+
+== Advanced Features
+
+=== Working Directory Management
+
+Gemini CLI operates within a specific directory context:
+
+[source,java]
+----
+// Configure working directory via client
+GeminiClient client = GeminiClient.create(
+    Paths.get("/path/to/project")
+);
+
+// Or via AgentClient fluent API
+AgentClientResponse response = agentClient
+    .goal("Add unit tests to the ProductService")
+    .workingDirectory("/path/to/project")
+    .run();
+----
+
+=== YOLO Mode
+
+Control whether Gemini can make changes without confirmation:
+
+[source,java]
+----
+// Development mode - allow changes
+GeminiAgentOptions devOptions = GeminiAgentOptions.builder()
+    .yolo(true)
+    .build();
+
+// Analysis mode - read-only
+GeminiAgentOptions analysisOptions = GeminiAgentOptions.builder()
+    .yolo(false)
+    .build();
+----
+
+=== Temperature and Creativity
+
+Control the creativity level of responses:
+
+[source,java]
+----
+// Conservative (more deterministic)
+GeminiAgentOptions conservativeOptions = GeminiAgentOptions.builder()
+    .temperature(0.1)
+    .build();
+
+// Balanced (default)
+GeminiAgentOptions balancedOptions = GeminiAgentOptions.builder()
+    .temperature(0.3)
+    .build();
+
+// Creative (more diverse)
+GeminiAgentOptions creativeOptions = GeminiAgentOptions.builder()
+    .temperature(0.7)
+    .build();
+----
+
+=== Context Window Optimization
+
+Leverage Gemini's large context window for complex projects:
+
+[source,java]
+----
+GeminiAgentOptions largeContextOptions = GeminiAgentOptions.builder()
+    .model("gemini-1.5-pro")  // 1M token context
+    .maxTokens(100000)        // Large output
+    .build();
+
+// Handle entire project refactoring
+AgentClientResponse response = agentClient
+    .goal("Refactor this entire Spring Boot application to use reactive programming")
+    .options(largeContextOptions)
+    .run();
+----
+
+== Error Handling
+
+=== Common Exceptions
+
+[source,java]
+----
+try {
+    AgentClientResponse response = agentClient.run("Complex refactoring goal");
+    
+    if (!response.isSuccessful()) {
+        System.err.println("Goal failed: " + response.getResult());
+    }
+    
+} catch (GeminiExecutionException e) {
+    // Gemini CLI process failed
+    System.err.println("Gemini execution error: " + e.getMessage());
+    
+} catch (GeminiNotFoundException e) {
+    // Gemini CLI not installed or not in PATH
+    System.err.println("Gemini CLI not found: " + e.getMessage());
+    
+} catch (AgentTimeoutException e) {
+    // Goal exceeded configured timeout
+    System.err.println("Goal timed out: " + e.getTimeout());
+    
+} catch (AgentAuthenticationException e) {
+    // Invalid or missing API key
+    System.err.println("Authentication failed: " + e.getMessage());
+    
+} catch (GeminiQuotaExceededException e) {
+    // API quota exceeded
+    System.err.println("Quota exceeded: " + e.getMessage());
+}
+----
+
+=== Retry Logic with Exponential Backoff
+
+[source,java]
+----
+@Service
+public class GeminiServiceWithRetry {
+    
+    private final AgentClient agentClient;
+    private final RetryTemplate retryTemplate;
+    
+    public GeminiServiceWithRetry(AgentClient agentClient) {
+        this.agentClient = agentClient;
+        this.retryTemplate = RetryTemplate.builder()
+            .maxAttempts(3)
+            .exponentialBackoff(1000, 2, 10000)
+            .retryOn(GeminiQuotaExceededException.class)
+            .retryOn(GeminiExecutionException.class)
+            .build();
+    }
+    
+    public String generateCode(String requirements) {
+        return retryTemplate.execute(context -> {
+            AgentClientResponse response = agentClient.run(requirements);
+            
+            if (!response.isSuccessful()) {
+                throw new GeminiExecutionException("Goal failed: " + response.getResult());
+            }
+            
+            return response.getResult();
+        });
+    }
+}
+----
+
+== Spring Boot Integration
+
+=== Auto-Configuration
+
+Create a configuration class for Gemini:
+
+[source,java]
+----
+@Configuration
+@ConditionalOnProperty(name = "spring.ai.agent.gemini.enabled", havingValue = "true", matchIfMissing = true)
+public class GeminiConfiguration {
+    
+    @Bean
+    @ConditionalOnMissingBean
+    public GeminiClient geminiClient(@Value("${spring.ai.agent.gemini.working-directory:#{systemProperties['user.dir']}}") String workingDir) {
+        return GeminiClient.create(Paths.get(workingDir));
+    }
+    
+    @Bean
+    @ConditionalOnMissingBean
+    public GeminiAgentModel geminiAgentModel(
+            GeminiClient client,
+            GeminiAgentOptions options) {
+        return new GeminiAgentModel(client, options);
+    }
+    
+    @Bean
+    @ConditionalOnMissingBean
+    public GeminiAgentOptions geminiAgentOptions(GeminiProperties properties) {
+        return GeminiAgentOptions.builder()
+            .model(properties.getModel())
+            .yolo(properties.isYolo())
+            .timeout(properties.getTimeout())
+            .maxTokens(properties.getMaxTokens())
+            .temperature(properties.getTemperature())
+            .verbose(properties.isVerbose())
+            .build();
+    }
+    
+    @Bean
+    public AgentClient agentClient(GeminiAgentModel agentModel) {
+        return AgentClient.create(agentModel);
+    }
+}
+----
+
+=== Application Properties
+
+Configure Gemini via `application.yml`:
+
+[source,yaml]
+----
+spring:
+  ai:
+    agent:
+      gemini:
+        enabled: true
+        model: gemini-1.5-pro
+        working-directory: /path/to/project
+        yolo: false
+        timeout: PT10M
+        max-tokens: 8192
+        temperature: 0.3
+        verbose: true
+----
+
+Or `application.properties`:
+
+[source,properties]
+----
+spring.ai.agent.gemini.enabled=true
+spring.ai.agent.gemini.model=gemini-1.5-pro
+spring.ai.agent.gemini.working-directory=/path/to/project
+spring.ai.agent.gemini.yolo=false
+spring.ai.agent.gemini.timeout=PT10M
+spring.ai.agent.gemini.max-tokens=8192
+spring.ai.agent.gemini.temperature=0.3
+spring.ai.agent.gemini.verbose=true
+----
+
+== Google Cloud Integration
+
+=== Service Account Authentication
+
+For production deployments using Google Cloud:
+
+[source,yaml]
+----
+spring:
+  ai:
+    agent:
+      gemini:
+        authentication:
+          type: service-account
+          service-account-file: /path/to/service-account.json
+          project-id: your-gcp-project-id
+----
+
+[source,java]
+----
+@Configuration
+@ConditionalOnProperty(name = "spring.ai.agent.gemini.authentication.type", havingValue = "service-account")
+public class GeminiCloudConfiguration {
+    
+    @Bean
+    public GoogleCredentials geminiCredentials(
+            @Value("${spring.ai.agent.gemini.authentication.service-account-file}") String serviceAccountFile) 
+            throws IOException {
+        return ServiceAccountCredentials.fromStream(
+            new FileInputStream(serviceAccountFile)
+        );
+    }
+    
+    @Bean
+    public GeminiClient geminiCloudClient(GoogleCredentials credentials) {
+        return GeminiClient.builder()
+            .credentials(credentials)
+            .build();
+    }
+}
+----
+
+== Best Practices
+
+=== Goal Formulation for Google AI
+
+Leverage Gemini's strengths in understanding context and patterns:
+
+[source,java]
+----
+// Good: Leverage Google's pattern recognition
+agentClient.run("Apply Google's Java style guide to this codebase and fix all violations");
+
+// Good: Use Gemini's architectural understanding
+agentClient.run("Convert this monolithic application to microservices following Google Cloud best practices");
+
+// Good: Leverage large context window
+agentClient.run("Analyze this entire codebase and identify all security vulnerabilities");
+----
+
+=== Model Selection Strategy
+
+Choose models based on goal complexity:
+
+[source,java]
+----
+@Service
+public class GeminiTaskRouter {
+    
+    public String executeGoal(String goal, GoalComplexity complexity) {
+        GeminiAgentOptions options = switch (complexity) {
+            case SIMPLE -> GeminiAgentOptions.builder()
+                .model("gemini-1.5-flash")  // Fast for simple tasks
+                .temperature(0.1)
+                .build();
+                
+            case MODERATE -> GeminiAgentOptions.builder()
+                .model("gemini-1.5-pro")    // Balanced
+                .temperature(0.3)
+                .build();
+                
+            case COMPLEX -> GeminiAgentOptions.builder()
+                .model("gemini-1.5-pro")    // Full power for complex tasks
+                .temperature(0.1)           // Conservative for accuracy
+                .maxTokens(50000)           // Large output
+                .timeout(Duration.ofMinutes(30))
+                .build();
+        };
+        
+        return agentClient.goal(goal).options(options).run().getResult();
+    }
+}
+----
+
+=== Quota Management
+
+Monitor and manage API quotas:
+
+[source,java]
+----
+@Component
+public class GeminiQuotaManager {
+    
+    private final AtomicInteger requestCount = new AtomicInteger(0);
+    private final AtomicLong lastResetTime = new AtomicLong(System.currentTimeMillis());
+    
+    @Value("${spring.ai.agent.gemini.quota.requests-per-minute:60}")
+    private int requestsPerMinute;
+    
+    public boolean canMakeRequest() {
+        long currentTime = System.currentTimeMillis();
+        long timeSinceReset = currentTime - lastResetTime.get();
+        
+        // Reset counter every minute
+        if (timeSinceReset > 60000) {
+            requestCount.set(0);
+            lastResetTime.set(currentTime);
+        }
+        
+        return requestCount.get() < requestsPerMinute;
+    }
+    
+    public void recordRequest() {
+        requestCount.incrementAndGet();
+    }
+}
+----
+
+== Monitoring and Observability
+
+=== Metrics Collection
+
+[source,java]
+----
+@Component
+public class GeminiMetrics {
+    
+    private final MeterRegistry meterRegistry;
+    private final Counter requestCounter;
+    private final Timer requestTimer;
+    private final Gauge quotaGauge;
+    
+    public GeminiMetrics(MeterRegistry meterRegistry, GeminiQuotaManager quotaManager) {
+        this.meterRegistry = meterRegistry;
+        this.requestCounter = Counter.builder("gemini.requests.total")
+            .tag("provider", "gemini")
+            .register(meterRegistry);
+        this.requestTimer = Timer.builder("gemini.request.duration")
+            .register(meterRegistry);
+        this.quotaGauge = Gauge.builder("gemini.quota.remaining")
+            .register(meterRegistry, quotaManager, GeminiQuotaManager::getRemainingRequests);
+    }
+    
+    public AgentClientResponse executeWithMetrics(String goal) {
+        return Timer.Sample.start(meterRegistry)
+            .stop(requestTimer)
+            .recordCallable(() -> {
+                requestCounter.increment();
+                return agentClient.run(goal);
+            });
+    }
+}
+----
+
+== Troubleshooting
+
+=== Common Issues
+
+**Gemini CLI Not Found**
+
+[source,bash]
+----
+# Verify installation
+gemini --version
+
+# Check PATH
+which gemini  # macOS/Linux
+where gemini  # Windows
+
+# Reinstall if needed
+npm install -g @google/generative-ai-cli
+----
+
+**API Key Issues**
+
+[source,bash]
+----
+# Check environment variable
+echo $GEMINI_API_KEY
+
+# Test with Gemini CLI directly
+gemini --help
+----
+
+**Quota Exceeded**
+
+Monitor your usage in Google AI Studio and implement quota management:
+
+[source,java]
+----
+@Component
+public class GeminiHealthIndicator implements HealthIndicator {
+    
+    private final GeminiQuotaManager quotaManager;
+    
+    @Override
+    public Health health() {
+        if (quotaManager.canMakeRequest()) {
+            return Health.up()
+                .withDetail("quota", "Available")
+                .withDetail("remaining", quotaManager.getRemainingRequests())
+                .build();
+        } else {
+            return Health.down()
+                .withDetail("quota", "Exceeded")
+                .withDetail("resetTime", quotaManager.getNextResetTime())
+                .build();
+        }
+    }
+}
+----
+
+=== Debugging
+
+Enable debug logging:
+
+[source,yaml]
+----
+logging:
+  level:
+    org.springaicommunity.agents.gemini: DEBUG
+    org.springaicommunity.agents.client: DEBUG
+----
+
+== Comparison with Claude Code
+
+While both are autonomous coding agents, they have different strengths:
+
+[cols="1,1,1"]
+|===
+|Feature |Gemini CLI |Claude Code
+
+|Context Window
+|1M tokens (gemini-1.5-pro)
+|~200K tokens
+
+|Speed
+|Very fast with gemini-1.5-flash
+|Consistent performance
+
+|Integration
+|Google Cloud ecosystem
+|Anthropic ecosystem
+
+|Best For
+|Large codebases, Google Cloud
+|General development, detailed reasoning
+|===
+
+== Next Steps
+
+* Compare different agent providers in xref:api/claude-code-sdk.adoc[Claude Code SDK]
+* Learn the unified API in xref:api/agentclient.adoc[AgentClient API]
+* See practical examples in xref:samples.adoc[Sample Agents]

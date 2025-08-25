@@ -1,0 +1,1363 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Contribution Guidelines :: Spring AI Agents Reference</title>
+    <link rel="canonical" href="https://spring-ai-community.github.io/spring-ai-agents/spring-ai-agents/main/contribution-guidelines.html">
+    <meta name="generator" content="Antora 3.1.12">
+    <link rel="stylesheet" href="../../_/css/site.css">
+  </head>
+  <body class="article">
+<header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="https://spring-ai-community.github.io/spring-ai-agents">Spring AI Agents Reference</a>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="spring-ai-agents" data-version="main">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="index.html">Spring AI Agents</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="index.html">Overview</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="getting-started.html">Getting Started</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="api/agentclient.html">AgentClient API</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="api/agentclient-vs-chatclient.html">AgentClient vs ChatClient</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="api/claude-code-sdk.html">Claude Code SDK</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="api/gemini-cli-sdk.html">Gemini CLI SDK</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="samples.html">Sample Agents</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="1">
+    <a class="nav-link" href="contribution-guidelines.html">Contribution Guidelines</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Spring AI Agents</span>
+    <span class="version">main</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="index.html">Spring AI Agents</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="index.html">main</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="index.html">Spring AI Agents</a></li>
+    <li><a href="contribution-guidelines.html">Contribution Guidelines</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="file:///home/mark/claude/bud/experiments/spring-ai-agents/community-output/docs/src/main/antora/modules/ROOT/pages/contribution-guidelines.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Contribution Guidelines</h1>
+<div id="toc" class="toc">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#_getting_started">1. Getting Started</a>
+<ul class="sectlevel2">
+<li><a href="#_prerequisites">1.1. Prerequisites</a></li>
+<li><a href="#_development_environment_setup">1.2. Development Environment Setup</a></li>
+</ul>
+</li>
+<li><a href="#_types_of_contributions">2. Types of Contributions</a>
+<ul class="sectlevel2">
+<li><a href="#_1_bug_fixes">2.1. 1. Bug Fixes</a></li>
+<li><a href="#_2_new_agent_integrations">2.2. 2. New Agent Integrations</a></li>
+<li><a href="#_3_feature_enhancements">2.3. 3. Feature Enhancements</a></li>
+<li><a href="#_4_documentation">2.4. 4. Documentation</a></li>
+<li><a href="#_5_testing">2.5. 5. Testing</a></li>
+</ul>
+</li>
+<li><a href="#_development_process">3. Development Process</a>
+<ul class="sectlevel2">
+<li><a href="#_code_standards">3.1. Code Standards</a></li>
+<li><a href="#_git_workflow">3.2. Git Workflow</a></li>
+</ul>
+</li>
+<li><a href="#_testing_guidelines">4. Testing Guidelines</a>
+<ul class="sectlevel2">
+<li><a href="#_test_categories">4.1. Test Categories</a></li>
+<li><a href="#_writing_good_tests">4.2. Writing Good Tests</a></li>
+<li><a href="#_cross_platform_testing">4.3. Cross-Platform Testing</a></li>
+</ul>
+</li>
+<li><a href="#_adding_new_agent_integrations">5. Adding New Agent Integrations</a>
+<ul class="sectlevel2">
+<li><a href="#_research_phase">5.1. Research Phase</a></li>
+<li><a href="#_implementation_pattern">5.2. Implementation Pattern</a></li>
+<li><a href="#_integration_checklist">5.3. Integration Checklist</a></li>
+</ul>
+</li>
+<li><a href="#_documentation_standards">6. Documentation Standards</a>
+<ul class="sectlevel2">
+<li><a href="#_asciidoc_guidelines">6.1. AsciiDoc Guidelines</a></li>
+<li><a href="#_api_reference">6.2. API Reference</a></li>
+<li><a href="#_code_examples">6.3. Code Examples</a></li>
+</ul>
+</li>
+<li><a href="#_community_support">7. Community Support</a>
+<ul class="sectlevel2">
+<li><a href="#_getting_help">7.1. Getting Help</a></li>
+<li><a href="#_reporting_issues">7.2. Reporting Issues</a></li>
+<li><a href="#_feature_requests">7.3. Feature Requests</a></li>
+</ul>
+</li>
+<li><a href="#_release_process">8. Release Process</a>
+<ul class="sectlevel2">
+<li><a href="#_version_strategy">8.1. Version Strategy</a></li>
+<li><a href="#_release_checklist">8.2. Release Checklist</a></li>
+</ul>
+</li>
+<li><a href="#_code_of_conduct">9. Code of Conduct</a>
+<ul class="sectlevel2">
+<li><a href="#_enforcement">9.1. Enforcement</a></li>
+</ul>
+</li>
+<li><a href="#_licensing">10. Licensing</a></li>
+<li><a href="#_next_steps">11. Next Steps</a></li>
+</ul>
+</div>
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p>We welcome contributions to Spring AI Agents! This guide will help you get started with contributing to this community-maintained project.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_getting_started"><a class="anchor" href="#_getting_started"></a>1. Getting Started</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_prerequisites"><a class="anchor" href="#_prerequisites"></a>1.1. Prerequisites</h3>
+<div class="paragraph">
+<p>Before contributing, ensure you have:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Java 17 or higher</p>
+</li>
+<li>
+<p>Maven 3.6.3 or higher</p>
+</li>
+<li>
+<p>Git for version control</p>
+</li>
+<li>
+<p>An IDE with Java support (IntelliJ IDEA, Eclipse, VS Code)</p>
+</li>
+<li>
+<p>Agent CLI tools installed (Claude Code, Gemini CLI, etc.)</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_development_environment_setup"><a class="anchor" href="#_development_environment_setup"></a>1.2. Development Environment Setup</h3>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><strong>Fork and Clone the Repository</strong>:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">git clone https://github.com/yourusername/spring-ai-agents.git
+cd spring-ai-agents</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p><strong>Build the Project</strong>:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">mvn clean install</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p><strong>Run Tests</strong>:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash"># Run unit and smoke tests (fast)
+mvn test
+
+# Run all tests including integration tests
+mvn test -Pfailsafe</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p><strong>Verify Agent CLIs</strong>:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash"># Verify Claude Code CLI
+claude --version
+
+# Verify Gemini CLI
+gemini --version</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_types_of_contributions"><a class="anchor" href="#_types_of_contributions"></a>2. Types of Contributions</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_1_bug_fixes"><a class="anchor" href="#_1_bug_fixes"></a>2.1. 1. Bug Fixes</h3>
+<div class="paragraph">
+<p>Help us improve stability and reliability:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Bug Reports</strong>: Use GitHub Issues with detailed reproduction steps</p>
+</li>
+<li>
+<p><strong>Bug Fixes</strong>: Submit pull requests with tests demonstrating the fix</p>
+</li>
+<li>
+<p><strong>Regression Prevention</strong>: Add tests for edge cases and error conditions</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_2_new_agent_integrations"><a class="anchor" href="#_2_new_agent_integrations"></a>2.2. 2. New Agent Integrations</h3>
+<div class="paragraph">
+<p>Expand the ecosystem by adding new autonomous agents:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Agent Research</strong>: Evaluate new CLI agents for integration potential</p>
+</li>
+<li>
+<p><strong>SDK Development</strong>: Create Java SDKs following our established patterns</p>
+</li>
+<li>
+<p><strong>AgentModel Implementation</strong>: Build Spring AI integration adapters</p>
+</li>
+<li>
+<p><strong>Documentation</strong>: Provide comprehensive usage documentation</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_3_feature_enhancements"><a class="anchor" href="#_3_feature_enhancements"></a>2.3. 3. Feature Enhancements</h3>
+<div class="paragraph">
+<p>Improve existing functionality:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>API Improvements</strong>: Enhance the AgentClient API based on user feedback</p>
+</li>
+<li>
+<p><strong>Performance Optimizations</strong>: Improve response times and resource usage</p>
+</li>
+<li>
+<p><strong>Configuration Options</strong>: Add new configuration capabilities</p>
+</li>
+<li>
+<p><strong>Error Handling</strong>: Improve error messages and recovery mechanisms</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_4_documentation"><a class="anchor" href="#_4_documentation"></a>2.4. 4. Documentation</h3>
+<div class="paragraph">
+<p>Help others use the library effectively:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>API Documentation</strong>: Improve method and class documentation</p>
+</li>
+<li>
+<p><strong>Usage Examples</strong>: Add practical code examples and tutorials</p>
+</li>
+<li>
+<p><strong>Troubleshooting Guides</strong>: Document common issues and solutions</p>
+</li>
+<li>
+<p><strong>Architecture Documentation</strong>: Explain design decisions and patterns</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_5_testing"><a class="anchor" href="#_5_testing"></a>2.5. 5. Testing</h3>
+<div class="paragraph">
+<p>Improve code quality and reliability:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Unit Tests</strong>: Add tests for new functionality</p>
+</li>
+<li>
+<p><strong>Integration Tests</strong>: Test end-to-end agent interactions</p>
+</li>
+<li>
+<p><strong>Performance Tests</strong>: Benchmark and optimize critical paths</p>
+</li>
+<li>
+<p><strong>Cross-Platform Tests</strong>: Ensure compatibility across operating systems</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_development_process"><a class="anchor" href="#_development_process"></a>3. Development Process</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_code_standards"><a class="anchor" href="#_code_standards"></a>3.1. Code Standards</h3>
+<div class="paragraph">
+<p>Follow these coding conventions:</p>
+</div>
+<div class="sect3">
+<h4 id="_java_code_style"><a class="anchor" href="#_java_code_style"></a>3.1.1. Java Code Style</h4>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Formatting</strong>: Use Spring Java Format (automatically applied via Maven plugin)</p>
+</li>
+<li>
+<p><strong>Naming</strong>: Follow standard Java naming conventions</p>
+</li>
+<li>
+<p><strong>Documentation</strong>: Include Javadoc for all public APIs</p>
+</li>
+<li>
+<p><strong>Imports</strong>: Organize imports and avoid wildcard imports</p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">// Good example
+public class ClaudeCodeAgentModel implements AgentModel&lt;AgentRequest, AgentResponse&gt; {
+
+    private final ClaudeCodeClient client;
+    private final ClaudeCodeAgentOptions options;
+
+    /**
+     * Creates a new Claude Code agent model with the specified client and options.
+     *
+     * @param client the Claude Code client for CLI communication
+     * @param options configuration options for the agent
+     * @throws IllegalArgumentException if client or options are null
+     */
+    public ClaudeCodeAgentModel(ClaudeCodeClient client, ClaudeCodeAgentOptions options) {
+        this.client = Objects.requireNonNull(client, "Client cannot be null");
+        this.options = Objects.requireNonNull(options, "Options cannot be null");
+    }
+
+    // Implementation...
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_test_naming_conventions"><a class="anchor" href="#_test_naming_conventions"></a>3.1.2. Test Naming Conventions</h4>
+<div class="paragraph">
+<p>Follow our standardized test naming:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Unit Tests</strong>: End with <code>Test</code> (e.g., <code>AgentClientTest</code>)</p>
+</li>
+<li>
+<p><strong>Smoke Tests</strong>: Include <code>Smoke</code> in the name (e.g., <code>ClaudeQuerySmokeTest</code>)</p>
+</li>
+<li>
+<p><strong>Integration Tests</strong>: End with <code>IT</code> (e.g., <code>ClaudeCodeClientIT</code>)</p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">// Unit test example
+class AgentClientTest {
+
+    @Test
+    void shouldCreateClientWithValidModel() {
+        // Test implementation
+    }
+}
+
+// Integration test example
+class ClaudeCodeClientIT {
+
+    @Test
+    void shouldExecuteSimpleTaskSuccessfully() {
+        // Test implementation
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_git_workflow"><a class="anchor" href="#_git_workflow"></a>3.2. Git Workflow</h3>
+<div class="sect3">
+<h4 id="_branch_naming"><a class="anchor" href="#_branch_naming"></a>3.2.1. Branch Naming</h4>
+<div class="paragraph">
+<p>Use descriptive branch names with prefixes:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>feature/add-new-agent-support</code></p>
+</li>
+<li>
+<p><code>bugfix/fix-timeout-handling</code></p>
+</li>
+<li>
+<p><code>docs/improve-getting-started</code></p>
+</li>
+<li>
+<p><code>test/add-integration-tests</code></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_commit_messages"><a class="anchor" href="#_commit_messages"></a>3.2.2. Commit Messages</h4>
+<div class="paragraph">
+<p>Write clear, descriptive commit messages:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash"># Good commit message
+Add timeout configuration for Claude Code agent
+
+- Add timeout option to ClaudeCodeAgentOptions
+- Implement timeout handling in ClaudeCodeClient
+- Add tests for timeout scenarios
+- Update documentation with timeout examples
+
+# Poor commit message
+Fix bug</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_pull_request_process"><a class="anchor" href="#_pull_request_process"></a>3.2.3. Pull Request Process</h4>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><strong>Create Feature Branch</strong>:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">git checkout -b feature/my-new-feature</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p><strong>Make Changes</strong>: Implement your feature with tests and documentation</p>
+</li>
+<li>
+<p><strong>Run Tests</strong>: Ensure all tests pass</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">mvn clean test -Pfailsafe
+mvn spring-javaformat:apply</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p><strong>Commit Changes</strong>:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">git add .
+git commit -m "Add new feature with comprehensive tests"</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p><strong>Push and Create PR</strong>:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">git push origin feature/my-new-feature</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p><strong>Address Review Comments</strong>: Make requested changes and update PR</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_testing_guidelines"><a class="anchor" href="#_testing_guidelines"></a>4. Testing Guidelines</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_test_categories"><a class="anchor" href="#_test_categories"></a>4.1. Test Categories</h3>
+<div class="paragraph">
+<p>Our test suite is organized into three categories:</p>
+</div>
+<div class="sect3">
+<h4 id="_unit_tests_test_java"><a class="anchor" href="#_unit_tests_test_java"></a>4.1.1. Unit Tests (<code>*Test.java</code>)</h4>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Purpose</strong>: Test individual components in isolation</p>
+</li>
+<li>
+<p><strong>Scope</strong>: Single class or method</p>
+</li>
+<li>
+<p><strong>Execution</strong>: Fast (&lt; 1 second per test)</p>
+</li>
+<li>
+<p><strong>Dependencies</strong>: Use mocks for external dependencies</p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@ExtendWith(MockitoExtension.class)
+class AgentClientTest {
+
+    @Mock
+    private AgentModel&lt;AgentRequest, AgentResponse&gt; mockModel;
+
+    @Test
+    void shouldCallModelWithCorrectRequest() {
+        // Given
+        AgentClient client = AgentClient.create(mockModel);
+        when(mockModel.call(any())).thenReturn(createMockResponse());
+
+        // When
+        AgentClientResponse response = client.run("test goal");
+
+        // Then
+        assertThat(response).isNotNull();
+        verify(mockModel).call(any(AgentRequest.class));
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_smoke_tests_smoketest_java"><a class="anchor" href="#_smoke_tests_smoketest_java"></a>4.1.2. Smoke Tests (<code>*SmokeTest.java</code>)</h4>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Purpose</strong>: Quick end-to-end validation</p>
+</li>
+<li>
+<p><strong>Scope</strong>: Critical paths with real agents</p>
+</li>
+<li>
+<p><strong>Execution</strong>: Fast (&lt; 2 minutes total)</p>
+</li>
+<li>
+<p><strong>Dependencies</strong>: Real agent CLIs with minimal tasks</p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">class ClaudeQuerySmokeTest {
+
+    @Test
+    @EnabledIf("org.springaicommunity.agents.claudecode.sdk.integration.ClaudeCliDiscovery#isClaudeCliAvailable")
+    void shouldExecuteSimpleQuery() {
+        // Test simple agent interaction
+        AgentClientResponse response = agentClient.run("Echo hello world");
+        assertThat(response.isSuccessful()).isTrue();
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_integration_tests_it_java"><a class="anchor" href="#_integration_tests_it_java"></a>4.1.3. Integration Tests (<code>*IT.java</code>)</h4>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Purpose</strong>: Comprehensive end-to-end testing</p>
+</li>
+<li>
+<p><strong>Scope</strong>: Complex scenarios and error conditions</p>
+</li>
+<li>
+<p><strong>Execution</strong>: Slower (can take several minutes)</p>
+</li>
+<li>
+<p><strong>Dependencies</strong>: Full agent CLI setup</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_writing_good_tests"><a class="anchor" href="#_writing_good_tests"></a>4.2. Writing Good Tests</h3>
+<div class="sect3">
+<h4 id="_test_structure"><a class="anchor" href="#_test_structure"></a>4.2.1. Test Structure</h4>
+<div class="paragraph">
+<p>Use the Given-When-Then pattern:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Test
+void shouldHandleTimeoutGracefully() {
+    // Given
+    ClaudeCodeAgentOptions options = ClaudeCodeAgentOptions.builder()
+        .timeout(Duration.ofMillis(100))  // Very short timeout
+        .build();
+    AgentClient client = createClientWithOptions(options);
+
+    // When
+    Exception exception = assertThrows(AgentTimeoutException.class, () -&gt; {
+        client.run("Complex long-running goal");
+    });
+
+    // Then
+    assertThat(exception.getMessage()).contains("timed out");
+    assertThat(exception.getTimeout()).isEqualTo(Duration.ofMillis(100));
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_test_data_management"><a class="anchor" href="#_test_data_management"></a>4.2.2. Test Data Management</h4>
+<div class="paragraph">
+<p>Create reusable test utilities:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public class TestDataBuilder {
+
+    public static ClaudeCodeAgentOptions defaultOptions() {
+        return ClaudeCodeAgentOptions.builder()
+            .model("claude-sonnet-4-0")
+            .yolo(false)
+            .timeout(Duration.ofMinutes(2))
+            .build();
+    }
+
+    public static AgentRequest simpleRequest(String goal) {
+        return new AgentRequest(goal, Paths.get("."), Collections.emptyMap());
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_cross_platform_testing"><a class="anchor" href="#_cross_platform_testing"></a>4.3. Cross-Platform Testing</h3>
+<div class="paragraph">
+<p>Ensure compatibility across operating systems:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Test
+void shouldResolveCommandPathOnAllPlatforms() {
+    // Test path resolution on Windows, macOS, and Linux
+    String command = "claude";
+    String resolvedPath = ClaudeCliDiscovery.resolveCommandPath(command);
+
+    assertThat(resolvedPath).isNotNull();
+    assertThat(Paths.get(resolvedPath)).exists();
+}
+
+@EnabledOnOs({OS.WINDOWS})
+@Test
+void shouldHandleWindowsSpecificPaths() {
+    // Windows-specific test
+}
+
+@EnabledOnOs({OS.MAC, OS.LINUX})
+@Test
+void shouldHandleUnixSpecificPaths() {
+    // Unix-specific test
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_adding_new_agent_integrations"><a class="anchor" href="#_adding_new_agent_integrations"></a>5. Adding New Agent Integrations</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_research_phase"><a class="anchor" href="#_research_phase"></a>5.1. Research Phase</h3>
+<div class="paragraph">
+<p>Before implementing a new agent integration:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><strong>Agent Evaluation</strong>:</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Does it provide autonomous coding capabilities?</p>
+</li>
+<li>
+<p>Is there a command-line interface available?</p>
+</li>
+<li>
+<p>Does it support structured input/output?</p>
+</li>
+<li>
+<p>Is it actively maintained?</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p><strong>Technical Assessment</strong>:</p>
+<div class="ulist">
+<ul>
+<li>
+<p>What programming languages does it support?</p>
+</li>
+<li>
+<p>What are the installation requirements?</p>
+</li>
+<li>
+<p>How does authentication work?</p>
+</li>
+<li>
+<p>What are the rate limits and costs?</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p><strong>Community Need</strong>:</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Is there demand for this integration?</p>
+</li>
+<li>
+<p>How would it complement existing agents?</p>
+</li>
+<li>
+<p>What unique capabilities does it provide?</p>
+</li>
+</ul>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_implementation_pattern"><a class="anchor" href="#_implementation_pattern"></a>5.2. Implementation Pattern</h3>
+<div class="paragraph">
+<p>Follow this proven pattern for new agent integrations:</p>
+</div>
+<div class="sect3">
+<h4 id="_1_create_sdk_module"><a class="anchor" href="#_1_create_sdk_module"></a>5.2.1. 1. Create SDK Module</h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">provider-sdks/
+└── your-agent-sdk/
+    ├── pom.xml
+    └── src/
+        ├── main/java/org/springaicommunity/agents/youragent/
+        │   ├── sdk/
+        │   │   ├── YourAgentClient.java
+        │   │   ├── YourAgentCommand.java
+        │   │   └── YourAgentResponse.java
+        │   └── exceptions/
+        └── test/java/</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_2_implement_core_sdk_classes"><a class="anchor" href="#_2_implement_core_sdk_classes"></a>5.2.2. 2. Implement Core SDK Classes</h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public class YourAgentClient {
+
+    private final Path workingDirectory;
+    private final String commandPath;
+
+    public static YourAgentClient create() {
+        return create(Paths.get(System.getProperty("user.dir")));
+    }
+
+    public static YourAgentClient create(Path workingDirectory) {
+        String commandPath = YourAgentCliDiscovery.discoverYourAgentCommand();
+        return new YourAgentClient(workingDirectory, commandPath);
+    }
+
+    public YourAgentResponse execute(YourAgentCommand command) {
+        // Implementation follows established patterns
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_3_create_agentmodel_integration"><a class="anchor" href="#_3_create_agentmodel_integration"></a>5.2.3. 3. Create AgentModel Integration</h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">agent-models/
+└── spring-ai-your-agent/
+    ├── pom.xml
+    └── src/
+        └── main/java/org/springaicommunity/agents/youragent/
+            ├── YourAgentModel.java
+            ├── YourAgentOptions.java
+            └── YourAgentProperties.java</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public class YourAgentModel implements AgentModel&lt;AgentRequest, AgentResponse&gt; {
+
+    private final YourAgentClient client;
+    private final YourAgentOptions options;
+
+    public YourAgentModel(YourAgentClient client, YourAgentOptions options) {
+        this.client = client;
+        this.options = options;
+    }
+
+    @Override
+    public AgentResponse call(AgentRequest request) {
+        // Convert AgentRequest to YourAgentCommand
+        // Execute via client
+        // Convert YourAgentResponse to AgentResponse
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_4_add_comprehensive_tests"><a class="anchor" href="#_4_add_comprehensive_tests"></a>5.2.4. 4. Add Comprehensive Tests</h4>
+<div class="paragraph">
+<p>Create tests following our naming conventions:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>YourAgentClientTest</code> - Unit tests</p>
+</li>
+<li>
+<p><code>YourAgentQuerySmokeTest</code> - Smoke tests</p>
+</li>
+<li>
+<p><code>YourAgentClientIT</code> - Integration tests</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_5_document_the_integration"><a class="anchor" href="#_5_document_the_integration"></a>5.2.5. 5. Document the Integration</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>Update navigation to include your agent</p>
+</li>
+<li>
+<p>Create <code>api/your-agent-sdk.adoc</code> documentation</p>
+</li>
+<li>
+<p>Add examples to the samples page</p>
+</li>
+<li>
+<p>Update the main README if applicable</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_integration_checklist"><a class="anchor" href="#_integration_checklist"></a>5.3. Integration Checklist</h3>
+<div class="paragraph">
+<p>Before submitting a new agent integration:</p>
+</div>
+<div class="ulist checklist">
+<ul class="checklist">
+<li>
+<p><i class="fa fa-square-o"></i> SDK follows established patterns</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> All tests pass (unit, smoke, integration)</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> Cross-platform compatibility verified</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> Documentation is comprehensive</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> Error handling is robust</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> Configuration options are well-designed</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> Thread safety is ensured</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> Resource cleanup is proper</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> Examples are provided</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> Performance is acceptable</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_documentation_standards"><a class="anchor" href="#_documentation_standards"></a>6. Documentation Standards</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_asciidoc_guidelines"><a class="anchor" href="#_asciidoc_guidelines"></a>6.1. AsciiDoc Guidelines</h3>
+<div class="paragraph">
+<p>Our documentation uses AsciiDoc format:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Structure</strong>: Use proper heading hierarchy</p>
+</li>
+<li>
+<p><strong>Code Examples</strong>: Include complete, runnable examples</p>
+</li>
+<li>
+<p><strong>Cross-References</strong>: Link related sections with <code>xref:</code></p>
+</li>
+<li>
+<p><strong>Formatting</strong>: Use appropriate text formatting (bold, italic, code)</p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-asciidoc hljs" data-lang="asciidoc">= Your Agent SDK
+:page-title: Your Agent SDK Documentation
+:toc: left
+:tabsize: 2
+:sectnums:
+
+The Your Agent SDK provides Java integration with YourAgent CLI.
+
+== Overview
+
+Brief description of the agent and its capabilities.
+
+== Installation
+
+=== Prerequisites
+
+List requirements:
+
+* YourAgent CLI installation
+* API key configuration
+* System requirements
+
+=== Maven Dependencies
+
+[source,xml]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>&lt;dependency&gt;
+    &lt;groupId&gt;org.springaicommunity.agents&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-ai-your-agent&lt;/artifactId&gt;
+    &lt;version&gt;0.1.0-SNAPSHOT&lt;/version&gt;
+&lt;/dependency&gt;</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>== Basic Usage
+
+=== Quick Start
+
+[source,java]</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>public class YourAgentExample {
+    public static void main(String[] args) {
+        // Step-by-step implementation
+    }
+}</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_api_reference"><a class="anchor" href="#_api_reference"></a>6.2. API Reference</h3>
+<div class="paragraph">
+<p>Document all public APIs with:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Purpose</strong>: What does this API do?</p>
+</li>
+<li>
+<p><strong>Parameters</strong>: All parameters with types and descriptions</p>
+</li>
+<li>
+<p><strong>Return Values</strong>: What does it return?</p>
+</li>
+<li>
+<p><strong>Exceptions</strong>: What exceptions might be thrown?</p>
+</li>
+<li>
+<p><strong>Examples</strong>: Show typical usage</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_code_examples"><a class="anchor" href="#_code_examples"></a>6.3. Code Examples</h3>
+<div class="paragraph">
+<p>Provide complete, runnable examples:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">// Bad: Incomplete example
+YourAgentClient client = YourAgentClient.create();
+client.execute(command);
+
+// Good: Complete example
+import org.springaicommunity.agents.youragent.YourAgentClient;
+import org.springaicommunity.agents.youragent.YourAgentCommand;
+
+public class YourAgentExample {
+    public static void main(String[] args) {
+        // 1. Create client with working directory
+        YourAgentClient client = YourAgentClient.create(
+            Paths.get("/path/to/project")
+        );
+
+        // 2. Create command
+        YourAgentCommand command = YourAgentCommand.builder()
+            .goal("Create a simple REST controller")
+            .build();
+
+        // 3. Execute command
+        YourAgentResponse response = client.execute(command);
+
+        // 4. Handle response
+        if (response.isSuccessful()) {
+            System.out.println("Result: " + response.getResult());
+        } else {
+            System.err.println("Failed: " + response.getError());
+        }
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_community_support"><a class="anchor" href="#_community_support"></a>7. Community Support</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_getting_help"><a class="anchor" href="#_getting_help"></a>7.1. Getting Help</h3>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>GitHub Discussions</strong>: Ask questions and share ideas</p>
+</li>
+<li>
+<p><strong>GitHub Issues</strong>: Report bugs and request features</p>
+</li>
+<li>
+<p><strong>Stack Overflow</strong>: Tag questions with <code>spring-ai-agents</code></p>
+</li>
+<li>
+<p><strong>Documentation</strong>: Check our comprehensive guides</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_reporting_issues"><a class="anchor" href="#_reporting_issues"></a>7.2. Reporting Issues</h3>
+<div class="paragraph">
+<p>When reporting bugs, include:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Version</strong>: Which version are you using?</p>
+</li>
+<li>
+<p><strong>Environment</strong>: OS, Java version, agent CLI versions</p>
+</li>
+<li>
+<p><strong>Steps to Reproduce</strong>: Detailed reproduction steps</p>
+</li>
+<li>
+<p><strong>Expected Behavior</strong>: What should happen?</p>
+</li>
+<li>
+<p><strong>Actual Behavior</strong>: What actually happens?</p>
+</li>
+<li>
+<p><strong>Code Sample</strong>: Minimal example demonstrating the issue</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_feature_requests"><a class="anchor" href="#_feature_requests"></a>7.3. Feature Requests</h3>
+<div class="paragraph">
+<p>For feature requests:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Use Case</strong>: Why do you need this feature?</p>
+</li>
+<li>
+<p><strong>Proposed Solution</strong>: How would you like it to work?</p>
+</li>
+<li>
+<p><strong>Alternatives</strong>: Have you considered other approaches?</p>
+</li>
+<li>
+<p><strong>Impact</strong>: How would this benefit the community?</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_release_process"><a class="anchor" href="#_release_process"></a>8. Release Process</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_version_strategy"><a class="anchor" href="#_version_strategy"></a>8.1. Version Strategy</h3>
+<div class="paragraph">
+<p>We follow semantic versioning:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Major Version</strong> (1.0.0): Breaking API changes</p>
+</li>
+<li>
+<p><strong>Minor Version</strong> (0.1.0): New features, backward compatible</p>
+</li>
+<li>
+<p><strong>Patch Version</strong> (0.0.1): Bug fixes, backward compatible</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_release_checklist"><a class="anchor" href="#_release_checklist"></a>8.2. Release Checklist</h3>
+<div class="paragraph">
+<p>Before releasing:</p>
+</div>
+<div class="ulist checklist">
+<ul class="checklist">
+<li>
+<p><i class="fa fa-square-o"></i> All tests pass on multiple platforms</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> Documentation is updated</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> Version numbers are bumped</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> Changelog is updated</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> Migration guide is provided (for breaking changes)</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> Examples are updated</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> Performance regression tests pass</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_code_of_conduct"><a class="anchor" href="#_code_of_conduct"></a>9. Code of Conduct</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>We are committed to providing a welcoming and inclusive environment:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Be Respectful</strong>: Treat all community members with respect</p>
+</li>
+<li>
+<p><strong>Be Collaborative</strong>: Help others learn and contribute</p>
+</li>
+<li>
+<p><strong>Be Patient</strong>: Remember that everyone has different experience levels</p>
+</li>
+<li>
+<p><strong>Be Constructive</strong>: Provide helpful feedback and suggestions</p>
+</li>
+</ul>
+</div>
+<div class="sect2">
+<h3 id="_enforcement"><a class="anchor" href="#_enforcement"></a>9.1. Enforcement</h3>
+<div class="paragraph">
+<p>Unacceptable behavior will not be tolerated. Report issues to the project maintainers.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_licensing"><a class="anchor" href="#_licensing"></a>10. Licensing</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>This project is licensed under the Apache License 2.0. By contributing, you agree to license your contributions under the same terms.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_next_steps"><a class="anchor" href="#_next_steps"></a>11. Next Steps</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Ready to contribute? Here&#8217;s how to get started:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><strong>Read the Code</strong>: Familiarize yourself with the existing codebase</p>
+</li>
+<li>
+<p><strong>Start Small</strong>: Begin with documentation improvements or small bug fixes</p>
+</li>
+<li>
+<p><strong>Ask Questions</strong>: Don&#8217;t hesitate to ask for help in GitHub Discussions</p>
+</li>
+<li>
+<p><strong>Follow Patterns</strong>: Study existing implementations before creating new ones</p>
+</li>
+<li>
+<p><strong>Test Thoroughly</strong>: Ensure your contributions are well-tested</p>
+</li>
+<li>
+<p><strong>Document Well</strong>: Help others understand your contributions</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Thank you for contributing to Spring AI Agents! 🚀</p>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>This page was built using the Antora default UI.</p>
+  <p>The source code for this UI is licensed under the terms of the MPL-2.0 license.</p>
+</footer>
+<script id="site-script" src="../../_/js/site.js" data-ui-root-path="../../_"></script>
+<script async src="../../_/js/vendor/highlight.js"></script>
+  </body>
+</html>

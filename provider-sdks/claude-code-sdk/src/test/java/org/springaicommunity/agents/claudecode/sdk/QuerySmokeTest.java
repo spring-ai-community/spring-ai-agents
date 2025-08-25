@@ -1,0 +1,76 @@
+/*
+ * Copyright 2024 Spring AI Community
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.springaicommunity.agents.claudecode.sdk;
+
+import org.springaicommunity.agents.claudecode.sdk.test.ClaudeCliTestBase;
+import org.springaicommunity.agents.claudecode.sdk.transport.CLIOptions;
+import org.springaicommunity.agents.claudecode.sdk.types.QueryResult;
+import org.junit.jupiter.api.Test;
+
+import java.time.Duration;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+/**
+ * Integration test for Query functionality.
+ *
+ * <p>
+ * This test extends {@link ClaudeCliTestBase} which automatically discovers Claude CLI
+ * and ensures all tests fail gracefully with a clear message if Claude CLI is not
+ * available.
+ * </p>
+ */
+class QuerySmokeTest extends ClaudeCliTestBase {
+
+	@Test
+	void testBasicQuery() throws Exception {
+		QueryResult result = Query.execute("What is 1+1?");
+
+		assertThat(result).isNotNull();
+		assertThat(result.messages()).isNotEmpty();
+		assertThat(result.metadata()).isNotNull();
+		assertThat(result.isSuccessful()).isTrue();
+	}
+
+	@Test
+	void testQueryWithOptions() throws Exception {
+		CLIOptions options = CLIOptions.builder()
+			.timeout(Duration.ofSeconds(30))
+			.systemPrompt("You are a helpful math tutor.")
+			.build();
+
+		QueryResult result = Query.execute("What is 2+2?", options);
+
+		assertThat(result).isNotNull();
+		assertThat(result.messages()).isNotEmpty();
+		assertThat(result.metadata()).isNotNull();
+	}
+
+	@Test
+	void testQueryResultAnalysis() throws Exception {
+		QueryResult result = Query.execute("Hello, world!");
+
+		// Test domain-specific methods
+		assertThat(result.getMessageCount()).isGreaterThan(0);
+		assertThat(result.getFirstAssistantResponse()).isPresent();
+
+		// Test metadata analysis
+		assertThat(result.metadata().model()).isNotNull();
+		assertThat(result.metadata().getDuration()).isNotNull();
+	}
+
+}

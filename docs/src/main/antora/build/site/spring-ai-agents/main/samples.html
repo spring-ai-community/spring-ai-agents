@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Sample Agents :: Spring AI Agents Reference</title>
+    <link rel="canonical" href="https://spring-ai-community.github.io/spring-ai-agents/spring-ai-agents/main/samples.html">
+    <meta name="generator" content="Antora 3.1.12">
+    <link rel="stylesheet" href="../../_/css/site.css">
+  </head>
+  <body class="article">
+<header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="https://spring-ai-community.github.io/spring-ai-agents">Spring AI Agents Reference</a>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="spring-ai-agents" data-version="main">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="index.html">Spring AI Agents</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="index.html">Overview</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="getting-started.html">Getting Started</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="api/agentclient.html">AgentClient API</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="api/agentclient-vs-chatclient.html">AgentClient vs ChatClient</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="api/claude-code-sdk.html">Claude Code SDK</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="api/gemini-cli-sdk.html">Gemini CLI SDK</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item is-current-page" data-depth="1">
+    <a class="nav-link" href="samples.html">Sample Agents</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="contribution-guidelines.html">Contribution Guidelines</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Spring AI Agents</span>
+    <span class="version">main</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="index.html">Spring AI Agents</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="index.html">main</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="index.html">Spring AI Agents</a></li>
+    <li><a href="samples.html">Sample Agents</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="file:///home/mark/claude/bud/experiments/spring-ai-agents/community-output/docs/src/main/antora/modules/ROOT/pages/samples.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Sample Agents</h1>
+<div id="toc" class="toc">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#_development_automation">1. Development Automation</a>
+<ul class="sectlevel2">
+<li><a href="#_code_generation_service">1.1. Code Generation Service</a></li>
+<li><a href="#_refactoring_assistant">1.2. Refactoring Assistant</a></li>
+</ul>
+</li>
+<li><a href="#_cicd_integration">2. CI/CD Integration</a>
+<ul class="sectlevel2">
+<li><a href="#_automated_code_review">2.1. Automated Code Review</a></li>
+<li><a href="#_build_optimization">2.2. Build Optimization</a></li>
+</ul>
+</li>
+<li><a href="#_documentation_generation">3. Documentation Generation</a>
+<ul class="sectlevel2">
+<li><a href="#_api_documentation_generator">3.1. API Documentation Generator</a></li>
+</ul>
+</li>
+<li><a href="#_quality_assurance">4. Quality Assurance</a>
+<ul class="sectlevel2">
+<li><a href="#_test_generation_service">4.1. Test Generation Service</a></li>
+</ul>
+</li>
+<li><a href="#_database_management">5. Database Management</a>
+<ul class="sectlevel2">
+<li><a href="#_schema_evolution_assistant">5.1. Schema Evolution Assistant</a></li>
+</ul>
+</li>
+<li><a href="#_best_practices">6. Best Practices</a>
+<ul class="sectlevel2">
+<li><a href="#_multi_agent_collaboration">6.1. Multi-Agent Collaboration</a></li>
+<li><a href="#_error_handling_and_resilience">6.2. Error Handling and Resilience</a></li>
+</ul>
+</li>
+<li><a href="#_next_steps">7. Next Steps</a></li>
+</ul>
+</div>
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p>This page provides practical examples of using Spring AI Agents for common software development tasks.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_development_automation"><a class="anchor" href="#_development_automation"></a>1. Development Automation</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_code_generation_service"><a class="anchor" href="#_code_generation_service"></a>1.1. Code Generation Service</h3>
+<div class="paragraph">
+<p>A service that generates boilerplate code using autonomous agents:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Service
+public class CodeGenerationService {
+
+    private final AgentClient agentClient;
+
+    public CodeGenerationService(AgentClient agentClient) {
+        this.agentClient = agentClient;
+    }
+
+    public String generateRestController(String entityName, String packageName) {
+        String prompt = String.format(
+            "Generate a Spring Boot REST controller for entity '%s' in package '%s'. " +
+            "Include CRUD operations, proper HTTP status codes, and input validation.",
+            entityName, packageName
+        );
+
+        AgentClientResponse response = agentClient
+            .prompt(prompt)
+            .yolo(true)
+            .call();
+
+        if (!response.isSuccessful()) {
+            throw new CodeGenerationException("Failed to generate controller: " + response.getResult());
+        }
+
+        return response.getResult();
+    }
+
+    public String generateJpaRepository(String entityName, String packageName) {
+        String prompt = String.format(
+            "Generate a Spring Data JPA repository interface for entity '%s' in package '%s'. " +
+            "Include custom query methods and proper naming conventions.",
+            entityName, packageName
+        );
+
+        return agentClient.run(prompt).getResult();
+    }
+
+    public String generateUnitTests(String className) {
+        String prompt = String.format(
+            "Generate comprehensive JUnit 5 unit tests for class '%s'. " +
+            "Include test cases for all public methods, edge cases, and use Mockito for mocking dependencies.",
+            className
+        );
+
+        return agentClient
+            .prompt(prompt)
+            .yolo(true)
+            .call()
+            .getResult();
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_refactoring_assistant"><a class="anchor" href="#_refactoring_assistant"></a>1.2. Refactoring Assistant</h3>
+<div class="paragraph">
+<p>A service that helps with code refactoring tasks:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Service
+public class RefactoringAssistant {
+
+    private final AgentClient agentClient;
+
+    public RefactoringAssistant(AgentClient agentClient) {
+        this.agentClient = agentClient;
+    }
+
+    public RefactoringResult extractMethod(String className, String methodName, int startLine, int endLine) {
+        String prompt = String.format(
+            "In class '%s', extract lines %d-%d from method '%s' into a new private method. " +
+            "Choose an appropriate method name and ensure all variables are properly parameterized.",
+            className, startLine, endLine, methodName
+        );
+
+        AgentClientResponse response = agentClient
+            .prompt(prompt)
+            .yolo(true)
+            .call();
+
+        return new RefactoringResult(response.isSuccessful(), response.getResult());
+    }
+
+    public RefactoringResult applyDesignPattern(String className, String pattern, String reason) {
+        String prompt = String.format(
+            "Refactor class '%s' to implement the %s design pattern. " +
+            "Reason: %s. Ensure backward compatibility and add appropriate documentation.",
+            className, pattern, reason
+        );
+
+        AgentClientResponse response = agentClient
+            .prompt(prompt)
+            .timeout(Duration.ofMinutes(15))
+            .call();
+
+        return new RefactoringResult(response.isSuccessful(), response.getResult());
+    }
+
+    public String modernizeCode(String targetVersion) {
+        String prompt = String.format(
+            "Modernize this codebase to use Java %s features. " +
+            "Replace outdated patterns with modern alternatives, use var where appropriate, " +
+            "and apply new API features. Maintain existing functionality.",
+            targetVersion
+        );
+
+        return agentClient
+            .prompt(prompt)
+            .yolo(true)
+            .timeout(Duration.ofMinutes(20))
+            .call()
+            .getResult();
+    }
+
+    public record RefactoringResult(boolean success, String result) {}
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_cicd_integration"><a class="anchor" href="#_cicd_integration"></a>2. CI/CD Integration</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_automated_code_review"><a class="anchor" href="#_automated_code_review"></a>2.1. Automated Code Review</h3>
+<div class="paragraph">
+<p>Integrate agent-based code review into your CI pipeline:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Component
+public class AutomatedCodeReviewer {
+
+    private final AgentClient agentClient;
+
+    public AutomatedCodeReviewer(AgentClient agentClient) {
+        this.agentClient = agentClient;
+    }
+
+    public CodeReviewReport reviewPullRequest(String branchName, List&lt;String&gt; changedFiles) {
+        String prompt = String.format(
+            "Review the changes in branch '%s' for the following files: %s. " +
+            "Focus on: 1) Code quality issues, 2) Potential bugs, 3) Security concerns, " +
+            "4) Performance implications, 5) Adherence to Java best practices. " +
+            "Provide specific line-by-line feedback where applicable.",
+            branchName, String.join(", ", changedFiles)
+        );
+
+        AgentClientResponse response = agentClient
+            .prompt(prompt)
+            .yolo(false) // Read-only review
+            .timeout(Duration.ofMinutes(10))
+            .call();
+
+        return parseCodeReviewReport(response.getResult());
+    }
+
+    public TestCoverageReport analyzeCoverage() {
+        String prompt =
+            "Analyze the test coverage of this project. " +
+            "Identify classes and methods with insufficient coverage. " +
+            "Suggest specific test cases that should be added to improve coverage.";
+
+        AgentClientResponse response = agentClient.run(prompt);
+        return parseTestCoverageReport(response.getResult());
+    }
+
+    public SecurityAnalysisReport scanForVulnerabilities() {
+        String prompt =
+            "Perform a security analysis of this codebase. " +
+            "Look for common vulnerabilities like SQL injection, XSS, insecure dependencies, " +
+            "hardcoded secrets, and improper input validation. " +
+            "Provide specific remediation suggestions.";
+
+        AgentClientResponse response = agentClient
+            .prompt(prompt)
+            .timeout(Duration.ofMinutes(15))
+            .call();
+
+        return parseSecurityReport(response.getResult());
+    }
+
+    // Helper methods for parsing reports would be implemented here
+    private CodeReviewReport parseCodeReviewReport(String result) { /* implementation */ }
+    private TestCoverageReport parseTestCoverageReport(String result) { /* implementation */ }
+    private SecurityAnalysisReport parseSecurityReport(String result) { /* implementation */ }
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_build_optimization"><a class="anchor" href="#_build_optimization"></a>2.2. Build Optimization</h3>
+<div class="paragraph">
+<p>Automatically optimize build configurations and dependencies:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Service
+public class BuildOptimizer {
+
+    private final AgentClient agentClient;
+
+    public BuildOptimizer(AgentClient agentClient) {
+        this.agentClient = agentClient;
+    }
+
+    public String optimizeMavenBuild() {
+        String prompt =
+            "Analyze the Maven pom.xml files in this project and suggest optimizations: " +
+            "1) Remove unused dependencies, 2) Update to latest stable versions, " +
+            "3) Optimize plugin configurations, 4) Add useful plugins if missing, " +
+            "5) Improve build performance. Make the changes and explain what was optimized.";
+
+        return agentClient
+            .prompt(prompt)
+            .yolo(true)
+            .timeout(Duration.ofMinutes(10))
+            .call()
+            .getResult();
+    }
+
+    public String updateDependencies() {
+        String prompt =
+            "Update all dependencies in this project to their latest stable versions. " +
+            "Check for breaking changes and update code accordingly. " +
+            "Ensure all tests still pass after updates.";
+
+        return agentClient
+            .prompt(prompt)
+            .yolo(true)
+            .timeout(Duration.ofMinutes(20))
+            .call()
+            .getResult();
+    }
+
+    public String generateDockerfile(String javaVersion, String springBootVersion) {
+        String prompt = String.format(
+            "Generate an optimized Dockerfile for this Spring Boot application. " +
+            "Use Java %s and Spring Boot %s. Include multi-stage build, " +
+            "proper layer caching, non-root user, and security best practices.",
+            javaVersion, springBootVersion
+        );
+
+        return agentClient.run(prompt).getResult();
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_documentation_generation"><a class="anchor" href="#_documentation_generation"></a>3. Documentation Generation</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_api_documentation_generator"><a class="anchor" href="#_api_documentation_generator"></a>3.1. API Documentation Generator</h3>
+<div class="paragraph">
+<p>Automatically generate comprehensive API documentation:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Service
+public class DocumentationGenerator {
+
+    private final AgentClient agentClient;
+
+    public DocumentationGenerator(AgentClient agentClient) {
+        this.agentClient = agentClient;
+    }
+
+    public String generateApiDocumentation() {
+        String prompt =
+            "Generate comprehensive API documentation for this Spring Boot application. " +
+            "Include: 1) Overview of all endpoints, 2) Request/response examples, " +
+            "3) Authentication requirements, 4) Error codes and handling, " +
+            "5) Rate limiting information. Format as OpenAPI/Swagger specification.";
+
+        return agentClient
+            .prompt(prompt)
+            .timeout(Duration.ofMinutes(15))
+            .call()
+            .getResult();
+    }
+
+    public String generateReadme() {
+        String prompt =
+            "Generate a comprehensive README.md file for this project. " +
+            "Include: 1) Project description and purpose, 2) Prerequisites and installation, " +
+            "3) Configuration options, 4) Usage examples, 5) API endpoints overview, " +
+            "6) Contributing guidelines, 7) License information.";
+
+        return agentClient.run(prompt).getResult();
+    }
+
+    public String generateArchitectureDocumentation() {
+        String prompt =
+            "Create detailed architecture documentation for this application. " +
+            "Include: 1) System architecture diagram description, 2) Component interactions, " +
+            "3) Database schema overview, 4) External dependencies, " +
+            "5) Security architecture, 6) Deployment architecture.";
+
+        return agentClient
+            .prompt(prompt)
+            .timeout(Duration.ofMinutes(20))
+            .call()
+            .getResult();
+    }
+
+    public String addJavadocComments(String className) {
+        String prompt = String.format(
+            "Add comprehensive Javadoc comments to class '%s' and all its methods. " +
+            "Follow standard Javadoc conventions with proper @param, @return, and @throws tags. " +
+            "Include usage examples for complex methods.",
+            className
+        );
+
+        return agentClient
+            .prompt(prompt)
+            .yolo(true)
+            .call()
+            .getResult();
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_quality_assurance"><a class="anchor" href="#_quality_assurance"></a>4. Quality Assurance</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_test_generation_service"><a class="anchor" href="#_test_generation_service"></a>4.1. Test Generation Service</h3>
+<div class="paragraph">
+<p>Automatically generate comprehensive test suites:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Service
+public class TestGenerationService {
+
+    private final AgentClient agentClient;
+
+    public TestGenerationService(AgentClient agentClient) {
+        this.agentClient = agentClient;
+    }
+
+    public String generateUnitTests(String className) {
+        String prompt = String.format(
+            "Generate comprehensive unit tests for class '%s'. " +
+            "Include: 1) Happy path tests, 2) Edge cases, 3) Error conditions, " +
+            "4) Boundary value testing, 5) Mock all external dependencies, " +
+            "6) Achieve &gt;90%% code coverage. Use JUnit 5 and Mockito.",
+            className
+        );
+
+        return agentClient
+            .prompt(prompt)
+            .yolo(true)
+            .timeout(Duration.ofMinutes(10))
+            .call()
+            .getResult();
+    }
+
+    public String generateIntegrationTests() {
+        String prompt =
+            "Generate integration tests for this Spring Boot application. " +
+            "Include: 1) REST endpoint testing with @SpringBootTest, " +
+            "2) Database integration tests with @DataJpaTest, " +
+            "3) Service layer integration tests, 4) Configuration tests, " +
+            "5) Use TestContainers for external dependencies.";
+
+        return agentClient
+            .prompt(prompt)
+            .yolo(true)
+            .timeout(Duration.ofMinutes(15))
+            .call()
+            .getResult();
+    }
+
+    public String generatePerformanceTests(String endpoint) {
+        String prompt = String.format(
+            "Generate performance tests for endpoint '%s'. " +
+            "Create JMeter test plan or JUnit performance tests that: " +
+            "1) Test with increasing load, 2) Measure response times, " +
+            "3) Check for memory leaks, 4) Verify throughput under load.",
+            endpoint
+        );
+
+        return agentClient.run(prompt).getResult();
+    }
+
+    public String generateContractTests(String consumerService, String providerService) {
+        String prompt = String.format(
+            "Generate Pact contract tests between consumer '%s' and provider '%s'. " +
+            "Include: 1) Consumer contract tests, 2) Provider verification tests, " +
+            "3) Test data setup, 4) Contract publishing configuration.",
+            consumerService, providerService
+        );
+
+        return agentClient
+            .prompt(prompt)
+            .yolo(true)
+            .call()
+            .getResult();
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_database_management"><a class="anchor" href="#_database_management"></a>5. Database Management</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_schema_evolution_assistant"><a class="anchor" href="#_schema_evolution_assistant"></a>5.1. Schema Evolution Assistant</h3>
+<div class="paragraph">
+<p>Help with database schema changes and migrations:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Service
+public class DatabaseAssistant {
+
+    private final AgentClient agentClient;
+
+    public DatabaseAssistant(AgentClient agentClient) {
+        this.agentClient = agentClient;
+    }
+
+    public String generateFlywayMigration(String description, String changes) {
+        String prompt = String.format(
+            "Generate a Flyway migration script for: '%s'. " +
+            "Changes needed: %s. " +
+            "Include: 1) Forward migration SQL, 2) Rollback considerations, " +
+            "3) Index optimizations, 4) Data migration if needed, " +
+            "5) Proper versioning and naming.",
+            description, changes
+        );
+
+        return agentClient.run(prompt).getResult();
+    }
+
+    public String optimizeQueryPerformance(String slowQuery) {
+        String prompt = String.format(
+            "Analyze and optimize this slow SQL query: %s. " +
+            "Provide: 1) Optimized query version, 2) Index recommendations, " +
+            "3) Execution plan analysis, 4) Alternative approaches if applicable.",
+            slowQuery
+        );
+
+        return agentClient.run(prompt).getResult();
+    }
+
+    public String generateJpaEntities(String tableName) {
+        String prompt = String.format(
+            "Generate JPA entity classes for database table '%s'. " +
+            "Include: 1) Proper JPA annotations, 2) Relationships with other entities, " +
+            "3) Validation annotations, 4) Constructor, getters, setters, " +
+            "5) equals() and hashCode() methods.",
+            tableName
+        );
+
+        return agentClient
+            .prompt(prompt)
+            .yolo(true)
+            .call()
+            .getResult();
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_best_practices"><a class="anchor" href="#_best_practices"></a>6. Best Practices</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_multi_agent_collaboration"><a class="anchor" href="#_multi_agent_collaboration"></a>6.1. Multi-Agent Collaboration</h3>
+<div class="paragraph">
+<p>Coordinate multiple agents for complex workflows:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Service
+public class MultiAgentWorkflow {
+
+    private final AgentClient claudeAgent;
+    private final AgentClient geminiAgent;
+
+    public MultiAgentWorkflow(
+            @Qualifier("claudeAgentClient") AgentClient claudeAgent,
+            @Qualifier("geminiAgentClient") AgentClient geminiAgent) {
+        this.claudeAgent = claudeAgent;
+        this.geminiAgent = geminiAgent;
+    }
+
+    public String collaborativeCodeReview(String pullRequestId) {
+        // Use Claude for detailed analysis
+        String claudeAnalysis = claudeAgent.run(
+            "Perform detailed code review of PR " + pullRequestId +
+            ". Focus on logic correctness and potential bugs."
+        ).getResult();
+
+        // Use Gemini for architectural review
+        String geminiAnalysis = geminiAgent.run(
+            "Review PR " + pullRequestId + " for architectural concerns " +
+            "and Google Cloud best practices."
+        ).getResult();
+
+        // Combine insights
+        String combinedPrompt = String.format(
+            "Combine these two code review analyses into a single comprehensive report: " +
+            "Analysis 1 (Logic &amp; Bugs): %s\n\n" +
+            "Analysis 2 (Architecture): %s\n\n" +
+            "Create a prioritized list of issues with actionable recommendations.",
+            claudeAnalysis, geminiAnalysis
+        );
+
+        return claudeAgent.run(combinedPrompt).getResult();
+    }
+
+    public String distributeRefactoringTask(String className) {
+        // Claude handles method extraction and logic optimization
+        CompletableFuture&lt;String&gt; claudeTask = CompletableFuture.supplyAsync(() -&gt;
+            claudeAgent.run("Optimize methods in " + className + " for readability and performance").getResult()
+        );
+
+        // Gemini handles architectural improvements
+        CompletableFuture&lt;String&gt; geminiTask = CompletableFuture.supplyAsync(() -&gt;
+            geminiAgent.run("Improve architecture of " + className + " following SOLID principles").getResult()
+        );
+
+        // Combine results
+        return claudeTask.thenCombine(geminiTask, (claudeResult, geminiResult) -&gt; {
+            return claudeAgent.run(
+                "Merge these refactoring approaches: " + claudeResult + "\n\n" + geminiResult
+            ).getResult();
+        }).join();
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_error_handling_and_resilience"><a class="anchor" href="#_error_handling_and_resilience"></a>6.2. Error Handling and Resilience</h3>
+<div class="paragraph">
+<p>Implement robust error handling for production use:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Service
+public class ResilientAgentService {
+
+    private final AgentClient primaryAgent;
+    private final AgentClient fallbackAgent;
+    private final CircuitBreaker circuitBreaker;
+
+    public ResilientAgentService(
+            @Primary AgentClient primaryAgent,
+            @Qualifier("fallback") AgentClient fallbackAgent,
+            CircuitBreakerFactory circuitBreakerFactory) {
+        this.primaryAgent = primaryAgent;
+        this.fallbackAgent = fallbackAgent;
+        this.circuitBreaker = circuitBreakerFactory.create("agent-service");
+    }
+
+    public String executeGoal(String goal) {
+        return circuitBreaker.executeSupplier(() -&gt; {
+            try {
+                AgentClientResponse response = primaryAgent
+                    .prompt(goal)
+                    .timeout(Duration.ofMinutes(5))
+                    .call();
+
+                if (response.isSuccessful()) {
+                    return response.getResult();
+                } else {
+                    // Fallback to secondary agent
+                    log.warn("Primary agent failed, trying fallback: {}", response.getResult());
+                    return fallbackAgent.run(goal).getResult();
+                }
+
+            } catch (AgentTimeoutException e) {
+                log.error("Goal timed out, using fallback agent");
+                return fallbackAgent
+                    .prompt(goal)
+                    .timeout(Duration.ofMinutes(2))
+                    .call()
+                    .getResult();
+            }
+        });
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_next_steps"><a class="anchor" href="#_next_steps"></a>7. Next Steps</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>These samples demonstrate the versatility of Spring AI Agents for automating software development tasks. To implement similar functionality:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Choose the appropriate agent for your use case (see <a href="api/claude-code-sdk.html" class="xref page">Claude Code SDK</a> or <a href="api/gemini-cli-sdk.html" class="xref page">Gemini CLI SDK</a>)</p>
+</li>
+<li>
+<p>Start with the basic <a href="api/agentclient.html" class="xref page">AgentClient API</a> patterns</p>
+</li>
+<li>
+<p>Build upon these examples to create domain-specific automation tools</p>
+</li>
+<li>
+<p>Follow the <a href="contribution-guidelines.html" class="xref page">Contribution Guidelines</a> to share your own agent implementations</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>This page was built using the Antora default UI.</p>
+  <p>The source code for this UI is licensed under the terms of the MPL-2.0 license.</p>
+</footer>
+<script id="site-script" src="../../_/js/site.js" data-ui-root-path="../../_"></script>
+<script async src="../../_/js/vendor/highlight.js"></script>
+  </body>
+</html>

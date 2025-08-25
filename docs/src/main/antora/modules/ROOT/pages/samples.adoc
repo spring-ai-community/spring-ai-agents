@@ -1,0 +1,595 @@
+= Sample Agents
+:page-title: Sample Agents and Use Cases
+:toc: left
+:tabsize: 2
+:sectnums:
+
+This page provides practical examples of using Spring AI Agents for common software development tasks.
+
+== Development Automation
+
+=== Code Generation Service
+
+A service that generates boilerplate code using autonomous agents:
+
+[source,java]
+----
+@Service
+public class CodeGenerationService {
+    
+    private final AgentClient agentClient;
+    
+    public CodeGenerationService(AgentClient agentClient) {
+        this.agentClient = agentClient;
+    }
+    
+    public String generateRestController(String entityName, String packageName) {
+        String prompt = String.format(
+            "Generate a Spring Boot REST controller for entity '%s' in package '%s'. " +
+            "Include CRUD operations, proper HTTP status codes, and input validation.",
+            entityName, packageName
+        );
+        
+        AgentClientResponse response = agentClient
+            .goal(prompt)
+            .yolo(true)
+            .run();
+            
+        if (!response.isSuccessful()) {
+            throw new CodeGenerationException("Failed to generate controller: " + response.getResult());
+        }
+        
+        return response.getResult();
+    }
+    
+    public String generateJpaRepository(String entityName, String packageName) {
+        String prompt = String.format(
+            "Generate a Spring Data JPA repository interface for entity '%s' in package '%s'. " +
+            "Include custom query methods and proper naming conventions.",
+            entityName, packageName
+        );
+        
+        return agentClient.run(prompt).getResult();
+    }
+    
+    public String generateUnitTests(String className) {
+        String prompt = String.format(
+            "Generate comprehensive JUnit 5 unit tests for class '%s'. " +
+            "Include test cases for all public methods, edge cases, and use Mockito for mocking dependencies.",
+            className
+        );
+        
+        return agentClient
+            .goal(prompt)
+            .yolo(true)
+            .run()
+            .getResult();
+    }
+}
+----
+
+=== Refactoring Assistant
+
+A service that helps with code refactoring tasks:
+
+[source,java]
+----
+@Service
+public class RefactoringAssistant {
+    
+    private final AgentClient agentClient;
+    
+    public RefactoringAssistant(AgentClient agentClient) {
+        this.agentClient = agentClient;
+    }
+    
+    public RefactoringResult extractMethod(String className, String methodName, int startLine, int endLine) {
+        String prompt = String.format(
+            "In class '%s', extract lines %d-%d from method '%s' into a new private method. " +
+            "Choose an appropriate method name and ensure all variables are properly parameterized.",
+            className, startLine, endLine, methodName
+        );
+        
+        AgentClientResponse response = agentClient
+            .goal(prompt)
+            .yolo(true)
+            .run();
+            
+        return new RefactoringResult(response.isSuccessful(), response.getResult());
+    }
+    
+    public RefactoringResult applyDesignPattern(String className, String pattern, String reason) {
+        String prompt = String.format(
+            "Refactor class '%s' to implement the %s design pattern. " +
+            "Reason: %s. Ensure backward compatibility and add appropriate documentation.",
+            className, pattern, reason
+        );
+        
+        AgentClientResponse response = agentClient
+            .goal(prompt)
+            .timeout(Duration.ofMinutes(15))
+            .run();
+            
+        return new RefactoringResult(response.isSuccessful(), response.getResult());
+    }
+    
+    public String modernizeCode(String targetVersion) {
+        String prompt = String.format(
+            "Modernize this codebase to use Java %s features. " +
+            "Replace outdated patterns with modern alternatives, use var where appropriate, " +
+            "and apply new API features. Maintain existing functionality.",
+            targetVersion
+        );
+        
+        return agentClient
+            .goal(prompt)
+            .yolo(true)
+            .timeout(Duration.ofMinutes(20))
+            .run()
+            .getResult();
+    }
+    
+    public record RefactoringResult(boolean success, String result) {}
+}
+----
+
+== CI/CD Integration
+
+=== Automated Code Review
+
+Integrate agent-based code review into your CI pipeline:
+
+[source,java]
+----
+@Component
+public class AutomatedCodeReviewer {
+    
+    private final AgentClient agentClient;
+    
+    public AutomatedCodeReviewer(AgentClient agentClient) {
+        this.agentClient = agentClient;
+    }
+    
+    public CodeReviewReport reviewPullRequest(String branchName, List<String> changedFiles) {
+        String prompt = String.format(
+            "Review the changes in branch '%s' for the following files: %s. " +
+            "Focus on: 1) Code quality issues, 2) Potential bugs, 3) Security concerns, " +
+            "4) Performance implications, 5) Adherence to Java best practices. " +
+            "Provide specific line-by-line feedback where applicable.",
+            branchName, String.join(", ", changedFiles)
+        );
+        
+        AgentClientResponse response = agentClient
+            .goal(prompt)
+            .yolo(false) // Read-only review
+            .timeout(Duration.ofMinutes(10))
+            .run();
+            
+        return parseCodeReviewReport(response.getResult());
+    }
+    
+    public TestCoverageReport analyzeCoverage() {
+        String prompt = 
+            "Analyze the test coverage of this project. " +
+            "Identify classes and methods with insufficient coverage. " +
+            "Suggest specific test cases that should be added to improve coverage.";
+            
+        AgentClientResponse response = agentClient.run(prompt);
+        return parseTestCoverageReport(response.getResult());
+    }
+    
+    public SecurityAnalysisReport scanForVulnerabilities() {
+        String prompt = 
+            "Perform a security analysis of this codebase. " +
+            "Look for common vulnerabilities like SQL injection, XSS, insecure dependencies, " +
+            "hardcoded secrets, and improper input validation. " +
+            "Provide specific remediation suggestions.";
+            
+        AgentClientResponse response = agentClient
+            .goal(prompt)
+            .timeout(Duration.ofMinutes(15))
+            .run();
+            
+        return parseSecurityReport(response.getResult());
+    }
+    
+    // Helper methods for parsing reports would be implemented here
+    private CodeReviewReport parseCodeReviewReport(String result) { /* implementation */ }
+    private TestCoverageReport parseTestCoverageReport(String result) { /* implementation */ }
+    private SecurityAnalysisReport parseSecurityReport(String result) { /* implementation */ }
+}
+----
+
+=== Build Optimization
+
+Automatically optimize build configurations and dependencies:
+
+[source,java]
+----
+@Service
+public class BuildOptimizer {
+    
+    private final AgentClient agentClient;
+    
+    public BuildOptimizer(AgentClient agentClient) {
+        this.agentClient = agentClient;
+    }
+    
+    public String optimizeMavenBuild() {
+        String prompt = 
+            "Analyze the Maven pom.xml files in this project and suggest optimizations: " +
+            "1) Remove unused dependencies, 2) Update to latest stable versions, " +
+            "3) Optimize plugin configurations, 4) Add useful plugins if missing, " +
+            "5) Improve build performance. Make the changes and explain what was optimized.";
+            
+        return agentClient
+            .goal(prompt)
+            .yolo(true)
+            .timeout(Duration.ofMinutes(10))
+            .run()
+            .getResult();
+    }
+    
+    public String updateDependencies() {
+        String prompt = 
+            "Update all dependencies in this project to their latest stable versions. " +
+            "Check for breaking changes and update code accordingly. " +
+            "Ensure all tests still pass after updates.";
+            
+        return agentClient
+            .goal(prompt)
+            .yolo(true)
+            .timeout(Duration.ofMinutes(20))
+            .run()
+            .getResult();
+    }
+    
+    public String generateDockerfile(String javaVersion, String springBootVersion) {
+        String prompt = String.format(
+            "Generate an optimized Dockerfile for this Spring Boot application. " +
+            "Use Java %s and Spring Boot %s. Include multi-stage build, " +
+            "proper layer caching, non-root user, and security best practices.",
+            javaVersion, springBootVersion
+        );
+        
+        return agentClient.run(prompt).getResult();
+    }
+}
+----
+
+== Documentation Generation
+
+=== API Documentation Generator
+
+Automatically generate comprehensive API documentation:
+
+[source,java]
+----
+@Service
+public class DocumentationGenerator {
+    
+    private final AgentClient agentClient;
+    
+    public DocumentationGenerator(AgentClient agentClient) {
+        this.agentClient = agentClient;
+    }
+    
+    public String generateApiDocumentation() {
+        String prompt = 
+            "Generate comprehensive API documentation for this Spring Boot application. " +
+            "Include: 1) Overview of all endpoints, 2) Request/response examples, " +
+            "3) Authentication requirements, 4) Error codes and handling, " +
+            "5) Rate limiting information. Format as OpenAPI/Swagger specification.";
+            
+        return agentClient
+            .goal(prompt)
+            .timeout(Duration.ofMinutes(15))
+            .run()
+            .getResult();
+    }
+    
+    public String generateReadme() {
+        String prompt = 
+            "Generate a comprehensive README.md file for this project. " +
+            "Include: 1) Project description and purpose, 2) Prerequisites and installation, " +
+            "3) Configuration options, 4) Usage examples, 5) API endpoints overview, " +
+            "6) Contributing guidelines, 7) License information.";
+            
+        return agentClient.run(prompt).getResult();
+    }
+    
+    public String generateArchitectureDocumentation() {
+        String prompt = 
+            "Create detailed architecture documentation for this application. " +
+            "Include: 1) System architecture diagram description, 2) Component interactions, " +
+            "3) Database schema overview, 4) External dependencies, " +
+            "5) Security architecture, 6) Deployment architecture.";
+            
+        return agentClient
+            .goal(prompt)
+            .timeout(Duration.ofMinutes(20))
+            .run()
+            .getResult();
+    }
+    
+    public String addJavadocComments(String className) {
+        String prompt = String.format(
+            "Add comprehensive Javadoc comments to class '%s' and all its methods. " +
+            "Follow standard Javadoc conventions with proper @param, @return, and @throws tags. " +
+            "Include usage examples for complex methods.",
+            className
+        );
+        
+        return agentClient
+            .goal(prompt)
+            .yolo(true)
+            .run()
+            .getResult();
+    }
+}
+----
+
+== Quality Assurance
+
+=== Test Generation Service
+
+Automatically generate comprehensive test suites:
+
+[source,java]
+----
+@Service
+public class TestGenerationService {
+    
+    private final AgentClient agentClient;
+    
+    public TestGenerationService(AgentClient agentClient) {
+        this.agentClient = agentClient;
+    }
+    
+    public String generateUnitTests(String className) {
+        String prompt = String.format(
+            "Generate comprehensive unit tests for class '%s'. " +
+            "Include: 1) Happy path tests, 2) Edge cases, 3) Error conditions, " +
+            "4) Boundary value testing, 5) Mock all external dependencies, " +
+            "6) Achieve >90%% code coverage. Use JUnit 5 and Mockito.",
+            className
+        );
+        
+        return agentClient
+            .goal(prompt)
+            .yolo(true)
+            .timeout(Duration.ofMinutes(10))
+            .run()
+            .getResult();
+    }
+    
+    public String generateIntegrationTests() {
+        String prompt = 
+            "Generate integration tests for this Spring Boot application. " +
+            "Include: 1) REST endpoint testing with @SpringBootTest, " +
+            "2) Database integration tests with @DataJpaTest, " +
+            "3) Service layer integration tests, 4) Configuration tests, " +
+            "5) Use TestContainers for external dependencies.";
+            
+        return agentClient
+            .goal(prompt)
+            .yolo(true)
+            .timeout(Duration.ofMinutes(15))
+            .run()
+            .getResult();
+    }
+    
+    public String generatePerformanceTests(String endpoint) {
+        String prompt = String.format(
+            "Generate performance tests for endpoint '%s'. " +
+            "Create JMeter test plan or JUnit performance tests that: " +
+            "1) Test with increasing load, 2) Measure response times, " +
+            "3) Check for memory leaks, 4) Verify throughput under load.",
+            endpoint
+        );
+        
+        return agentClient.run(prompt).getResult();
+    }
+    
+    public String generateContractTests(String consumerService, String providerService) {
+        String prompt = String.format(
+            "Generate Pact contract tests between consumer '%s' and provider '%s'. " +
+            "Include: 1) Consumer contract tests, 2) Provider verification tests, " +
+            "3) Test data setup, 4) Contract publishing configuration.",
+            consumerService, providerService
+        );
+        
+        return agentClient
+            .goal(prompt)
+            .yolo(true)
+            .run()
+            .getResult();
+    }
+}
+----
+
+== Database Management
+
+=== Schema Evolution Assistant
+
+Help with database schema changes and migrations:
+
+[source,java]
+----
+@Service
+public class DatabaseAssistant {
+    
+    private final AgentClient agentClient;
+    
+    public DatabaseAssistant(AgentClient agentClient) {
+        this.agentClient = agentClient;
+    }
+    
+    public String generateFlywayMigration(String description, String changes) {
+        String prompt = String.format(
+            "Generate a Flyway migration script for: '%s'. " +
+            "Changes needed: %s. " +
+            "Include: 1) Forward migration SQL, 2) Rollback considerations, " +
+            "3) Index optimizations, 4) Data migration if needed, " +
+            "5) Proper versioning and naming.",
+            description, changes
+        );
+        
+        return agentClient.run(prompt).getResult();
+    }
+    
+    public String optimizeQueryPerformance(String slowQuery) {
+        String prompt = String.format(
+            "Analyze and optimize this slow SQL query: %s. " +
+            "Provide: 1) Optimized query version, 2) Index recommendations, " +
+            "3) Execution plan analysis, 4) Alternative approaches if applicable.",
+            slowQuery
+        );
+        
+        return agentClient.run(prompt).getResult();
+    }
+    
+    public String generateJpaEntities(String tableName) {
+        String prompt = String.format(
+            "Generate JPA entity classes for database table '%s'. " +
+            "Include: 1) Proper JPA annotations, 2) Relationships with other entities, " +
+            "3) Validation annotations, 4) Constructor, getters, setters, " +
+            "5) equals() and hashCode() methods.",
+            tableName
+        );
+        
+        return agentClient
+            .goal(prompt)
+            .yolo(true)
+            .run()
+            .getResult();
+    }
+}
+----
+
+== Best Practices
+
+=== Multi-Agent Collaboration
+
+Coordinate multiple agents for complex workflows:
+
+[source,java]
+----
+@Service
+public class MultiAgentWorkflow {
+    
+    private final AgentClient claudeAgent;
+    private final AgentClient geminiAgent;
+    
+    public MultiAgentWorkflow(
+            @Qualifier("claudeAgentClient") AgentClient claudeAgent,
+            @Qualifier("geminiAgentClient") AgentClient geminiAgent) {
+        this.claudeAgent = claudeAgent;
+        this.geminiAgent = geminiAgent;
+    }
+    
+    public String collaborativeCodeReview(String pullRequestId) {
+        // Use Claude for detailed analysis
+        String claudeAnalysis = claudeAgent.run(
+            "Perform detailed code review of PR " + pullRequestId + 
+            ". Focus on logic correctness and potential bugs."
+        ).getResult();
+        
+        // Use Gemini for architectural review
+        String geminiAnalysis = geminiAgent.run(
+            "Review PR " + pullRequestId + " for architectural concerns " +
+            "and Google Cloud best practices."
+        ).getResult();
+        
+        // Combine insights
+        String combinedPrompt = String.format(
+            "Combine these two code review analyses into a single comprehensive report: " +
+            "Analysis 1 (Logic & Bugs): %s\n\n" +
+            "Analysis 2 (Architecture): %s\n\n" +
+            "Create a prioritized list of issues with actionable recommendations.",
+            claudeAnalysis, geminiAnalysis
+        );
+        
+        return claudeAgent.run(combinedPrompt).getResult();
+    }
+    
+    public String distributeRefactoringTask(String className) {
+        // Claude handles method extraction and logic optimization
+        CompletableFuture<String> claudeTask = CompletableFuture.supplyAsync(() ->
+            claudeAgent.run("Optimize methods in " + className + " for readability and performance").getResult()
+        );
+        
+        // Gemini handles architectural improvements
+        CompletableFuture<String> geminiTask = CompletableFuture.supplyAsync(() ->
+            geminiAgent.run("Improve architecture of " + className + " following SOLID principles").getResult()
+        );
+        
+        // Combine results
+        return claudeTask.thenCombine(geminiTask, (claudeResult, geminiResult) -> {
+            return claudeAgent.run(
+                "Merge these refactoring approaches: " + claudeResult + "\n\n" + geminiResult
+            ).getResult();
+        }).join();
+    }
+}
+----
+
+=== Error Handling and Resilience
+
+Implement robust error handling for production use:
+
+[source,java]
+----
+@Service
+public class ResilientAgentService {
+    
+    private final AgentClient primaryAgent;
+    private final AgentClient fallbackAgent;
+    private final CircuitBreaker circuitBreaker;
+    
+    public ResilientAgentService(
+            @Primary AgentClient primaryAgent,
+            @Qualifier("fallback") AgentClient fallbackAgent,
+            CircuitBreakerFactory circuitBreakerFactory) {
+        this.primaryAgent = primaryAgent;
+        this.fallbackAgent = fallbackAgent;
+        this.circuitBreaker = circuitBreakerFactory.create("agent-service");
+    }
+    
+    public String executeGoal(String goal) {
+        return circuitBreaker.executeSupplier(() -> {
+            try {
+                AgentClientResponse response = primaryAgent
+                    .goal(goal)
+                    .timeout(Duration.ofMinutes(5))
+                    .run();
+                    
+                if (response.isSuccessful()) {
+                    return response.getResult();
+                } else {
+                    // Fallback to secondary agent
+                    log.warn("Primary agent failed, trying fallback: {}", response.getResult());
+                    return fallbackAgent.run(goal).getResult();
+                }
+                
+            } catch (AgentTimeoutException e) {
+                log.error("Goal timed out, using fallback agent");
+                return fallbackAgent
+                    .goal(goal)
+                    .timeout(Duration.ofMinutes(2))
+                    .run()
+                    .getResult();
+            }
+        });
+    }
+}
+----
+
+== Next Steps
+
+These samples demonstrate the versatility of Spring AI Agents for automating software development tasks. To implement similar functionality:
+
+1. Choose the appropriate agent for your use case (see xref:api/claude-code-sdk.adoc[Claude Code SDK] or xref:api/gemini-cli-sdk.adoc[Gemini CLI SDK])
+2. Start with the basic xref:api/agentclient.adoc[AgentClient API] patterns
+3. Build upon these examples to create domain-specific automation tools
+4. Follow the xref:contribution-guidelines.adoc[Contribution Guidelines] to share your own agent implementations

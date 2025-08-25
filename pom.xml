@@ -1,0 +1,406 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.springaicommunity.agents</groupId>
+    <artifactId>spring-ai-agents-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <name>Spring AI Agents Parent</name>
+    <description>Spring AI Agents - Autonomous CLI Agent Integrations for Spring AI</description>
+    <url>https://github.com/spring-ai-community/spring-ai-agents</url>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+        </license>
+    </licenses>
+
+    <scm>
+        <url>https://github.com/spring-ai-community/spring-ai-agents</url>
+        <connection>scm:git:git://github.com/spring-ai-community/spring-ai-agents.git</connection>
+        <developerConnection>scm:git:git@github.com:spring-ai-community/spring-ai-agents.git</developerConnection>
+    </scm>
+
+    <developers>
+        <developer>
+            <id>markpollack</id>
+            <name>Mark Pollack</name>
+            <email>mark@springframework.org</email>
+            <roles>
+                <role>lead</role>
+            </roles>
+        </developer>
+    </developers>
+
+    <modules>
+        <!-- Modules will be added as they are created -->
+        <module>agent-models/spring-ai-agent-model</module>
+        <module>provider-sdks/claude-code-sdk</module>
+        <module>provider-sdks/gemini-cli-sdk</module>
+        <module>provider-sdks/swe-agent-sdk</module>
+        <module>agent-models/spring-ai-claude-code</module>
+        <module>agent-models/spring-ai-gemini</module>
+        <module>agent-models/spring-ai-swe-agent</module>
+        <module>spring-ai-agent-client</module>
+        <module>docs</module>
+        <!--
+        <module>agent-models/spring-ai-swebench-agent</module>
+        <module>agent-models/spring-ai-swebench-agent</module>
+        <module>spring-ai-spring-boot-starters/spring-ai-starter-agent</module>
+        <module>samples/sample-cli</module>
+        <module>samples/sample-swebench</module>
+        -->
+    </modules>
+
+    <profiles>
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>0.7.0</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <publishingServerId>central</publishingServerId>
+                            <autoPublish>true</autoPublish>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>3.2.5</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>failsafe</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <version>3.1.2</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+    <properties>
+        <java.version>17</java.version>
+        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <maven.compiler.target>${java.version}</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <!-- Spring AI Agents project versions -->
+        <spring-ai-agents.version>0.1.0-SNAPSHOT</spring-ai-agents.version>
+
+        <!-- Core dependency versions -->
+        <spring-framework.version>6.2.6</spring-framework.version>
+        <spring-ai.version>1.0.0</spring-ai.version>
+        <spring-boot.version>3.4.2</spring-boot.version>
+        <micrometer.version>1.12.2</micrometer.version>
+        <reactor.version>2023.0.8</reactor.version>
+        <slf4j.version>2.0.9</slf4j.version>
+
+        <!-- Agent SDK specific versions -->
+        <zt-exec.version>1.12</zt-exec.version>
+        <jackson.version>2.17.2</jackson.version>
+
+        <!-- Test dependency versions -->
+        <junit-jupiter.version>5.10.1</junit-jupiter.version>
+        <mockito.version>5.7.0</mockito.version>
+        <assertj.version>3.24.2</assertj.version>
+
+        <!-- Plugin versions -->
+        <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
+        <maven-surefire-plugin.version>3.1.2</maven-surefire-plugin.version>
+        <maven-source-plugin.version>3.3.0</maven-source-plugin.version>
+        <maven-javadoc-plugin.version>3.6.0</maven-javadoc-plugin.version>
+        <flatten-maven-plugin.version>1.5.0</flatten-maven-plugin.version>
+        <spring-javaformat-maven-plugin.version>0.0.43</spring-javaformat-maven-plugin.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Spring Framework BOM -->
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-framework-bom</artifactId>
+                <version>${spring-framework.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Spring Boot BOM -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Reactor BOM -->
+            <dependency>
+                <groupId>io.projectreactor</groupId>
+                <artifactId>reactor-bom</artifactId>
+                <version>${reactor.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Micrometer BOM -->
+            <dependency>
+                <groupId>io.micrometer</groupId>
+                <artifactId>micrometer-bom</artifactId>
+                <version>${micrometer.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Jackson BOM -->
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${jackson.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Spring AI dependencies -->
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-client-chat</artifactId>
+                <version>${spring-ai.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-model</artifactId>
+                <version>${spring-ai.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-retry</artifactId>
+                <version>${spring-ai.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-test</artifactId>
+                <version>${spring-ai.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- Agent SDK dependencies -->
+            <dependency>
+                <groupId>org.zeroturnaround</groupId>
+                <artifactId>zt-exec</artifactId>
+                <version>${zt-exec.version}</version>
+            </dependency>
+
+            <!-- Slf4j API -->
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>${slf4j.version}</version>
+            </dependency>
+
+            <!-- Project modules -->
+            <dependency>
+                <groupId>org.springaicommunity.agents</groupId>
+                <artifactId>spring-ai-agent-model</artifactId>
+                <version>${spring-ai-agents.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springaicommunity.agents</groupId>
+                <artifactId>claude-code-sdk</artifactId>
+                <version>${spring-ai-agents.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springaicommunity.agents</groupId>
+                <artifactId>gemini-cli-sdk</artifactId>
+                <version>${spring-ai-agents.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springaicommunity.agents</groupId>
+                <artifactId>swe-agent-sdk</artifactId>
+                <version>${spring-ai-agents.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springaicommunity.agents</groupId>
+                <artifactId>spring-ai-claude-code</artifactId>
+                <version>${spring-ai-agents.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springaicommunity.agents</groupId>
+                <artifactId>spring-ai-gemini</artifactId>
+                <version>${spring-ai-agents.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springaicommunity.agents</groupId>
+                <artifactId>spring-ai-swe-agent</artifactId>
+                <version>${spring-ai-agents.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springaicommunity.agents</groupId>
+                <artifactId>spring-ai-agent-client</artifactId>
+                <version>${spring-ai-agents.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springaicommunity.agents</groupId>
+                <artifactId>spring-ai-starter-agent</artifactId>
+                <version>${spring-ai-agents.version}</version>
+            </dependency>
+
+            <!-- Testing dependencies -->
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${junit-jupiter.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <version>${mockito.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.assertj</groupId>
+                <artifactId>assertj-core</artifactId>
+                <version>${assertj.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.micrometer</groupId>
+                <artifactId>micrometer-observation-test</artifactId>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.projectreactor</groupId>
+                <artifactId>reactor-test</artifactId>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>${maven-compiler-plugin.version}</version>
+                    <configuration>
+                        <source>${java.version}</source>
+                        <target>${java.version}</target>
+                        <parameters>true</parameters>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${maven-surefire-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-source-plugin</artifactId>
+                    <version>${maven-source-plugin.version}</version>
+                    <executions>
+                        <execution>
+                            <id>attach-sources</id>
+                            <goals>
+                                <goal>jar</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-javadoc-plugin</artifactId>
+                    <version>${maven-javadoc-plugin.version}</version>
+                    <configuration>
+                        <failOnError>false</failOnError>
+                        <quiet>true</quiet>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>attach-javadocs</id>
+                            <goals>
+                                <goal>jar</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>flatten-maven-plugin</artifactId>
+                    <version>${flatten-maven-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>io.spring.javaformat</groupId>
+                    <artifactId>spring-javaformat-maven-plugin</artifactId>
+                    <version>${spring-javaformat-maven-plugin.version}</version>
+                    <executions>
+                        <execution>
+                            <phase>validate</phase>
+                            <goals>
+                                <goal>validate</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${spring-boot.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>io.spring.javaformat</groupId>
+                <artifactId>spring-javaformat-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>

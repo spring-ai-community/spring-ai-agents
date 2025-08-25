@@ -1,0 +1,14 @@
+site:
+  title: Spring AI Agents Reference
+  url: https://spring-ai-community.github.io/spring-ai-agents/
+  
+content:
+  sources:
+    - url: ./../../../..
+      branches: HEAD
+      start_path: docs/src/main/antora
+      
+ui:
+  bundle:
+    url: https://gitlab.com/antora/antora-ui-default/-/jobs/artifacts/HEAD/raw/build/ui-bundle.zip?job=bundle-stable
+    snapshot: true

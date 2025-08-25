@@ -1,0 +1,699 @@
+= Contribution Guidelines
+:page-title: Contributing to Spring AI Agents
+:toc: left
+:tabsize: 2
+:sectnums:
+
+We welcome contributions to Spring AI Agents! This guide will help you get started with contributing to this community-maintained project.
+
+== Getting Started
+
+=== Prerequisites
+
+Before contributing, ensure you have:
+
+* Java 17 or higher
+* Maven 3.6.3 or higher
+* Git for version control
+* An IDE with Java support (IntelliJ IDEA, Eclipse, VS Code)
+* Agent CLI tools installed (Claude Code, Gemini CLI, etc.)
+
+=== Development Environment Setup
+
+1. **Fork and Clone the Repository**:
++
+[source,bash]
+----
+git clone https://github.com/yourusername/spring-ai-agents.git
+cd spring-ai-agents
+----
+
+2. **Build the Project**:
++
+[source,bash]
+----
+mvn clean install
+----
+
+3. **Run Tests**:
++
+[source,bash]
+----
+# Run unit and smoke tests (fast)
+mvn test
+
+# Run all tests including integration tests
+mvn test -Pfailsafe
+----
+
+4. **Verify Agent CLIs**:
++
+[source,bash]
+----
+# Verify Claude Code CLI
+claude --version
+
+# Verify Gemini CLI  
+gemini --version
+----
+
+== Types of Contributions
+
+=== 1. Bug Fixes
+
+Help us improve stability and reliability:
+
+* **Bug Reports**: Use GitHub Issues with detailed reproduction steps
+* **Bug Fixes**: Submit pull requests with tests demonstrating the fix
+* **Regression Prevention**: Add tests for edge cases and error conditions
+
+=== 2. New Agent Integrations
+
+Expand the ecosystem by adding new autonomous agents:
+
+* **Agent Research**: Evaluate new CLI agents for integration potential
+* **SDK Development**: Create Java SDKs following our established patterns
+* **AgentModel Implementation**: Build Spring AI integration adapters
+* **Documentation**: Provide comprehensive usage documentation
+
+=== 3. Feature Enhancements
+
+Improve existing functionality:
+
+* **API Improvements**: Enhance the AgentClient API based on user feedback
+* **Performance Optimizations**: Improve response times and resource usage
+* **Configuration Options**: Add new configuration capabilities
+* **Error Handling**: Improve error messages and recovery mechanisms
+
+=== 4. Documentation
+
+Help others use the library effectively:
+
+* **API Documentation**: Improve method and class documentation
+* **Usage Examples**: Add practical code examples and tutorials
+* **Troubleshooting Guides**: Document common issues and solutions
+* **Architecture Documentation**: Explain design decisions and patterns
+
+=== 5. Testing
+
+Improve code quality and reliability:
+
+* **Unit Tests**: Add tests for new functionality
+* **Integration Tests**: Test end-to-end agent interactions
+* **Performance Tests**: Benchmark and optimize critical paths
+* **Cross-Platform Tests**: Ensure compatibility across operating systems
+
+== Development Process
+
+=== Code Standards
+
+Follow these coding conventions:
+
+==== Java Code Style
+
+* **Formatting**: Use Spring Java Format (automatically applied via Maven plugin)
+* **Naming**: Follow standard Java naming conventions
+* **Documentation**: Include Javadoc for all public APIs
+* **Imports**: Organize imports and avoid wildcard imports
+
+[source,java]
+----
+// Good example
+public class ClaudeCodeAgentModel implements AgentModel<AgentRequest, AgentResponse> {
+    
+    private final ClaudeCodeClient client;
+    private final ClaudeCodeAgentOptions options;
+    
+    /**
+     * Creates a new Claude Code agent model with the specified client and options.
+     * 
+     * @param client the Claude Code client for CLI communication
+     * @param options configuration options for the agent
+     * @throws IllegalArgumentException if client or options are null
+     */
+    public ClaudeCodeAgentModel(ClaudeCodeClient client, ClaudeCodeAgentOptions options) {
+        this.client = Objects.requireNonNull(client, "Client cannot be null");
+        this.options = Objects.requireNonNull(options, "Options cannot be null");
+    }
+    
+    // Implementation...
+}
+----
+
+==== Test Naming Conventions
+
+Follow our standardized test naming:
+
+* **Unit Tests**: End with `Test` (e.g., `AgentClientTest`)
+* **Smoke Tests**: Include `Smoke` in the name (e.g., `ClaudeQuerySmokeTest`)
+* **Integration Tests**: End with `IT` (e.g., `ClaudeCodeClientIT`)
+
+[source,java]
+----
+// Unit test example
+class AgentClientTest {
+    
+    @Test
+    void shouldCreateClientWithValidModel() {
+        // Test implementation
+    }
+}
+
+// Integration test example  
+class ClaudeCodeClientIT {
+    
+    @Test
+    void shouldExecuteSimpleTaskSuccessfully() {
+        // Test implementation
+    }
+}
+----
+
+=== Git Workflow
+
+==== Branch Naming
+
+Use descriptive branch names with prefixes:
+
+* `feature/add-new-agent-support`
+* `bugfix/fix-timeout-handling`
+* `docs/improve-getting-started`
+* `test/add-integration-tests`
+
+==== Commit Messages
+
+Write clear, descriptive commit messages:
+
+[source,bash]
+----
+# Good commit message
+Add timeout configuration for Claude Code agent
+
+- Add timeout option to ClaudeCodeAgentOptions
+- Implement timeout handling in ClaudeCodeClient
+- Add tests for timeout scenarios
+- Update documentation with timeout examples
+
+# Poor commit message
+Fix bug
+----
+
+==== Pull Request Process
+
+1. **Create Feature Branch**:
++
+[source,bash]
+----
+git checkout -b feature/my-new-feature
+----
+
+2. **Make Changes**: Implement your feature with tests and documentation
+
+3. **Run Tests**: Ensure all tests pass
++
+[source,bash]
+----
+mvn clean test -Pfailsafe
+mvn spring-javaformat:apply
+----
+
+4. **Commit Changes**:
++
+[source,bash]
+----
+git add .
+git commit -m "Add new feature with comprehensive tests"
+----
+
+5. **Push and Create PR**:
++
+[source,bash]
+----
+git push origin feature/my-new-feature
+----
+
+6. **Address Review Comments**: Make requested changes and update PR
+
+== Testing Guidelines
+
+=== Test Categories
+
+Our test suite is organized into three categories:
+
+==== Unit Tests (`*Test.java`)
+* **Purpose**: Test individual components in isolation
+* **Scope**: Single class or method
+* **Execution**: Fast (< 1 second per test)
+* **Dependencies**: Use mocks for external dependencies
+
+[source,java]
+----
+@ExtendWith(MockitoExtension.class)
+class AgentClientTest {
+    
+    @Mock
+    private AgentModel<AgentRequest, AgentResponse> mockModel;
+    
+    @Test
+    void shouldCallModelWithCorrectRequest() {
+        // Given
+        AgentClient client = AgentClient.create(mockModel);
+        when(mockModel.call(any())).thenReturn(createMockResponse());
+        
+        // When
+        AgentClientResponse response = client.run("test goal");
+        
+        // Then
+        assertThat(response).isNotNull();
+        verify(mockModel).call(any(AgentRequest.class));
+    }
+}
+----
+
+==== Smoke Tests (`*SmokeTest.java`)
+* **Purpose**: Quick end-to-end validation
+* **Scope**: Critical paths with real agents
+* **Execution**: Fast (< 2 minutes total)
+* **Dependencies**: Real agent CLIs with minimal tasks
+
+[source,java]
+----
+class ClaudeQuerySmokeTest {
+    
+    @Test
+    @EnabledIf("org.springaicommunity.agents.claudecode.sdk.integration.ClaudeCliDiscovery#isClaudeCliAvailable")
+    void shouldExecuteSimpleQuery() {
+        // Test simple agent interaction
+        AgentClientResponse response = agentClient.run("Echo hello world");
+        assertThat(response.isSuccessful()).isTrue();
+    }
+}
+----
+
+==== Integration Tests (`*IT.java`)
+* **Purpose**: Comprehensive end-to-end testing
+* **Scope**: Complex scenarios and error conditions
+* **Execution**: Slower (can take several minutes)
+* **Dependencies**: Full agent CLI setup
+
+=== Writing Good Tests
+
+==== Test Structure
+
+Use the Given-When-Then pattern:
+
+[source,java]
+----
+@Test
+void shouldHandleTimeoutGracefully() {
+    // Given
+    ClaudeCodeAgentOptions options = ClaudeCodeAgentOptions.builder()
+        .timeout(Duration.ofMillis(100))  // Very short timeout
+        .build();
+    AgentClient client = createClientWithOptions(options);
+    
+    // When
+    Exception exception = assertThrows(AgentTimeoutException.class, () -> {
+        client.run("Complex long-running goal");
+    });
+    
+    // Then
+    assertThat(exception.getMessage()).contains("timed out");
+    assertThat(exception.getTimeout()).isEqualTo(Duration.ofMillis(100));
+}
+----
+
+==== Test Data Management
+
+Create reusable test utilities:
+
+[source,java]
+----
+public class TestDataBuilder {
+    
+    public static ClaudeCodeAgentOptions defaultOptions() {
+        return ClaudeCodeAgentOptions.builder()
+            .model("claude-sonnet-4-0")
+            .yolo(false)
+            .timeout(Duration.ofMinutes(2))
+            .build();
+    }
+    
+    public static AgentRequest simpleRequest(String goal) {
+        return new AgentRequest(goal, Paths.get("."), Collections.emptyMap());
+    }
+}
+----
+
+=== Cross-Platform Testing
+
+Ensure compatibility across operating systems:
+
+[source,java]
+----
+@Test
+void shouldResolveCommandPathOnAllPlatforms() {
+    // Test path resolution on Windows, macOS, and Linux
+    String command = "claude";
+    String resolvedPath = ClaudeCliDiscovery.resolveCommandPath(command);
+    
+    assertThat(resolvedPath).isNotNull();
+    assertThat(Paths.get(resolvedPath)).exists();
+}
+
+@EnabledOnOs({OS.WINDOWS})
+@Test
+void shouldHandleWindowsSpecificPaths() {
+    // Windows-specific test
+}
+
+@EnabledOnOs({OS.MAC, OS.LINUX})  
+@Test
+void shouldHandleUnixSpecificPaths() {
+    // Unix-specific test
+}
+----
+
+== Adding New Agent Integrations
+
+=== Research Phase
+
+Before implementing a new agent integration:
+
+1. **Agent Evaluation**:
+   * Does it provide autonomous coding capabilities?
+   * Is there a command-line interface available?
+   * Does it support structured input/output?
+   * Is it actively maintained?
+
+2. **Technical Assessment**:
+   * What programming languages does it support?
+   * What are the installation requirements?
+   * How does authentication work?
+   * What are the rate limits and costs?
+
+3. **Community Need**:
+   * Is there demand for this integration?
+   * How would it complement existing agents?
+   * What unique capabilities does it provide?
+
+=== Implementation Pattern
+
+Follow this proven pattern for new agent integrations:
+
+==== 1. Create SDK Module
+
+[source,bash]
+----
+provider-sdks/
+└── your-agent-sdk/
+    ├── pom.xml
+    └── src/
+        ├── main/java/org/springaicommunity/agents/youragent/
+        │   ├── sdk/
+        │   │   ├── YourAgentClient.java
+        │   │   ├── YourAgentCommand.java
+        │   │   └── YourAgentResponse.java
+        │   └── exceptions/
+        └── test/java/
+----
+
+==== 2. Implement Core SDK Classes
+
+[source,java]
+----
+public class YourAgentClient {
+    
+    private final Path workingDirectory;
+    private final String commandPath;
+    
+    public static YourAgentClient create() {
+        return create(Paths.get(System.getProperty("user.dir")));
+    }
+    
+    public static YourAgentClient create(Path workingDirectory) {
+        String commandPath = YourAgentCliDiscovery.discoverYourAgentCommand();
+        return new YourAgentClient(workingDirectory, commandPath);
+    }
+    
+    public YourAgentResponse execute(YourAgentCommand command) {
+        // Implementation follows established patterns
+    }
+}
+----
+
+==== 3. Create AgentModel Integration
+
+[source,bash]
+----
+agent-models/
+└── spring-ai-your-agent/
+    ├── pom.xml
+    └── src/
+        └── main/java/org/springaicommunity/agents/youragent/
+            ├── YourAgentModel.java
+            ├── YourAgentOptions.java
+            └── YourAgentProperties.java
+----
+
+[source,java]
+----
+public class YourAgentModel implements AgentModel<AgentRequest, AgentResponse> {
+    
+    private final YourAgentClient client;
+    private final YourAgentOptions options;
+    
+    public YourAgentModel(YourAgentClient client, YourAgentOptions options) {
+        this.client = client;
+        this.options = options;
+    }
+    
+    @Override
+    public AgentResponse call(AgentRequest request) {
+        // Convert AgentRequest to YourAgentCommand
+        // Execute via client
+        // Convert YourAgentResponse to AgentResponse
+    }
+}
+----
+
+==== 4. Add Comprehensive Tests
+
+Create tests following our naming conventions:
+
+* `YourAgentClientTest` - Unit tests
+* `YourAgentQuerySmokeTest` - Smoke tests  
+* `YourAgentClientIT` - Integration tests
+
+==== 5. Document the Integration
+
+* Update navigation to include your agent
+* Create `api/your-agent-sdk.adoc` documentation
+* Add examples to the samples page
+* Update the main README if applicable
+
+=== Integration Checklist
+
+Before submitting a new agent integration:
+
+- [ ] SDK follows established patterns
+- [ ] All tests pass (unit, smoke, integration)
+- [ ] Cross-platform compatibility verified
+- [ ] Documentation is comprehensive
+- [ ] Error handling is robust
+- [ ] Configuration options are well-designed
+- [ ] Thread safety is ensured
+- [ ] Resource cleanup is proper
+- [ ] Examples are provided
+- [ ] Performance is acceptable
+
+== Documentation Standards
+
+=== AsciiDoc Guidelines
+
+Our documentation uses AsciiDoc format:
+
+* **Structure**: Use proper heading hierarchy
+* **Code Examples**: Include complete, runnable examples
+* **Cross-References**: Link related sections with `xref:`
+* **Formatting**: Use appropriate text formatting (bold, italic, code)
+
+[source,asciidoc]
+----
+= Your Agent SDK
+:page-title: Your Agent SDK Documentation
+:toc: left
+:tabsize: 2
+:sectnums:
+
+The Your Agent SDK provides Java integration with YourAgent CLI.
+
+== Overview
+
+Brief description of the agent and its capabilities.
+
+== Installation
+
+=== Prerequisites
+
+List requirements:
+
+* YourAgent CLI installation
+* API key configuration
+* System requirements
+
+=== Maven Dependencies
+
+[source,xml]
+----
+<dependency>
+    <groupId>org.springaicommunity.agents</groupId>
+    <artifactId>spring-ai-your-agent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+</dependency>
+----
+
+== Basic Usage
+
+=== Quick Start
+
+[source,java]
+----
+// Complete, runnable example
+public class YourAgentExample {
+    public static void main(String[] args) {
+        // Step-by-step implementation
+    }
+}
+----
+----
+
+=== API Reference
+
+Document all public APIs with:
+
+* **Purpose**: What does this API do?
+* **Parameters**: All parameters with types and descriptions
+* **Return Values**: What does it return?
+* **Exceptions**: What exceptions might be thrown?
+* **Examples**: Show typical usage
+
+=== Code Examples
+
+Provide complete, runnable examples:
+
+[source,java]
+----
+// Bad: Incomplete example
+YourAgentClient client = YourAgentClient.create();
+client.execute(command);
+
+// Good: Complete example
+import org.springaicommunity.agents.youragent.YourAgentClient;
+import org.springaicommunity.agents.youragent.YourAgentCommand;
+
+public class YourAgentExample {
+    public static void main(String[] args) {
+        // 1. Create client with working directory
+        YourAgentClient client = YourAgentClient.create(
+            Paths.get("/path/to/project")
+        );
+        
+        // 2. Create command
+        YourAgentCommand command = YourAgentCommand.builder()
+            .goal("Create a simple REST controller")
+            .build();
+            
+        // 3. Execute command
+        YourAgentResponse response = client.execute(command);
+        
+        // 4. Handle response
+        if (response.isSuccessful()) {
+            System.out.println("Result: " + response.getResult());
+        } else {
+            System.err.println("Failed: " + response.getError());
+        }
+    }
+}
+----
+
+== Community Support
+
+=== Getting Help
+
+* **GitHub Discussions**: Ask questions and share ideas
+* **GitHub Issues**: Report bugs and request features
+* **Stack Overflow**: Tag questions with `spring-ai-agents`
+* **Documentation**: Check our comprehensive guides
+
+=== Reporting Issues
+
+When reporting bugs, include:
+
+* **Version**: Which version are you using?
+* **Environment**: OS, Java version, agent CLI versions
+* **Steps to Reproduce**: Detailed reproduction steps
+* **Expected Behavior**: What should happen?
+* **Actual Behavior**: What actually happens?
+* **Code Sample**: Minimal example demonstrating the issue
+
+=== Feature Requests
+
+For feature requests:
+
+* **Use Case**: Why do you need this feature?
+* **Proposed Solution**: How would you like it to work?
+* **Alternatives**: Have you considered other approaches?
+* **Impact**: How would this benefit the community?
+
+== Release Process
+
+=== Version Strategy
+
+We follow semantic versioning:
+
+* **Major Version** (1.0.0): Breaking API changes
+* **Minor Version** (0.1.0): New features, backward compatible
+* **Patch Version** (0.0.1): Bug fixes, backward compatible
+
+=== Release Checklist
+
+Before releasing:
+
+- [ ] All tests pass on multiple platforms
+- [ ] Documentation is updated
+- [ ] Version numbers are bumped
+- [ ] Changelog is updated
+- [ ] Migration guide is provided (for breaking changes)
+- [ ] Examples are updated
+- [ ] Performance regression tests pass
+
+== Code of Conduct
+
+We are committed to providing a welcoming and inclusive environment:
+
+* **Be Respectful**: Treat all community members with respect
+* **Be Collaborative**: Help others learn and contribute
+* **Be Patient**: Remember that everyone has different experience levels
+* **Be Constructive**: Provide helpful feedback and suggestions
+
+=== Enforcement
+
+Unacceptable behavior will not be tolerated. Report issues to the project maintainers.
+
+== Licensing
+
+This project is licensed under the Apache License 2.0. By contributing, you agree to license your contributions under the same terms.
+
+== Next Steps
+
+Ready to contribute? Here's how to get started:
+
+1. **Read the Code**: Familiarize yourself with the existing codebase
+2. **Start Small**: Begin with documentation improvements or small bug fixes
+3. **Ask Questions**: Don't hesitate to ask for help in GitHub Discussions
+4. **Follow Patterns**: Study existing implementations before creating new ones
+5. **Test Thoroughly**: Ensure your contributions are well-tested
+6. **Document Well**: Help others understand your contributions
+
+Thank you for contributing to Spring AI Agents! 🚀

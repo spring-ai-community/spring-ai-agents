@@ -1,0 +1,554 @@
+= Claude Code SDK
+:page-title: Claude Code SDK Documentation
+:toc: left
+:tabsize: 2
+:sectnums:
+
+The Claude Code SDK provides Java integration with Anthropic's Claude Code CLI, enabling autonomous coding capabilities in Spring applications.
+
+== Overview
+
+Claude Code is Anthropic's autonomous coding agent that can read, write, and execute code across entire codebases. The Spring AI Claude Code integration makes it easy to incorporate these capabilities into Java applications.
+
+== Installation
+
+=== Prerequisites
+
+1. **Install Claude Code CLI**:
++
+[source,bash]
+----
+npm install -g @anthropic-ai/claude-code
+----
+
+2. **Set API Key**:
++
+[source,bash]
+----
+export ANTHROPIC_API_KEY="your-api-key-here"
+----
++
+Get your API key from the https://console.anthropic.com/[Anthropic Console].
+
+3. **Verify Installation**:
++
+[source,bash]
+----
+claude --version
+----
+
+=== Maven Dependencies
+
+Add the following dependencies to your `pom.xml`:
+
+[source,xml]
+----
+<dependencies>
+    <!-- Core AgentClient API -->
+    <dependency>
+        <groupId>org.springaicommunity.agents</groupId>
+        <artifactId>spring-ai-agent-client</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </dependency>
+    
+    <!-- Claude Code integration -->
+    <dependency>
+        <groupId>org.springaicommunity.agents</groupId>
+        <artifactId>spring-ai-claude-code</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </dependency>
+</dependencies>
+----
+
+== Basic Usage
+
+=== Quick Start
+
+[source,java]
+----
+import org.springaicommunity.agents.client.AgentClient;
+import org.springaicommunity.agents.client.AgentClientResponse;
+import org.springaicommunity.agents.claudecode.ClaudeCodeAgentModel;
+import org.springaicommunity.agents.claudecode.ClaudeCodeAgentOptions;
+import org.springaicommunity.agents.claudecode.sdk.ClaudeCodeClient;
+
+import java.nio.file.Paths;
+
+public class ClaudeCodeExample {
+    public static void main(String[] args) {
+        // 1. Create the Claude Code client
+        ClaudeCodeClient claudeClient = ClaudeCodeClient.create(
+            Paths.get(System.getProperty("user.dir"))
+        );
+        
+        // 2. Configure agent options
+        ClaudeCodeAgentOptions options = ClaudeCodeAgentOptions.builder()
+            .model("claude-sonnet-4-0")
+            .yolo(true)
+            .build();
+            
+        // 3. Create the agent model
+        ClaudeCodeAgentModel agentModel = new ClaudeCodeAgentModel(claudeClient, options);
+        
+        // 4. Create AgentClient
+        AgentClient agentClient = AgentClient.create(agentModel);
+        
+        // 5. Execute a goal
+        AgentClientResponse response = agentClient.run(
+            "Create a simple Calculator class with add, subtract, multiply, and divide methods"
+        );
+        
+        System.out.println("Result: " + response.getResult());
+        System.out.println("Success: " + response.isSuccessful());
+    }
+}
+----
+
+== Configuration
+
+=== ClaudeCodeClient
+
+The `ClaudeCodeClient` manages communication with the Claude CLI:
+
+[source,java]
+----
+// Create with default working directory
+ClaudeCodeClient client = ClaudeCodeClient.create();
+
+// Create with specific working directory
+Path projectPath = Paths.get("/path/to/project");
+ClaudeCodeClient client = ClaudeCodeClient.create(projectPath);
+
+// Create with custom Claude command path
+ClaudeCodeClient client = ClaudeCodeClient.create(
+    projectPath,
+    "/custom/path/to/claude"
+);
+----
+
+=== ClaudeCodeAgentOptions
+
+Configure Claude-specific behavior:
+
+[source,java]
+----
+ClaudeCodeAgentOptions options = ClaudeCodeAgentOptions.builder()
+    // Model selection
+    .model("claude-sonnet-4-0")  // or "claude-haiku-4-0"
+    
+    // Execution settings
+    .yolo(true)                           // Allow modifications
+    .timeout(Duration.ofMinutes(10))      // Execution timeout
+    .maxTokens(8192)                      // Response length limit
+    
+    // Output preferences
+    .verbose(true)                        // Detailed logging
+    .outputFormat("json")                 // Structured output
+    
+    .build();
+----
+
+=== Model Options
+
+Available Claude models:
+
+[cols="1,2,1"]
+|===
+|Model |Description |Best For
+
+|`claude-sonnet-4-0`
+|Latest Sonnet model with enhanced coding capabilities
+|Complex refactoring, large codebases, architectural changes
+
+|`claude-haiku-4-0`
+|Faster model optimized for speed
+|Quick fixes, simple tasks, rapid prototyping
+
+|`claude-opus-4-0`
+|Most capable model for complex reasoning
+|Complex algorithms, system design, challenging debugging
+|===
+
+== Advanced Features
+
+=== Working Directory Management
+
+Claude Code operates within a specific directory context:
+
+[source,java]
+----
+// Configure working directory via client
+ClaudeCodeClient client = ClaudeCodeClient.create(
+    Paths.get("/path/to/microservice")
+);
+
+// Or via AgentClient fluent API
+AgentClientResponse response = agentClient
+    .goal("Add validation to the UserController")
+    .workingDirectory("/path/to/microservice")
+    .run();
+----
+
+=== YOLO Mode
+
+Control whether Claude can make changes without confirmation:
+
+[source,java]
+----
+// Development mode - allow changes
+ClaudeCodeAgentOptions devOptions = ClaudeCodeAgentOptions.builder()
+    .yolo(true)
+    .build();
+
+// Analysis mode - read-only
+ClaudeCodeAgentOptions analysisOptions = ClaudeCodeAgentOptions.builder()
+    .yolo(false)
+    .build();
+----
+
+=== Timeout Configuration
+
+Set appropriate timeouts for different goal complexities:
+
+[source,java]
+----
+// Quick tasks
+ClaudeCodeAgentOptions quickOptions = ClaudeCodeAgentOptions.builder()
+    .timeout(Duration.ofMinutes(2))
+    .build();
+
+// Complex refactoring
+ClaudeCodeAgentOptions complexOptions = ClaudeCodeAgentOptions.builder()
+    .timeout(Duration.ofMinutes(30))
+    .build();
+----
+
+== Error Handling
+
+=== Common Exceptions
+
+[source,java]
+----
+try {
+    AgentClientResponse response = agentClient.run("Complex refactoring goal");
+    
+    if (!response.isSuccessful()) {
+        System.err.println("Goal failed: " + response.getResult());
+    }
+    
+} catch (ClaudeCodeExecutionException e) {
+    // Claude CLI process failed
+    System.err.println("Claude execution error: " + e.getMessage());
+    
+} catch (ClaudeCodeNotFoundException e) {
+    // Claude CLI not installed or not in PATH
+    System.err.println("Claude CLI not found: " + e.getMessage());
+    
+} catch (AgentTimeoutException e) {
+    // Goal exceeded configured timeout
+    System.err.println("Goal timed out: " + e.getTimeout());
+    
+} catch (AgentAuthenticationException e) {
+    // Invalid or missing API key
+    System.err.println("Authentication failed: " + e.getMessage());
+}
+----
+
+=== Validation and Recovery
+
+[source,java]
+----
+@Service
+public class ClaudeCodeService {
+    
+    private final AgentClient agentClient;
+    
+    public ClaudeCodeService(AgentClient agentClient) {
+        this.agentClient = agentClient;
+    }
+    
+    public String refactorCode(String className, String requirements) {
+        // Validate inputs
+        if (className == null || className.trim().isEmpty()) {
+            throw new IllegalArgumentException("Class name is required");
+        }
+        
+        try {
+            // First, analyze the code
+            AgentClientResponse analysis = agentClient
+                .goal("Analyze " + className + " and suggest improvements")
+                .yolo(false) // Read-only analysis
+                .run();
+                
+            if (!analysis.isSuccessful()) {
+                throw new ServiceException("Analysis failed: " + analysis.getResult());
+            }
+            
+            // Then perform refactoring
+            AgentClientResponse refactoring = agentClient
+                .goal("Refactor " + className + " based on: " + requirements)
+                .yolo(true) // Allow modifications
+                .run();
+                
+            return refactoring.getResult();
+            
+        } catch (Exception e) {
+            // Log error and return meaningful message
+            log.error("Refactoring failed for class: {}", className, e);
+            throw new ServiceException("Unable to refactor " + className + ": " + e.getMessage());
+        }
+    }
+}
+----
+
+== Spring Boot Integration
+
+=== Auto-Configuration
+
+Create a configuration class for Claude Code:
+
+[source,java]
+----
+@Configuration
+@ConditionalOnProperty(name = "spring.ai.agent.claude.enabled", havingValue = "true", matchIfMissing = true)
+public class ClaudeCodeConfiguration {
+    
+    @Bean
+    @ConditionalOnMissingBean
+    public ClaudeCodeClient claudeCodeClient(@Value("${spring.ai.agent.claude.working-directory:#{systemProperties['user.dir']}}") String workingDir) {
+        return ClaudeCodeClient.create(Paths.get(workingDir));
+    }
+    
+    @Bean
+    @ConditionalOnMissingBean
+    public ClaudeCodeAgentModel claudeCodeAgentModel(
+            ClaudeCodeClient client,
+            ClaudeCodeAgentOptions options) {
+        return new ClaudeCodeAgentModel(client, options);
+    }
+    
+    @Bean
+    @ConditionalOnMissingBean
+    public ClaudeCodeAgentOptions claudeCodeAgentOptions(ClaudeCodeProperties properties) {
+        return ClaudeCodeAgentOptions.builder()
+            .model(properties.getModel())
+            .yolo(properties.isYolo())
+            .timeout(properties.getTimeout())
+            .maxTokens(properties.getMaxTokens())
+            .verbose(properties.isVerbose())
+            .build();
+    }
+    
+    @Bean
+    public AgentClient agentClient(ClaudeCodeAgentModel agentModel) {
+        return AgentClient.create(agentModel);
+    }
+}
+----
+
+=== Application Properties
+
+Configure Claude Code via `application.yml`:
+
+[source,yaml]
+----
+spring:
+  ai:
+    agent:
+      claude:
+        enabled: true
+        model: claude-sonnet-4-0
+        working-directory: /path/to/project
+        yolo: false
+        timeout: PT10M
+        max-tokens: 8192
+        verbose: true
+----
+
+Or `application.properties`:
+
+[source,properties]
+----
+spring.ai.agent.claude.enabled=true
+spring.ai.agent.claude.model=claude-sonnet-4-0
+spring.ai.agent.claude.working-directory=/path/to/project
+spring.ai.agent.claude.yolo=false
+spring.ai.agent.claude.timeout=PT10M
+spring.ai.agent.claude.max-tokens=8192
+spring.ai.agent.claude.verbose=true
+----
+
+== Best Practices
+
+=== Goal Formulation
+
+Write specific, actionable goals for Claude:
+
+[source,java]
+----
+// Good: Specific and contextual
+agentClient.run("Add input validation to UserController.createUser() method using Bean Validation annotations");
+
+// Good: Clear scope and requirements
+agentClient.run("Refactor PaymentService to use the Strategy pattern for different payment processors");
+
+// Avoid: Vague requests
+agentClient.run("Fix the code");
+
+// Avoid: Overly broad scope
+agentClient.run("Rewrite the entire application");
+----
+
+=== Security Considerations
+
+Always be cautious with YOLO mode in production:
+
+[source,java]
+----
+@Profile("development")
+@Configuration
+public class DevelopmentClaudeConfig {
+    
+    @Bean
+    public ClaudeCodeAgentOptions devClaudeOptions() {
+        return ClaudeCodeAgentOptions.builder()
+            .yolo(true) // OK for development
+            .build();
+    }
+}
+
+@Profile("production")
+@Configuration  
+public class ProductionClaudeConfig {
+    
+    @Bean
+    public ClaudeCodeAgentOptions prodClaudeOptions() {
+        return ClaudeCodeAgentOptions.builder()
+            .yolo(false) // Safe for production
+            .build();
+    }
+}
+----
+
+=== Resource Management
+
+Monitor and limit resource usage:
+
+[source,java]
+----
+@Component
+public class ClaudeCodeMonitor {
+    
+    private final MeterRegistry meterRegistry;
+    private final AgentClient agentClient;
+    
+    public ClaudeCodeMonitor(MeterRegistry meterRegistry, AgentClient agentClient) {
+        this.meterRegistry = meterRegistry;
+        this.agentClient = agentClient;
+    }
+    
+    public String executeWithMetrics(String goal) {
+        return Timer.Sample.start(meterRegistry)
+            .stop(Timer.builder("claude.goal.duration")
+                .tag("goal", goal.substring(0, Math.min(goal.length(), 50)))
+                .register(meterRegistry))
+            .recordCallable(() -> {
+                Counter.builder("claude.goal.count").register(meterRegistry).increment();
+                
+                AgentClientResponse response = agentClient.run(goal);
+                
+                Counter.builder("claude.goal.result")
+                    .tag("success", String.valueOf(response.isSuccessful()))
+                    .register(meterRegistry)
+                    .increment();
+                    
+                return response.getResult();
+            });
+    }
+}
+----
+
+== Troubleshooting
+
+=== Common Issues
+
+**Claude CLI Not Found**
+
+Ensure Claude is installed and in your PATH:
+
+[source,bash]
+----
+# Verify installation
+claude --version
+
+# Check PATH
+which claude  # macOS/Linux
+where claude  # Windows
+
+# Reinstall if needed
+npm install -g @anthropic-ai/claude-code
+----
+
+**API Key Issues**
+
+Verify your API key configuration:
+
+[source,bash]
+----
+# Check environment variable
+echo $ANTHROPIC_API_KEY
+
+# Test with Claude CLI directly
+claude --help
+----
+
+**Permission Denied**
+
+Ensure proper file permissions in working directory:
+
+[source,bash]
+----
+# Check directory permissions
+ls -la /path/to/project
+
+# Fix if needed
+chmod -R u+rw /path/to/project
+----
+
+**Timeout Issues**
+
+Increase timeout for complex tasks:
+
+[source,java]
+----
+ClaudeCodeAgentOptions options = ClaudeCodeAgentOptions.builder()
+    .timeout(Duration.ofMinutes(30)) // Longer timeout
+    .build();
+----
+
+=== Debugging
+
+Enable verbose logging to troubleshoot issues:
+
+[source,java]
+----
+ClaudeCodeAgentOptions debugOptions = ClaudeCodeAgentOptions.builder()
+    .verbose(true)
+    .build();
+----
+
+Add logging configuration:
+
+[source,yaml]
+----
+logging:
+  level:
+    org.springaicommunity.agents.claudecode: DEBUG
+    org.springaicommunity.agents.client: DEBUG
+----
+
+== Next Steps
+
+* Learn about other agent integrations in xref:api/gemini-cli-sdk.adoc[Gemini CLI SDK]
+* See practical examples in xref:samples.adoc[Sample Agents]
+* Compare with the standard API in xref:api/agentclient-vs-chatclient.adoc[AgentClient vs ChatClient]

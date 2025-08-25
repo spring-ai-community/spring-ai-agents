@@ -1,0 +1,202 @@
+= Getting Started
+:page-title: Getting Started with Spring AI Agents
+:toc: left
+:tabsize: 2
+:sectnums:
+
+This guide will help you get started with Spring AI Agents in under 5 minutes.
+
+== Prerequisites
+
+Before you begin, ensure you have the following:
+
+* Java 17 or higher
+* Maven 3.6.3 or higher  
+* An agent CLI tool installed (Claude Code, Gemini CLI, or SWE Agent)
+* API keys for your chosen agent provider
+
+== Installing Agent CLI Tools
+
+=== Claude Code CLI
+
+Install Claude Code from NPM:
+
+[source,bash]
+----
+npm install -g @anthropic-ai/claude-code
+----
+
+Set your API key:
+[source,bash]
+----
+export ANTHROPIC_API_KEY="your-api-key-here"
+----
+
+Get your API key from the https://console.anthropic.com/[Anthropic Console].
+
+=== Gemini CLI
+
+Install Gemini CLI from NPM:
+
+[source,bash]
+----
+npm install -g @google/generative-ai-cli
+----
+
+Set your API key:
+[source,bash]
+----  
+export GEMINI_API_KEY="your-api-key-here"
+----
+
+== Adding the Library to Your Project
+
+=== Maven
+
+Add the following dependencies to your `pom.xml`:
+
+[source,xml]
+----
+<dependencies>
+    <!-- Core AgentClient API -->
+    <dependency>
+        <groupId>org.springaicommunity.agents</groupId>
+        <artifactId>spring-ai-agent-client</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </dependency>
+    
+    <!-- Choose your agent provider -->
+    <dependency>
+        <groupId>org.springaicommunity.agents</groupId>
+        <artifactId>spring-ai-claude-code</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </dependency>
+</dependencies>
+----
+
+=== Gradle
+
+Add the following dependencies to your `build.gradle`:
+
+[source,groovy]
+----
+dependencies {
+    implementation 'org.springaicommunity.agents:spring-ai-agent-client:0.1.0-SNAPSHOT'
+    implementation 'org.springaicommunity.agents:spring-ai-claude-code:0.1.0-SNAPSHOT'
+}
+----
+
+== Quick Start Example
+
+Here's a simple example using Spring AI Agents with Claude Code:
+
+[source,java]
+----
+import org.springaicommunity.agents.client.AgentClient;
+import org.springaicommunity.agents.client.AgentClientResponse;
+import org.springaicommunity.agents.claudecode.ClaudeCodeAgentModel;
+import org.springaicommunity.agents.claudecode.ClaudeCodeAgentOptions;
+import org.springaicommunity.agents.claudecode.sdk.ClaudeCodeClient;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+public class HelloAgentWorld {
+    public static void main(String[] args) {
+        // 1. Set up the working directory
+        Path workingDir = Paths.get(System.getProperty("user.dir"));
+        
+        // 2. Create the Claude Code client
+        ClaudeCodeClient claudeClient = ClaudeCodeClient.create(workingDir);
+        
+        // 3. Configure agent options
+        ClaudeCodeAgentOptions options = ClaudeCodeAgentOptions.builder()
+            .model("claude-sonnet-4-0")
+            .yolo(true) // Allow agent to make changes
+            .build();
+            
+        // 4. Create the agent model
+        ClaudeCodeAgentModel agentModel = new ClaudeCodeAgentModel(claudeClient, options);
+        
+        // 5. Create the AgentClient
+        AgentClient agentClient = AgentClient.create(agentModel);
+        
+        // 6. Run a simple goal
+        AgentClientResponse response = agentClient.run(
+            "Create a simple Hello World Java class in a file called HelloWorld.java"
+        );
+        
+        // 7. Get the result
+        System.out.println("Agent completed the goal:");
+        System.out.println(response.getResult());
+        System.out.println("Success: " + response.isSuccessful());
+    }
+}
+----
+
+== Understanding the Example
+
+Let's break down what happened in the example:
+
+1. **Working Directory**: We set up a working directory where the agent can create files
+2. **Client Creation**: We created a `ClaudeCodeClient` to communicate with the Claude CLI
+3. **Agent Options**: We configured the agent with a model and enabled "yolo" mode (allows modifications)
+4. **Agent Model**: We wrapped the client in a `ClaudeCodeAgentModel` for Spring AI integration
+5. **AgentClient**: We created an `AgentClient` - the main API for running tasks
+6. **Goal Execution**: We ran a goal using the simple `.run()` method
+7. **Result Access**: We got the result using `.getResult()` and checked success
+
+== Spring Boot Integration
+
+For Spring Boot applications, you can use dependency injection:
+
+[source,java]
+----
+@RestController
+public class AgentController {
+    
+    private final AgentClient agentClient;
+    
+    public AgentController(ClaudeCodeAgentModel agentModel) {
+        this.agentClient = AgentClient.create(agentModel);
+    }
+    
+    @PostMapping("/execute-goal")
+    public String executeTask(@RequestBody String goal) {
+        AgentClientResponse response = agentClient.run(goal);
+        return response.getResult();
+    }
+}
+
+@Configuration
+public class AgentConfiguration {
+    
+    @Bean
+    public ClaudeCodeAgentModel claudeAgentModel() {
+        ClaudeCodeClient client = ClaudeCodeClient.create();
+        ClaudeCodeAgentOptions options = ClaudeCodeAgentOptions.builder()
+            .model("claude-sonnet-4-0")
+            .build();
+        return new ClaudeCodeAgentModel(client, options);
+    }
+}
+----
+
+== Next Steps
+
+Now that you have a basic agent running, explore:
+
+* xref:api/agentclient.adoc[AgentClient API] - Learn the full API capabilities
+* xref:api/agentclient-vs-chatclient.adoc[AgentClient vs ChatClient] - See how AgentClient mirrors ChatClient patterns  
+* xref:samples.adoc[Sample Agents] - Explore real-world agent examples
+* xref:api/claude-code-sdk.adoc[Claude Code SDK] - Deep dive into Claude Code integration
+
+== Troubleshooting
+
+**Agent not found**: Make sure you've installed the CLI tool (`npm install -g @anthropic-ai/claude-code`) and it's in your PATH.
+
+**API key issues**: Verify your environment variable is set correctly and your API key is valid.
+
+**Permission denied**: Make sure the agent has access to your working directory and consider using `yolo(true)` for development.
+
+For more help, see our xref:contribution-guidelines.adoc[Contribution Guidelines] for community support options.

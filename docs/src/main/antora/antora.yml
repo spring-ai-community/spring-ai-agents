@@ -1,0 +1,12 @@
+name: spring-ai-agents
+version: true
+title: Spring AI Agents
+nav:
+  - modules/ROOT/nav.adoc
+ext:
+  collector:
+    - run:
+        command: mvnw process-resources
+        local: true
+      scan:
+        dir: docs/target/classes/antora-resources

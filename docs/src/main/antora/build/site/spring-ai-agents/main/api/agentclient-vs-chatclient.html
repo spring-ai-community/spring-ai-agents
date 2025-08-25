@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>AgentClient vs ChatClient :: Spring AI Agents Reference</title>
+    <link rel="canonical" href="https://spring-ai-community.github.io/spring-ai-agents/spring-ai-agents/main/api/agentclient-vs-chatclient.html">
+    <meta name="generator" content="Antora 3.1.12">
+    <link rel="stylesheet" href="../../../_/css/site.css">
+  </head>
+  <body class="article">
+<header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="https://spring-ai-community.github.io/spring-ai-agents">Spring AI Agents Reference</a>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="spring-ai-agents" data-version="main">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="../index.html">Spring AI Agents</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../index.html">Overview</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../getting-started.html">Getting Started</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="agentclient.html">AgentClient API</a>
+<ul class="nav-list">
+  <li class="nav-item is-current-page" data-depth="2">
+    <a class="nav-link" href="agentclient-vs-chatclient.html">AgentClient vs ChatClient</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="claude-code-sdk.html">Claude Code SDK</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="gemini-cli-sdk.html">Gemini CLI SDK</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../samples.html">Sample Agents</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../contribution-guidelines.html">Contribution Guidelines</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Spring AI Agents</span>
+    <span class="version">main</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="../index.html">Spring AI Agents</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="../index.html">main</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="../index.html">Spring AI Agents</a></li>
+    <li><a href="agentclient.html">AgentClient API</a></li>
+    <li><a href="agentclient-vs-chatclient.html">AgentClient vs ChatClient</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="file:///home/mark/claude/bud/experiments/spring-ai-agents/community-output/docs/src/main/antora/modules/ROOT/pages/api/agentclient-vs-chatclient.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">AgentClient vs ChatClient</h1>
+<div id="toc" class="toc">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#_api_comparison">1. API Comparison</a>
+<ul class="sectlevel2">
+<li><a href="#_basic_usage">1.1. Basic Usage</a></li>
+<li><a href="#_fluent_configuration">1.2. Fluent Configuration</a></li>
+</ul>
+</li>
+<li><a href="#_key_differences">2. Key Differences</a>
+<ul class="sectlevel2">
+<li><a href="#_purpose_and_scope">2.1. Purpose and Scope</a></li>
+<li><a href="#_inputoutput_model">2.2. Input/Output Model</a></li>
+<li><a href="#_configuration_options">2.3. Configuration Options</a></li>
+</ul>
+</li>
+<li><a href="#_spring_boot_integration">3. Spring Boot Integration</a>
+<ul class="sectlevel2">
+<li><a href="#_configuration_classes">3.1. Configuration Classes</a></li>
+<li><a href="#_controller_usage">3.2. Controller Usage</a></li>
+</ul>
+</li>
+<li><a href="#_response_handling">4. Response Handling</a>
+<ul class="sectlevel2">
+<li><a href="#_successfailure_patterns">4.1. Success/Failure Patterns</a></li>
+<li><a href="#_metadata_access">4.2. Metadata Access</a></li>
+</ul>
+</li>
+<li><a href="#_when_to_use_each">5. When to Use Each</a>
+<ul class="sectlevel2">
+<li><a href="#_use_chatclient_when">5.1. Use ChatClient When:</a></li>
+<li><a href="#_use_agentclient_when">5.2. Use AgentClient When:</a></li>
+</ul>
+</li>
+<li><a href="#_migration_between_apis">6. Migration Between APIs</a></li>
+<li><a href="#_best_practices">7. Best Practices</a>
+<ul class="sectlevel2">
+<li><a href="#_consistent_error_handling">7.1. Consistent Error Handling</a></li>
+<li><a href="#_resource_management">7.2. Resource Management</a></li>
+</ul>
+</li>
+<li><a href="#_summary">8. Summary</a></li>
+<li><a href="#_next_steps">9. Next Steps</a></li>
+</ul>
+</div>
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p>Spring AI Agents follows the same design patterns as Spring AI&#8217;s <code>ChatClient</code> to provide a familiar experience for Spring developers. This page shows the similarities and differences between the two APIs.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_api_comparison"><a class="anchor" href="#_api_comparison"></a>1. API Comparison</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_basic_usage"><a class="anchor" href="#_basic_usage"></a>1.1. Basic Usage</h3>
+<div class="paragraph">
+<p>Both APIs follow the same fluent pattern for simple interactions:</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">ChatClient</th>
+<th class="tableblock halign-left valign-top">AgentClient</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">String response = chatClient.prompt("What is Spring?").call().getResult().getOutput().getContent();</code></pre>
+</div>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">String response = agentClient.run("Create a Hello World class").getResult();</code></pre>
+</div>
+</div></div></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="_fluent_configuration"><a class="anchor" href="#_fluent_configuration"></a>1.2. Fluent Configuration</h3>
+<div class="paragraph">
+<p>Both support fluent configuration with method chaining:</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">ChatClient</th>
+<th class="tableblock halign-left valign-top">AgentClient</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">String response = chatClient.prompt("Explain Spring Boot")
+    .options(ChatOptionsBuilder.builder()
+        .withModel("gpt-4")
+        .withMaxTokens(1000)
+        .build())
+    .call()
+    .getResult()
+    .getOutput()
+    .getContent();</code></pre>
+</div>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">String response = agentClient.prompt("Refactor UserService")
+    .workingDirectory("/path/to/project")
+    .options(ClaudeCodeAgentOptions.builder()
+        .model("claude-sonnet-4-0")
+        .maxTokens(8192)
+        .build())
+    .call()
+    .getResult();</code></pre>
+</div>
+</div></div></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_key_differences"><a class="anchor" href="#_key_differences"></a>2. Key Differences</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_purpose_and_scope"><a class="anchor" href="#_purpose_and_scope"></a>2.1. Purpose and Scope</h3>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">ChatClient</th>
+<th class="tableblock halign-left valign-top">AgentClient</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Conversational AI</strong>
+- Text-in, text-out interactions
+- Stateless request/response model
+- No external tool access
+- Immediate responses</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Autonomous Goal Execution</strong>
+- Goal-oriented execution
+- Multi-step workflows with planning
+- Full tool access (files, commands, web)
+- Variable execution time</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="_inputoutput_model"><a class="anchor" href="#_inputoutput_model"></a>2.2. Input/Output Model</h3>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">ChatClient</th>
+<th class="tableblock halign-left valign-top">AgentClient</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><strong>Messages and Prompts</strong></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">ChatResponse response = chatClient
+    .prompt("How do I create a REST API?")
+    .call();
+
+String content = response
+    .getResult()
+    .getOutput()
+    .getContent();</code></pre>
+</div>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><strong>Goals and Results</strong></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">AgentClientResponse response = agentClient
+    .run("Create a REST API for User management");
+
+String result = response.getResult();
+boolean successful = response.isSuccessful();</code></pre>
+</div>
+</div></div></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="_configuration_options"><a class="anchor" href="#_configuration_options"></a>2.3. Configuration Options</h3>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">ChatClient</th>
+<th class="tableblock halign-left valign-top">AgentClient</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><strong>Model Parameters</strong></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">ChatOptions options = ChatOptionsBuilder.builder()
+    .withModel("gpt-4")
+    .withTemperature(0.7f)
+    .withMaxTokens(1000)
+    .build();
+
+chatClient.prompt("Generate code")
+    .options(options)
+    .call();</code></pre>
+</div>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><strong>Execution Environment</strong></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">ClaudeCodeAgentOptions options =
+    ClaudeCodeAgentOptions.builder()
+        .model("claude-sonnet-4-0")
+        .timeout(Duration.ofMinutes(10))
+        .build();
+
+agentClient.prompt("Generate code")
+    .workingDirectory("/project/path")
+    .yolo(true)
+    .options(options)
+    .call();</code></pre>
+</div>
+</div></div></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_spring_boot_integration"><a class="anchor" href="#_spring_boot_integration"></a>3. Spring Boot Integration</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Both integrate seamlessly with Spring Boot through auto-configuration:</p>
+</div>
+<div class="sect2">
+<h3 id="_configuration_classes"><a class="anchor" href="#_configuration_classes"></a>3.1. Configuration Classes</h3>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">ChatClient Configuration</th>
+<th class="tableblock halign-left valign-top">AgentClient Configuration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Configuration
+public class ChatConfiguration {
+
+    @Bean
+    public ChatClient chatClient(ChatModel chatModel) {
+        return ChatClient.create(chatModel);
+    }
+}</code></pre>
+</div>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Configuration
+public class AgentConfiguration {
+
+    @Bean
+    public AgentClient agentClient(AgentModel agentModel) {
+        return AgentClient.create(agentModel);
+    }
+}</code></pre>
+</div>
+</div></div></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="_controller_usage"><a class="anchor" href="#_controller_usage"></a>3.2. Controller Usage</h3>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">ChatClient in Controller</th>
+<th class="tableblock halign-left valign-top">AgentClient in Controller</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@RestController
+public class ChatController {
+
+    private final ChatClient chatClient;
+
+    public ChatController(ChatClient chatClient) {
+        this.chatClient = chatClient;
+    }
+
+    @PostMapping("/ask")
+    public String ask(@RequestBody String question) {
+        return chatClient.prompt(question)
+            .call()
+            .getResult()
+            .getOutput()
+            .getContent();
+    }
+}</code></pre>
+</div>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@RestController
+public class TaskController {
+
+    private final AgentClient agentClient;
+
+    public TaskController(AgentClient agentClient) {
+        this.agentClient = agentClient;
+    }
+
+    @PostMapping("/execute")
+    public String execute(@RequestBody String goal) {
+        AgentClientResponse response = agentClient.run(goal);
+        return response.getResult();
+    }
+}</code></pre>
+</div>
+</div></div></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_response_handling"><a class="anchor" href="#_response_handling"></a>4. Response Handling</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_successfailure_patterns"><a class="anchor" href="#_successfailure_patterns"></a>4.1. Success/Failure Patterns</h3>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">ChatClient</th>
+<th class="tableblock halign-left valign-top">AgentClient</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">ChatResponse response = chatClient.prompt("Explain Java").call();
+
+String content = response
+    .getResult()
+    .getOutput()
+    .getContent();</code></pre>
+</div>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">AgentClientResponse response = agentClient.run("Fix compilation errors");
+
+if (response.isSuccessful()) {
+    System.out.println("Goal completed: " + response.getResult());
+} else {
+    System.err.println("Goal failed: " + response.getResult());
+}</code></pre>
+</div>
+</div></div></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="_metadata_access"><a class="anchor" href="#_metadata_access"></a>4.2. Metadata Access</h3>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">ChatClient</th>
+<th class="tableblock halign-left valign-top">AgentClient</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">ChatResponse response = chatClient.prompt("Hello").call();
+
+Generation result = response.getResult();
+ChatGenerationMetadata metadata = result.getMetadata();
+
+String finishReason = metadata.getFinishReason();
+Usage usage = metadata.getUsage();</code></pre>
+</div>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">AgentClientResponse response = agentClient.run("Create tests");
+
+AgentResponseMetadata metadata = response.getMetadata();
+
+Duration executionTime = metadata.getDuration();
+String agentModel = metadata.getModel();</code></pre>
+</div>
+</div></div></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_when_to_use_each"><a class="anchor" href="#_when_to_use_each"></a>5. When to Use Each</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_use_chatclient_when"><a class="anchor" href="#_use_chatclient_when"></a>5.1. Use ChatClient When:</h3>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Conversational interactions</strong> - Q&amp;A, explanations, content generation</p>
+</li>
+<li>
+<p><strong>Text processing</strong> - Summarization, translation, analysis</p>
+</li>
+<li>
+<p><strong>Immediate responses</strong> - Real-time chat, quick queries</p>
+</li>
+<li>
+<p><strong>Stateless operations</strong> - Each request is independent</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Example use cases:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">// Content generation
+String blogPost = chatClient.prompt("Write a blog post about Spring Security").call()...;
+
+// Data analysis
+String summary = chatClient.prompt("Summarize this sales report: " + data).call()...;
+
+// Q&amp;A
+String answer = chatClient.prompt("How do I configure Spring Data JPA?").call()...;</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_use_agentclient_when"><a class="anchor" href="#_use_agentclient_when"></a>5.2. Use AgentClient When:</h3>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Goal execution</strong> - Code generation, refactoring, debugging</p>
+</li>
+<li>
+<p><strong>Multi-step workflows</strong> - Complex development tasks requiring planning</p>
+</li>
+<li>
+<p><strong>Tool interaction</strong> - File manipulation, command execution, web research</p>
+</li>
+<li>
+<p><strong>Project-specific work</strong> - Tasks requiring codebase understanding</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Example use cases:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">// Code generation
+agentClient.run("Create a REST controller for User entity with CRUD operations");
+
+// Debugging
+agentClient.run("Find and fix the memory leak in the OrderService class");
+
+// Refactoring
+agentClient.run("Convert this project from JUnit 4 to JUnit 5");</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_migration_between_apis"><a class="anchor" href="#_migration_between_apis"></a>6. Migration Between APIs</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>While the APIs are similar in structure, they serve different purposes. You typically won&#8217;t migrate between them, but rather choose the appropriate one for each use case:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Service
+public class DevelopmentAssistantService {
+
+    private final ChatClient chatClient;
+    private final AgentClient agentClient;
+
+    public DevelopmentAssistantService(ChatClient chatClient, AgentClient agentClient) {
+        this.chatClient = chatClient;
+        this.agentClient = agentClient;
+    }
+
+    // Use ChatClient for explanations
+    public String explainPattern(String patternName) {
+        return chatClient.prompt("Explain the " + patternName + " design pattern").call()
+            .getResult().getOutput().getContent();
+    }
+
+    // Use AgentClient for implementation
+    public String implementPattern(String patternName, String context) {
+        return agentClient.run("Implement " + patternName + " pattern in " + context)
+            .getResult();
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_best_practices"><a class="anchor" href="#_best_practices"></a>7. Best Practices</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_consistent_error_handling"><a class="anchor" href="#_consistent_error_handling"></a>7.1. Consistent Error Handling</h3>
+<div class="paragraph">
+<p>Both APIs benefit from consistent error handling patterns:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Component
+public class AIService {
+
+    public String askQuestion(String question) {
+        try {
+            return chatClient.prompt(question).call()
+                .getResult().getOutput().getContent();
+        } catch (Exception e) {
+            log.error("Chat request failed: {}", e.getMessage());
+            throw new ServiceException("Unable to process question", e);
+        }
+    }
+
+    public String executeTask(String goal) {
+        try {
+            AgentClientResponse response = agentClient.run(goal);
+            if (response.isSuccessful()) {
+                return response.getResult();
+            } else {
+                throw new GoalExecutionException("Goal failed: " + response.getResult());
+            }
+        } catch (Exception e) {
+            log.error("Goal execution failed: {}", e.getMessage());
+            throw new ServiceException("Unable to execute goal", e);
+        }
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_resource_management"><a class="anchor" href="#_resource_management"></a>7.2. Resource Management</h3>
+<div class="paragraph">
+<p>Both clients are thread-safe and designed for reuse:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Configuration
+public class AIConfiguration {
+
+    // Both clients are singleton beans - thread-safe and efficient
+    @Bean
+    public ChatClient chatClient(ChatModel chatModel) {
+        return ChatClient.create(chatModel);
+    }
+
+    @Bean
+    public AgentClient agentClient(AgentModel agentModel) {
+        return AgentClient.create(agentModel);
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_summary"><a class="anchor" href="#_summary"></a>8. Summary</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>AgentClient and ChatClient share the same Spring AI design philosophy and fluent API patterns, making them familiar to Spring developers. The key difference is their purpose: ChatClient for conversational AI interactions, AgentClient for autonomous goal execution.</p>
+</div>
+<div class="paragraph">
+<p>Both APIs integrate seamlessly into Spring Boot applications and follow established Spring patterns for configuration, dependency injection, and error handling.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_next_steps"><a class="anchor" href="#_next_steps"></a>9. Next Steps</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p>Explore the full <a href="agentclient.html" class="xref page">AgentClient API</a> documentation</p>
+</li>
+<li>
+<p>Learn about specific agent implementations in <a href="claude-code-sdk.html" class="xref page">Claude Code SDK</a></p>
+</li>
+<li>
+<p>See practical examples in <a href="../samples.html" class="xref page">Sample Agents</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>This page was built using the Antora default UI.</p>
+  <p>The source code for this UI is licensed under the terms of the MPL-2.0 license.</p>
+</footer>
+<script id="site-script" src="../../../_/js/site.js" data-ui-root-path="../../../_"></script>
+<script async src="../../../_/js/vendor/highlight.js"></script>
+  </body>
+</html>

@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Gemini CLI SDK :: Spring AI Agents Reference</title>
+    <link rel="canonical" href="https://spring-ai-community.github.io/spring-ai-agents/spring-ai-agents/main/api/gemini-cli-sdk.html">
+    <meta name="generator" content="Antora 3.1.12">
+    <link rel="stylesheet" href="../../../_/css/site.css">
+  </head>
+  <body class="article">
+<header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="https://spring-ai-community.github.io/spring-ai-agents">Spring AI Agents Reference</a>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="spring-ai-agents" data-version="main">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="../index.html">Spring AI Agents</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../index.html">Overview</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../getting-started.html">Getting Started</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="agentclient.html">AgentClient API</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="agentclient-vs-chatclient.html">AgentClient vs ChatClient</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="claude-code-sdk.html">Claude Code SDK</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="2">
+    <a class="nav-link" href="gemini-cli-sdk.html">Gemini CLI SDK</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../samples.html">Sample Agents</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../contribution-guidelines.html">Contribution Guidelines</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Spring AI Agents</span>
+    <span class="version">main</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="../index.html">Spring AI Agents</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="../index.html">main</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="../index.html">Spring AI Agents</a></li>
+    <li><a href="agentclient.html">AgentClient API</a></li>
+    <li><a href="gemini-cli-sdk.html">Gemini CLI SDK</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="file:///home/mark/claude/bud/experiments/spring-ai-agents/community-output/docs/src/main/antora/modules/ROOT/pages/api/gemini-cli-sdk.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Gemini CLI SDK</h1>
+<div id="toc" class="toc">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#_overview">1. Overview</a></li>
+<li><a href="#_installation">2. Installation</a>
+<ul class="sectlevel2">
+<li><a href="#_prerequisites">2.1. Prerequisites</a></li>
+<li><a href="#_maven_dependencies">2.2. Maven Dependencies</a></li>
+</ul>
+</li>
+<li><a href="#_basic_usage">3. Basic Usage</a>
+<ul class="sectlevel2">
+<li><a href="#_quick_start">3.1. Quick Start</a></li>
+</ul>
+</li>
+<li><a href="#_configuration">4. Configuration</a>
+<ul class="sectlevel2">
+<li><a href="#_geminiclient">4.1. GeminiClient</a></li>
+<li><a href="#_geminiagentoptions">4.2. GeminiAgentOptions</a></li>
+<li><a href="#_model_options">4.3. Model Options</a></li>
+</ul>
+</li>
+<li><a href="#_advanced_features">5. Advanced Features</a>
+<ul class="sectlevel2">
+<li><a href="#_working_directory_management">5.1. Working Directory Management</a></li>
+<li><a href="#_yolo_mode">5.2. YOLO Mode</a></li>
+<li><a href="#_temperature_and_creativity">5.3. Temperature and Creativity</a></li>
+<li><a href="#_context_window_optimization">5.4. Context Window Optimization</a></li>
+</ul>
+</li>
+<li><a href="#_error_handling">6. Error Handling</a>
+<ul class="sectlevel2">
+<li><a href="#_common_exceptions">6.1. Common Exceptions</a></li>
+<li><a href="#_retry_logic_with_exponential_backoff">6.2. Retry Logic with Exponential Backoff</a></li>
+</ul>
+</li>
+<li><a href="#_spring_boot_integration">7. Spring Boot Integration</a>
+<ul class="sectlevel2">
+<li><a href="#_auto_configuration">7.1. Auto-Configuration</a></li>
+<li><a href="#_application_properties">7.2. Application Properties</a></li>
+</ul>
+</li>
+<li><a href="#_google_cloud_integration">8. Google Cloud Integration</a>
+<ul class="sectlevel2">
+<li><a href="#_service_account_authentication">8.1. Service Account Authentication</a></li>
+</ul>
+</li>
+<li><a href="#_best_practices">9. Best Practices</a>
+<ul class="sectlevel2">
+<li><a href="#_goal_formulation_for_google_ai">9.1. Goal Formulation for Google AI</a></li>
+<li><a href="#_model_selection_strategy">9.2. Model Selection Strategy</a></li>
+<li><a href="#_quota_management">9.3. Quota Management</a></li>
+</ul>
+</li>
+<li><a href="#_monitoring_and_observability">10. Monitoring and Observability</a>
+<ul class="sectlevel2">
+<li><a href="#_metrics_collection">10.1. Metrics Collection</a></li>
+</ul>
+</li>
+<li><a href="#_troubleshooting">11. Troubleshooting</a>
+<ul class="sectlevel2">
+<li><a href="#_common_issues">11.1. Common Issues</a></li>
+<li><a href="#_debugging">11.2. Debugging</a></li>
+</ul>
+</li>
+<li><a href="#_comparison_with_claude_code">12. Comparison with Claude Code</a></li>
+<li><a href="#_next_steps">13. Next Steps</a></li>
+</ul>
+</div>
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p>The Gemini CLI SDK provides Java integration with Google&#8217;s Gemini command-line coding agent, bringing Google&#8217;s AI coding capabilities to Spring applications.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_overview"><a class="anchor" href="#_overview"></a>1. Overview</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Gemini CLI is Google&#8217;s autonomous coding agent that can understand and modify codebases using Google&#8217;s Gemini language models. The Spring AI Gemini integration makes these capabilities accessible from Java applications.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_installation"><a class="anchor" href="#_installation"></a>2. Installation</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_prerequisites"><a class="anchor" href="#_prerequisites"></a>2.1. Prerequisites</h3>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><strong>Install Gemini CLI</strong>:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">npm install -g @google/generative-ai-cli</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p><strong>Set API Key</strong>:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">export GEMINI_API_KEY="your-api-key-here"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Get your API key from the <a href="https://ai.google.dev/">Google AI Studio</a>.</p>
+</div>
+</li>
+<li>
+<p><strong>Verify Installation</strong>:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">gemini --version</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_maven_dependencies"><a class="anchor" href="#_maven_dependencies"></a>2.2. Maven Dependencies</h3>
+<div class="paragraph">
+<p>Add the following dependencies to your <code>pom.xml</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependencies&gt;
+    &lt;!-- Core AgentClient API --&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springaicommunity.agents&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-ai-agent-client&lt;/artifactId&gt;
+        &lt;version&gt;0.1.0-SNAPSHOT&lt;/version&gt;
+    &lt;/dependency&gt;
+
+    &lt;!-- Gemini CLI integration --&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springaicommunity.agents&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-ai-gemini&lt;/artifactId&gt;
+        &lt;version&gt;0.1.0-SNAPSHOT&lt;/version&gt;
+    &lt;/dependency&gt;
+&lt;/dependencies&gt;</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_basic_usage"><a class="anchor" href="#_basic_usage"></a>3. Basic Usage</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_quick_start"><a class="anchor" href="#_quick_start"></a>3.1. Quick Start</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">import org.springaicommunity.agents.client.AgentClient;
+import org.springaicommunity.agents.client.AgentClientResponse;
+import org.springaicommunity.agents.gemini.GeminiAgentModel;
+import org.springaicommunity.agents.gemini.GeminiAgentOptions;
+import org.springaicommunity.agents.gemini.sdk.GeminiClient;
+
+import java.nio.file.Paths;
+
+public class GeminiExample {
+    public static void main(String[] args) {
+        // 1. Create the Gemini client
+        GeminiClient geminiClient = GeminiClient.create(
+            Paths.get(System.getProperty("user.dir"))
+        );
+
+        // 2. Configure agent options
+        GeminiAgentOptions options = GeminiAgentOptions.builder()
+            .model("gemini-1.5-pro")
+            .yolo(true)
+            .build();
+
+        // 3. Create the agent model
+        GeminiAgentModel agentModel = new GeminiAgentModel(geminiClient, options);
+
+        // 4. Create AgentClient
+        AgentClient agentClient = AgentClient.create(agentModel);
+
+        // 5. Execute a goal
+        AgentClientResponse response = agentClient.run(
+            "Create a simple Spring Boot REST controller for managing books"
+        );
+
+        System.out.println("Result: " + response.getResult());
+        System.out.println("Success: " + response.isSuccessful());
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_configuration"><a class="anchor" href="#_configuration"></a>4. Configuration</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_geminiclient"><a class="anchor" href="#_geminiclient"></a>4.1. GeminiClient</h3>
+<div class="paragraph">
+<p>The <code>GeminiClient</code> manages communication with the Gemini CLI:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">// Create with default working directory
+GeminiClient client = GeminiClient.create();
+
+// Create with specific working directory
+Path projectPath = Paths.get("/path/to/project");
+GeminiClient client = GeminiClient.create(projectPath);
+
+// Create with custom Gemini command path
+GeminiClient client = GeminiClient.create(
+    projectPath,
+    "/custom/path/to/gemini"
+);</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_geminiagentoptions"><a class="anchor" href="#_geminiagentoptions"></a>4.2. GeminiAgentOptions</h3>
+<div class="paragraph">
+<p>Configure Gemini-specific behavior:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">GeminiAgentOptions options = GeminiAgentOptions.builder()
+    // Model selection
+    .model("gemini-1.5-pro")                // or "gemini-1.5-flash"
+
+    // Execution settings
+    .yolo(true)                             // Allow modifications
+    .timeout(Duration.ofMinutes(10))        // Execution timeout
+    .maxTokens(8192)                        // Response length limit
+
+    // Output preferences
+    .verbose(true)                          // Detailed logging
+    .outputFormat("json")                   // Structured output
+
+    // Google-specific options
+    .temperature(0.3)                       // Creativity level
+    .candidateCount(1)                      // Number of response candidates
+
+    .build();</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_model_options"><a class="anchor" href="#_model_options"></a>4.3. Model Options</h3>
+<div class="paragraph">
+<p>Available Gemini models:</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 50%;">
+<col style="width: 25%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Model</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Best For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gemini-1.5-pro</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Most capable model with 1M token context window</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Large codebases, complex refactoring, architectural changes</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gemini-1.5-flash</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Faster model optimized for speed and efficiency</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Quick fixes, simple tasks, rapid iteration</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gemini-1.0-pro</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Previous generation model</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Legacy support, specific use cases</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_advanced_features"><a class="anchor" href="#_advanced_features"></a>5. Advanced Features</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_working_directory_management"><a class="anchor" href="#_working_directory_management"></a>5.1. Working Directory Management</h3>
+<div class="paragraph">
+<p>Gemini CLI operates within a specific directory context:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">// Configure working directory via client
+GeminiClient client = GeminiClient.create(
+    Paths.get("/path/to/project")
+);
+
+// Or via AgentClient fluent API
+AgentClientResponse response = agentClient
+    .prompt("Add unit tests to the ProductService")
+    .workingDirectory("/path/to/project")
+    .call();</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_yolo_mode"><a class="anchor" href="#_yolo_mode"></a>5.2. YOLO Mode</h3>
+<div class="paragraph">
+<p>Control whether Gemini can make changes without confirmation:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">// Development mode - allow changes
+GeminiAgentOptions devOptions = GeminiAgentOptions.builder()
+    .yolo(true)
+    .build();
+
+// Analysis mode - read-only
+GeminiAgentOptions analysisOptions = GeminiAgentOptions.builder()
+    .yolo(false)
+    .build();</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_temperature_and_creativity"><a class="anchor" href="#_temperature_and_creativity"></a>5.3. Temperature and Creativity</h3>
+<div class="paragraph">
+<p>Control the creativity level of responses:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">// Conservative (more deterministic)
+GeminiAgentOptions conservativeOptions = GeminiAgentOptions.builder()
+    .temperature(0.1)
+    .build();
+
+// Balanced (default)
+GeminiAgentOptions balancedOptions = GeminiAgentOptions.builder()
+    .temperature(0.3)
+    .build();
+
+// Creative (more diverse)
+GeminiAgentOptions creativeOptions = GeminiAgentOptions.builder()
+    .temperature(0.7)
+    .build();</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_context_window_optimization"><a class="anchor" href="#_context_window_optimization"></a>5.4. Context Window Optimization</h3>
+<div class="paragraph">
+<p>Leverage Gemini&#8217;s large context window for complex projects:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">GeminiAgentOptions largeContextOptions = GeminiAgentOptions.builder()
+    .model("gemini-1.5-pro")  // 1M token context
+    .maxTokens(100000)        // Large output
+    .build();
+
+// Handle entire project refactoring
+AgentClientResponse response = agentClient
+    .prompt("Refactor this entire Spring Boot application to use reactive programming")
+    .options(largeContextOptions)
+    .call();</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_error_handling"><a class="anchor" href="#_error_handling"></a>6. Error Handling</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_common_exceptions"><a class="anchor" href="#_common_exceptions"></a>6.1. Common Exceptions</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">try {
+    AgentClientResponse response = agentClient.run("Complex refactoring goal");
+
+    if (!response.isSuccessful()) {
+        System.err.println("Goal failed: " + response.getResult());
+    }
+
+} catch (GeminiExecutionException e) {
+    // Gemini CLI process failed
+    System.err.println("Gemini execution error: " + e.getMessage());
+
+} catch (GeminiNotFoundException e) {
+    // Gemini CLI not installed or not in PATH
+    System.err.println("Gemini CLI not found: " + e.getMessage());
+
+} catch (AgentTimeoutException e) {
+    // Goal exceeded configured timeout
+    System.err.println("Goal timed out: " + e.getTimeout());
+
+} catch (AgentAuthenticationException e) {
+    // Invalid or missing API key
+    System.err.println("Authentication failed: " + e.getMessage());
+
+} catch (GeminiQuotaExceededException e) {
+    // API quota exceeded
+    System.err.println("Quota exceeded: " + e.getMessage());
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_retry_logic_with_exponential_backoff"><a class="anchor" href="#_retry_logic_with_exponential_backoff"></a>6.2. Retry Logic with Exponential Backoff</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Service
+public class GeminiServiceWithRetry {
+
+    private final AgentClient agentClient;
+    private final RetryTemplate retryTemplate;
+
+    public GeminiServiceWithRetry(AgentClient agentClient) {
+        this.agentClient = agentClient;
+        this.retryTemplate = RetryTemplate.builder()
+            .maxAttempts(3)
+            .exponentialBackoff(1000, 2, 10000)
+            .retryOn(GeminiQuotaExceededException.class)
+            .retryOn(GeminiExecutionException.class)
+            .build();
+    }
+
+    public String generateCode(String requirements) {
+        return retryTemplate.execute(context -&gt; {
+            AgentClientResponse response = agentClient.run(requirements);
+
+            if (!response.isSuccessful()) {
+                throw new GeminiExecutionException("Goal failed: " + response.getResult());
+            }
+
+            return response.getResult();
+        });
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_spring_boot_integration"><a class="anchor" href="#_spring_boot_integration"></a>7. Spring Boot Integration</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_auto_configuration"><a class="anchor" href="#_auto_configuration"></a>7.1. Auto-Configuration</h3>
+<div class="paragraph">
+<p>Create a configuration class for Gemini:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Configuration
+@ConditionalOnProperty(name = "spring.ai.agent.gemini.enabled", havingValue = "true", matchIfMissing = true)
+public class GeminiConfiguration {
+
+    @Bean
+    @ConditionalOnMissingBean
+    public GeminiClient geminiClient(@Value("${spring.ai.agent.gemini.working-directory:#{systemProperties['user.dir']}}") String workingDir) {
+        return GeminiClient.create(Paths.get(workingDir));
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public GeminiAgentModel geminiAgentModel(
+            GeminiClient client,
+            GeminiAgentOptions options) {
+        return new GeminiAgentModel(client, options);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public GeminiAgentOptions geminiAgentOptions(GeminiProperties properties) {
+        return GeminiAgentOptions.builder()
+            .model(properties.getModel())
+            .yolo(properties.isYolo())
+            .timeout(properties.getTimeout())
+            .maxTokens(properties.getMaxTokens())
+            .temperature(properties.getTemperature())
+            .verbose(properties.isVerbose())
+            .build();
+    }
+
+    @Bean
+    public AgentClient agentClient(GeminiAgentModel agentModel) {
+        return AgentClient.create(agentModel);
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_application_properties"><a class="anchor" href="#_application_properties"></a>7.2. Application Properties</h3>
+<div class="paragraph">
+<p>Configure Gemini via <code>application.yml</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">spring:
+  ai:
+    agent:
+      gemini:
+        enabled: true
+        model: gemini-1.5-pro
+        working-directory: /path/to/project
+        yolo: false
+        timeout: PT10M
+        max-tokens: 8192
+        temperature: 0.3
+        verbose: true</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Or <code>application.properties</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-properties hljs" data-lang="properties">spring.ai.agent.gemini.enabled=true
+spring.ai.agent.gemini.model=gemini-1.5-pro
+spring.ai.agent.gemini.working-directory=/path/to/project
+spring.ai.agent.gemini.yolo=false
+spring.ai.agent.gemini.timeout=PT10M
+spring.ai.agent.gemini.max-tokens=8192
+spring.ai.agent.gemini.temperature=0.3
+spring.ai.agent.gemini.verbose=true</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_google_cloud_integration"><a class="anchor" href="#_google_cloud_integration"></a>8. Google Cloud Integration</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_service_account_authentication"><a class="anchor" href="#_service_account_authentication"></a>8.1. Service Account Authentication</h3>
+<div class="paragraph">
+<p>For production deployments using Google Cloud:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">spring:
+  ai:
+    agent:
+      gemini:
+        authentication:
+          type: service-account
+          service-account-file: /path/to/service-account.json
+          project-id: your-gcp-project-id</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Configuration
+@ConditionalOnProperty(name = "spring.ai.agent.gemini.authentication.type", havingValue = "service-account")
+public class GeminiCloudConfiguration {
+
+    @Bean
+    public GoogleCredentials geminiCredentials(
+            @Value("${spring.ai.agent.gemini.authentication.service-account-file}") String serviceAccountFile)
+            throws IOException {
+        return ServiceAccountCredentials.fromStream(
+            new FileInputStream(serviceAccountFile)
+        );
+    }
+
+    @Bean
+    public GeminiClient geminiCloudClient(GoogleCredentials credentials) {
+        return GeminiClient.builder()
+            .credentials(credentials)
+            .build();
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_best_practices"><a class="anchor" href="#_best_practices"></a>9. Best Practices</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_goal_formulation_for_google_ai"><a class="anchor" href="#_goal_formulation_for_google_ai"></a>9.1. Goal Formulation for Google AI</h3>
+<div class="paragraph">
+<p>Leverage Gemini&#8217;s strengths in understanding context and patterns:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">// Good: Leverage Google's pattern recognition
+agentClient.run("Apply Google's Java style guide to this codebase and fix all violations");
+
+// Good: Use Gemini's architectural understanding
+agentClient.run("Convert this monolithic application to microservices following Google Cloud best practices");
+
+// Good: Leverage large context window
+agentClient.run("Analyze this entire codebase and identify all security vulnerabilities");</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_model_selection_strategy"><a class="anchor" href="#_model_selection_strategy"></a>9.2. Model Selection Strategy</h3>
+<div class="paragraph">
+<p>Choose models based on goal complexity:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Service
+public class GeminiTaskRouter {
+
+    public String executeGoal(String goal, GoalComplexity complexity) {
+        GeminiAgentOptions options = switch (complexity) {
+            case SIMPLE -&gt; GeminiAgentOptions.builder()
+                .model("gemini-1.5-flash")  // Fast for simple tasks
+                .temperature(0.1)
+                .build();
+
+            case MODERATE -&gt; GeminiAgentOptions.builder()
+                .model("gemini-1.5-pro")    // Balanced
+                .temperature(0.3)
+                .build();
+
+            case COMPLEX -&gt; GeminiAgentOptions.builder()
+                .model("gemini-1.5-pro")    // Full power for complex tasks
+                .temperature(0.1)           // Conservative for accuracy
+                .maxTokens(50000)           // Large output
+                .timeout(Duration.ofMinutes(30))
+                .build();
+        };
+
+        return agentClient.prompt(goal).options(options).call().getResult();
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_quota_management"><a class="anchor" href="#_quota_management"></a>9.3. Quota Management</h3>
+<div class="paragraph">
+<p>Monitor and manage API quotas:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Component
+public class GeminiQuotaManager {
+
+    private final AtomicInteger requestCount = new AtomicInteger(0);
+    private final AtomicLong lastResetTime = new AtomicLong(System.currentTimeMillis());
+
+    @Value("${spring.ai.agent.gemini.quota.requests-per-minute:60}")
+    private int requestsPerMinute;
+
+    public boolean canMakeRequest() {
+        long currentTime = System.currentTimeMillis();
+        long timeSinceReset = currentTime - lastResetTime.get();
+
+        // Reset counter every minute
+        if (timeSinceReset &gt; 60000) {
+            requestCount.set(0);
+            lastResetTime.set(currentTime);
+        }
+
+        return requestCount.get() &lt; requestsPerMinute;
+    }
+
+    public void recordRequest() {
+        requestCount.incrementAndGet();
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_monitoring_and_observability"><a class="anchor" href="#_monitoring_and_observability"></a>10. Monitoring and Observability</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_metrics_collection"><a class="anchor" href="#_metrics_collection"></a>10.1. Metrics Collection</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Component
+public class GeminiMetrics {
+
+    private final MeterRegistry meterRegistry;
+    private final Counter requestCounter;
+    private final Timer requestTimer;
+    private final Gauge quotaGauge;
+
+    public GeminiMetrics(MeterRegistry meterRegistry, GeminiQuotaManager quotaManager) {
+        this.meterRegistry = meterRegistry;
+        this.requestCounter = Counter.builder("gemini.requests.total")
+            .tag("provider", "gemini")
+            .register(meterRegistry);
+        this.requestTimer = Timer.builder("gemini.request.duration")
+            .register(meterRegistry);
+        this.quotaGauge = Gauge.builder("gemini.quota.remaining")
+            .register(meterRegistry, quotaManager, GeminiQuotaManager::getRemainingRequests);
+    }
+
+    public AgentClientResponse executeWithMetrics(String goal) {
+        return Timer.Sample.start(meterRegistry)
+            .stop(requestTimer)
+            .recordCallable(() -&gt; {
+                requestCounter.increment();
+                return agentClient.run(goal);
+            });
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_troubleshooting"><a class="anchor" href="#_troubleshooting"></a>11. Troubleshooting</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_common_issues"><a class="anchor" href="#_common_issues"></a>11.1. Common Issues</h3>
+<div class="paragraph">
+<p><strong>Gemini CLI Not Found</strong></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash"># Verify installation
+gemini --version
+
+# Check PATH
+which gemini  # macOS/Linux
+where gemini  # Windows
+
+# Reinstall if needed
+npm install -g @google/generative-ai-cli</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><strong>API Key Issues</strong></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash"># Check environment variable
+echo $GEMINI_API_KEY
+
+# Test with Gemini CLI directly
+gemini --help</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><strong>Quota Exceeded</strong></p>
+</div>
+<div class="paragraph">
+<p>Monitor your usage in Google AI Studio and implement quota management:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Component
+public class GeminiHealthIndicator implements HealthIndicator {
+
+    private final GeminiQuotaManager quotaManager;
+
+    @Override
+    public Health health() {
+        if (quotaManager.canMakeRequest()) {
+            return Health.up()
+                .withDetail("quota", "Available")
+                .withDetail("remaining", quotaManager.getRemainingRequests())
+                .build();
+        } else {
+            return Health.down()
+                .withDetail("quota", "Exceeded")
+                .withDetail("resetTime", quotaManager.getNextResetTime())
+                .build();
+        }
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_debugging"><a class="anchor" href="#_debugging"></a>11.2. Debugging</h3>
+<div class="paragraph">
+<p>Enable debug logging:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">logging:
+  level:
+    org.springaicommunity.agents.gemini: DEBUG
+    org.springaicommunity.agents.client: DEBUG</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_comparison_with_claude_code"><a class="anchor" href="#_comparison_with_claude_code"></a>12. Comparison with Claude Code</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>While both are autonomous coding agents, they have different strengths:</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 33.3333%;">
+<col style="width: 33.3333%;">
+<col style="width: 33.3334%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Feature</th>
+<th class="tableblock halign-left valign-top">Gemini CLI</th>
+<th class="tableblock halign-left valign-top">Claude Code</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Context Window</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1M tokens (gemini-1.5-pro)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">~200K tokens</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Speed</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Very fast with gemini-1.5-flash</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Consistent performance</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Integration</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Google Cloud ecosystem</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Anthropic ecosystem</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Best For</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Large codebases, Google Cloud</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">General development, detailed reasoning</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_next_steps"><a class="anchor" href="#_next_steps"></a>13. Next Steps</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p>Compare different agent providers in <a href="claude-code-sdk.html" class="xref page">Claude Code SDK</a></p>
+</li>
+<li>
+<p>Learn the unified API in <a href="agentclient.html" class="xref page">AgentClient API</a></p>
+</li>
+<li>
+<p>See practical examples in <a href="../samples.html" class="xref page">Sample Agents</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>This page was built using the Antora default UI.</p>
+  <p>The source code for this UI is licensed under the terms of the MPL-2.0 license.</p>
+</footer>
+<script id="site-script" src="../../../_/js/site.js" data-ui-root-path="../../../_"></script>
+<script async src="../../../_/js/vendor/highlight.js"></script>
+  </body>
+</html>

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springaicommunity.agents</groupId>
+        <artifactId>spring-ai-agents-parent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>spring-ai-swe-agent</artifactId>
+    <packaging>jar</packaging>
+
+    <name>Spring AI SWE Agent Model</name>
+    <description>Spring AI Agent Model implementation for SWE-bench Agent CLI</description>
+
+    <dependencies>
+        <!-- Agent Model Core -->
+        <dependency>
+            <groupId>org.springaicommunity.agents</groupId>
+            <artifactId>spring-ai-agent-model</artifactId>
+        </dependency>
+
+        <!-- SWE Agent SDK -->
+        <dependency>
+            <groupId>org.springaicommunity.agents</groupId>
+            <artifactId>swe-agent-sdk</artifactId>
+        </dependency>
+
+        <!-- Slf4j API -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+
+        <!-- Testing dependencies -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

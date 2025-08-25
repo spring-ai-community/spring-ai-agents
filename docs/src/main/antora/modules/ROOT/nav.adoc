@@ -1,0 +1,8 @@
+* xref:index.adoc[Overview]
+* xref:getting-started.adoc[Getting Started]
+* xref:api/agentclient.adoc[AgentClient API]
+** xref:api/agentclient-vs-chatclient.adoc[AgentClient vs ChatClient]
+** xref:api/claude-code-sdk.adoc[Claude Code SDK]
+** xref:api/gemini-cli-sdk.adoc[Gemini CLI SDK]
+* xref:samples.adoc[Sample Agents]
+* xref:contribution-guidelines.adoc[Contribution Guidelines]

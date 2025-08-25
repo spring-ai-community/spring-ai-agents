@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Getting Started :: Spring AI Agents Reference</title>
+    <link rel="canonical" href="https://spring-ai-community.github.io/spring-ai-agents/spring-ai-agents/main/getting-started.html">
+    <meta name="generator" content="Antora 3.1.12">
+    <link rel="stylesheet" href="../../_/css/site.css">
+  </head>
+  <body class="article">
+<header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="https://spring-ai-community.github.io/spring-ai-agents">Spring AI Agents Reference</a>
+      <button class="navbar-burger" aria-controls="topbar-nav" aria-expanded="false" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Products</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Product A</a>
+            <a class="navbar-item" href="#">Product B</a>
+            <a class="navbar-item" href="#">Product C</a>
+          </div>
+        </div>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Services</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="#">Service A</a>
+            <a class="navbar-item" href="#">Service B</a>
+            <a class="navbar-item" href="#">Service C</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="#">Download</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="spring-ai-agents" data-version="main">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <button class="nav-menu-toggle" aria-label="Toggle expand/collapse all" style="display: none"></button>
+    <h3 class="title"><a href="index.html">Spring AI Agents</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="index.html">Overview</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="1">
+    <a class="nav-link" href="getting-started.html">Getting Started</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <a class="nav-link" href="api/agentclient.html">AgentClient API</a>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="api/agentclient-vs-chatclient.html">AgentClient vs ChatClient</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="api/claude-code-sdk.html">Claude Code SDK</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="api/gemini-cli-sdk.html">Gemini CLI SDK</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="samples.html">Sample Agents</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="contribution-guidelines.html">Contribution Guidelines</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Spring AI Agents</span>
+    <span class="version">main</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <div class="title"><a href="index.html">Spring AI Agents</a></div>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="index.html">main</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="index.html">Spring AI Agents</a></li>
+    <li><a href="getting-started.html">Getting Started</a></li>
+  </ul>
+</nav>
+<div class="edit-this-page"><a href="file:///home/mark/claude/bud/experiments/spring-ai-agents/community-output/docs/src/main/antora/modules/ROOT/pages/getting-started.adoc">Edit this Page</a></div>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Getting Started</h1>
+<div id="toc" class="toc">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#_prerequisites">1. Prerequisites</a></li>
+<li><a href="#_installing_agent_cli_tools">2. Installing Agent CLI Tools</a>
+<ul class="sectlevel2">
+<li><a href="#_claude_code_cli">2.1. Claude Code CLI</a></li>
+<li><a href="#_gemini_cli">2.2. Gemini CLI</a></li>
+</ul>
+</li>
+<li><a href="#_adding_the_library_to_your_project">3. Adding the Library to Your Project</a>
+<ul class="sectlevel2">
+<li><a href="#_maven">3.1. Maven</a></li>
+<li><a href="#_gradle">3.2. Gradle</a></li>
+</ul>
+</li>
+<li><a href="#_quick_start_example">4. Quick Start Example</a></li>
+<li><a href="#_understanding_the_example">5. Understanding the Example</a></li>
+<li><a href="#_spring_boot_integration">6. Spring Boot Integration</a></li>
+<li><a href="#_next_steps">7. Next Steps</a></li>
+<li><a href="#_troubleshooting">8. Troubleshooting</a></li>
+</ul>
+</div>
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p>This guide will help you get started with Spring AI Agents in under 5 minutes.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_prerequisites"><a class="anchor" href="#_prerequisites"></a>1. Prerequisites</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Before you begin, ensure you have the following:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Java 17 or higher</p>
+</li>
+<li>
+<p>Maven 3.6.3 or higher</p>
+</li>
+<li>
+<p>An agent CLI tool installed (Claude Code, Gemini CLI, or SWE Agent)</p>
+</li>
+<li>
+<p>API keys for your chosen agent provider</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_installing_agent_cli_tools"><a class="anchor" href="#_installing_agent_cli_tools"></a>2. Installing Agent CLI Tools</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_claude_code_cli"><a class="anchor" href="#_claude_code_cli"></a>2.1. Claude Code CLI</h3>
+<div class="paragraph">
+<p>Install Claude Code from NPM:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">npm install -g @anthropic-ai/claude-code</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Set your API key:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">export ANTHROPIC_API_KEY="your-api-key-here"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Get your API key from the <a href="https://console.anthropic.com/">Anthropic Console</a>.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_gemini_cli"><a class="anchor" href="#_gemini_cli"></a>2.2. Gemini CLI</h3>
+<div class="paragraph">
+<p>Install Gemini CLI from NPM:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">npm install -g @google/generative-ai-cli</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Set your API key:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">export GEMINI_API_KEY="your-api-key-here"</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_adding_the_library_to_your_project"><a class="anchor" href="#_adding_the_library_to_your_project"></a>3. Adding the Library to Your Project</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_maven"><a class="anchor" href="#_maven"></a>3.1. Maven</h3>
+<div class="paragraph">
+<p>Add the following dependencies to your <code>pom.xml</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependencies&gt;
+    &lt;!-- Core AgentClient API --&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springaicommunity.agents&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-ai-agent-client&lt;/artifactId&gt;
+        &lt;version&gt;0.1.0-SNAPSHOT&lt;/version&gt;
+    &lt;/dependency&gt;
+
+    &lt;!-- Choose your agent provider --&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springaicommunity.agents&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-ai-claude-code&lt;/artifactId&gt;
+        &lt;version&gt;0.1.0-SNAPSHOT&lt;/version&gt;
+    &lt;/dependency&gt;
+&lt;/dependencies&gt;</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_gradle"><a class="anchor" href="#_gradle"></a>3.2. Gradle</h3>
+<div class="paragraph">
+<p>Add the following dependencies to your <code>build.gradle</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-groovy hljs" data-lang="groovy">dependencies {
+    implementation 'org.springaicommunity.agents:spring-ai-agent-client:0.1.0-SNAPSHOT'
+    implementation 'org.springaicommunity.agents:spring-ai-claude-code:0.1.0-SNAPSHOT'
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_quick_start_example"><a class="anchor" href="#_quick_start_example"></a>4. Quick Start Example</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Here&#8217;s a simple example using Spring AI Agents with Claude Code:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">import org.springaicommunity.agents.client.AgentClient;
+import org.springaicommunity.agents.client.AgentClientResponse;
+import org.springaicommunity.agents.claudecode.ClaudeCodeAgentModel;
+import org.springaicommunity.agents.claudecode.ClaudeCodeAgentOptions;
+import org.springaicommunity.agents.claudecode.sdk.ClaudeCodeClient;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+public class HelloAgentWorld {
+    public static void main(String[] args) {
+        // 1. Set up the working directory
+        Path workingDir = Paths.get(System.getProperty("user.dir"));
+
+        // 2. Create the Claude Code client
+        ClaudeCodeClient claudeClient = ClaudeCodeClient.create(workingDir);
+
+        // 3. Configure agent options
+        ClaudeCodeAgentOptions options = ClaudeCodeAgentOptions.builder()
+            .model("claude-sonnet-4-0")
+            .yolo(true) // Allow agent to make changes
+            .build();
+
+        // 4. Create the agent model
+        ClaudeCodeAgentModel agentModel = new ClaudeCodeAgentModel(claudeClient, options);
+
+        // 5. Create the AgentClient
+        AgentClient agentClient = AgentClient.create(agentModel);
+
+        // 6. Run a simple goal
+        AgentClientResponse response = agentClient.run(
+            "Create a simple Hello World Java class in a file called HelloWorld.java"
+        );
+
+        // 7. Get the result
+        System.out.println("Agent completed the goal:");
+        System.out.println(response.getResult());
+        System.out.println("Success: " + response.isSuccessful());
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_understanding_the_example"><a class="anchor" href="#_understanding_the_example"></a>5. Understanding the Example</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Let&#8217;s break down what happened in the example:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><strong>Working Directory</strong>: We set up a working directory where the agent can create files</p>
+</li>
+<li>
+<p><strong>Client Creation</strong>: We created a <code>ClaudeCodeClient</code> to communicate with the Claude CLI</p>
+</li>
+<li>
+<p><strong>Agent Options</strong>: We configured the agent with a model and enabled "yolo" mode (allows modifications)</p>
+</li>
+<li>
+<p><strong>Agent Model</strong>: We wrapped the client in a <code>ClaudeCodeAgentModel</code> for Spring AI integration</p>
+</li>
+<li>
+<p><strong>AgentClient</strong>: We created an <code>AgentClient</code> - the main API for running tasks</p>
+</li>
+<li>
+<p><strong>Goal Execution</strong>: We ran a goal using the simple <code>.run()</code> method</p>
+</li>
+<li>
+<p><strong>Result Access</strong>: We got the result using <code>.getResult()</code> and checked success</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_spring_boot_integration"><a class="anchor" href="#_spring_boot_integration"></a>6. Spring Boot Integration</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>For Spring Boot applications, you can use dependency injection:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@RestController
+public class AgentController {
+
+    private final AgentClient agentClient;
+
+    public AgentController(ClaudeCodeAgentModel agentModel) {
+        this.agentClient = AgentClient.create(agentModel);
+    }
+
+    @PostMapping("/execute-goal")
+    public String executeTask(@RequestBody String goal) {
+        AgentClientResponse response = agentClient.run(goal);
+        return response.getResult();
+    }
+}
+
+@Configuration
+public class AgentConfiguration {
+
+    @Bean
+    public ClaudeCodeAgentModel claudeAgentModel() {
+        ClaudeCodeClient client = ClaudeCodeClient.create();
+        ClaudeCodeAgentOptions options = ClaudeCodeAgentOptions.builder()
+            .model("claude-sonnet-4-0")
+            .build();
+        return new ClaudeCodeAgentModel(client, options);
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_next_steps"><a class="anchor" href="#_next_steps"></a>7. Next Steps</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Now that you have a basic agent running, explore:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="api/agentclient.html" class="xref page">AgentClient API</a> - Learn the full API capabilities</p>
+</li>
+<li>
+<p><a href="api/agentclient-vs-chatclient.html" class="xref page">AgentClient vs ChatClient</a> - See how AgentClient mirrors ChatClient patterns</p>
+</li>
+<li>
+<p><a href="samples.html" class="xref page">Sample Agents</a> - Explore real-world agent examples</p>
+</li>
+<li>
+<p><a href="api/claude-code-sdk.html" class="xref page">Claude Code SDK</a> - Deep dive into Claude Code integration</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_troubleshooting"><a class="anchor" href="#_troubleshooting"></a>8. Troubleshooting</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><strong>Agent not found</strong>: Make sure you&#8217;ve installed the CLI tool (<code>npm install -g @anthropic-ai/claude-code</code>) and it&#8217;s in your PATH.</p>
+</div>
+<div class="paragraph">
+<p><strong>API key issues</strong>: Verify your environment variable is set correctly and your API key is valid.</p>
+</div>
+<div class="paragraph">
+<p><strong>Permission denied</strong>: Make sure the agent has access to your working directory and consider using <code>yolo(true)</code> for development.</p>
+</div>
+<div class="paragraph">
+<p>For more help, see our <a href="contribution-guidelines.html" class="xref page">Contribution Guidelines</a> for community support options.</p>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>This page was built using the Antora default UI.</p>
+  <p>The source code for this UI is licensed under the terms of the MPL-2.0 license.</p>
+</footer>
+<script id="site-script" src="../../_/js/site.js" data-ui-root-path="../../_"></script>
+<script async src="../../_/js/vendor/highlight.js"></script>
+  </body>
+</html>
