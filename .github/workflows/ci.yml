@@ -1,0 +1,57 @@
+name: CI/CD build
+
+on:
+  schedule:
+    # Daily builds at reasonable intervals
+    - cron: '0 9 * * 1-5'    # 9:00 AM UTC weekdays
+    - cron: '0 21 * * 1-5'   # 9:00 PM UTC weekdays
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - '.github/**'
+      - 'docs/**'
+      - '*.md'
+  pull_request:
+    branches: [ main ]
+    paths-ignore:
+      - '.github/**'
+      - 'docs/**'
+      - '*.md'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    if: ${{ github.repository_owner == 'spring-ai-community' }}
+    concurrency:
+      group: continuous-integration-${{ github.ref }}
+      cancel-in-progress: true
+    strategy:
+      matrix:
+        java-version: [17, 21]
+    
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ matrix.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java-version }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build and test with Maven
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: ./mvnw --batch-mode clean test
+
+      - name: Generate Java docs
+        if: github.ref == 'refs/heads/main' && matrix.java-version == '17'
+        run: ./mvnw --batch-mode javadoc:aggregate
+
+      - name: Build documentation
+        if: github.ref == 'refs/heads/main' && matrix.java-version == '17'
+        run: ./mvnw clean antora:antora -pl docs
