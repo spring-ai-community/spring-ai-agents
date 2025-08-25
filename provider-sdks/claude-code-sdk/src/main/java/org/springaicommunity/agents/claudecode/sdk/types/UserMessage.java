@@ -33,24 +33,36 @@ public record UserMessage(@JsonProperty("content") Object content // Can be Stri
 	}
 
 	/**
-	 * Returns content as a string if it's a string, null otherwise
+	 * Returns content as a string if it's a string, null otherwise.
+	 * @return the content as a string or null
 	 */
 	public String getContentAsString() {
 		return content instanceof String ? (String) content : null;
 	}
 
 	/**
-	 * Returns content as a list of content blocks if it's a list, null otherwise
+	 * Returns content as a list of content blocks if it's a list, null otherwise.
+	 * @return the content as a list of blocks or null
 	 */
 	@SuppressWarnings("unchecked")
 	public List<ContentBlock> getContentAsBlocks() {
 		return content instanceof List ? (List<ContentBlock>) content : null;
 	}
 
+	/**
+	 * Factory method to create a UserMessage from string content.
+	 * @param content the string content
+	 * @return new UserMessage instance
+	 */
 	public static UserMessage of(String content) {
 		return new UserMessage(content);
 	}
 
+	/**
+	 * Factory method to create a UserMessage from content blocks.
+	 * @param content the content blocks
+	 * @return new UserMessage instance
+	 */
 	public static UserMessage of(List<ContentBlock> content) {
 		return new UserMessage(content);
 	}

@@ -38,10 +38,19 @@ public class AgentResponse implements ModelResponse<AgentGeneration> {
 
 	private final List<AgentGeneration> results;
 
+	/**
+	 * Create a new AgentResponse with the specified results.
+	 * @param results the list of agent generations
+	 */
 	public AgentResponse(List<AgentGeneration> results) {
 		this(results, new AgentResponseMetadata());
 	}
 
+	/**
+	 * Create a new AgentResponse with results and metadata.
+	 * @param results the list of agent generations
+	 * @param metadata the response metadata
+	 */
 	public AgentResponse(List<AgentGeneration> results, AgentResponseMetadata metadata) {
 		this.agentResponseMetadata = metadata != null ? metadata : new AgentResponseMetadata();
 		this.results = List.copyOf(results);
@@ -88,6 +97,10 @@ public class AgentResponse implements ModelResponse<AgentGeneration> {
 					|| "COMPLETE".equals(generation.getMetadata().getFinishReason()));
 	}
 
+	/**
+	 * Create a new builder for constructing AgentResponse instances.
+	 * @return a new builder
+	 */
 	public static Builder builder() {
 		return new Builder();
 	}
@@ -126,21 +139,40 @@ public class AgentResponse implements ModelResponse<AgentGeneration> {
 			this.metadataBuilder = AgentResponseMetadata.builder();
 		}
 
+		/**
+		 * Set the results for this response.
+		 * @param results the list of agent generations
+		 * @return this builder for chaining
+		 */
 		public Builder results(List<AgentGeneration> results) {
 			this.results = results;
 			return this;
 		}
 
+		/**
+		 * Set the metadata for this response.
+		 * @param metadata the response metadata
+		 * @return this builder for chaining
+		 */
 		public Builder metadata(AgentResponseMetadata metadata) {
 			this.metadataBuilder = AgentResponseMetadata.builder().from(metadata);
 			return this;
 		}
 
+		/**
+		 * Set the metadata builder for this response.
+		 * @param metadataBuilder the metadata builder
+		 * @return this builder for chaining
+		 */
 		public Builder metadataBuilder(AgentResponseMetadata.Builder metadataBuilder) {
 			this.metadataBuilder = metadataBuilder;
 			return this;
 		}
 
+		/**
+		 * Build the AgentResponse with the configured settings.
+		 * @return a new AgentResponse instance
+		 */
 		public AgentResponse build() {
 			return new AgentResponse(this.results, this.metadataBuilder.build());
 		}

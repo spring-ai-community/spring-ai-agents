@@ -115,6 +115,10 @@ public class AgentResponseMetadata extends HashMap<String, Object> implements Re
 		return (T) value;
 	}
 
+	/**
+	 * Create a new builder for constructing AgentResponseMetadata instances.
+	 * @return a new builder
+	 */
 	public static Builder builder() {
 		return new Builder();
 	}
@@ -158,26 +162,51 @@ public class AgentResponseMetadata extends HashMap<String, Object> implements Re
 		private Builder() {
 		}
 
+		/**
+		 * Set the model name.
+		 * @param model the model name
+		 * @return this builder for chaining
+		 */
 		public Builder model(String model) {
 			this.model = model;
 			return this;
 		}
 
+		/**
+		 * Set the execution duration.
+		 * @param duration the execution duration
+		 * @return this builder for chaining
+		 */
 		public Builder duration(Duration duration) {
 			this.duration = duration;
 			return this;
 		}
 
+		/**
+		 * Set the session identifier.
+		 * @param sessionId the session identifier
+		 * @return this builder for chaining
+		 */
 		public Builder sessionId(String sessionId) {
 			this.sessionId = sessionId;
 			return this;
 		}
 
+		/**
+		 * Set the provider-specific fields.
+		 * @param providerFields the provider-specific metadata fields
+		 * @return this builder for chaining
+		 */
 		public Builder providerFields(Map<String, Object> providerFields) {
 			this.providerFields = providerFields;
 			return this;
 		}
 
+		/**
+		 * Copy settings from existing metadata.
+		 * @param metadata the metadata to copy from
+		 * @return this builder for chaining
+		 */
 		public Builder from(AgentResponseMetadata metadata) {
 			if (metadata != null) {
 				this.model = metadata.model;
@@ -188,6 +217,10 @@ public class AgentResponseMetadata extends HashMap<String, Object> implements Re
 			return this;
 		}
 
+		/**
+		 * Build the AgentResponseMetadata with the configured settings.
+		 * @return a new AgentResponseMetadata instance
+		 */
 		public AgentResponseMetadata build() {
 			return new AgentResponseMetadata(this.model, this.duration, this.sessionId, this.providerFields);
 		}

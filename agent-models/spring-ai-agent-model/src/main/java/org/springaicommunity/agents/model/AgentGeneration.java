@@ -37,10 +37,19 @@ public class AgentGeneration implements ModelResult<String> {
 
 	private final AgentGenerationMetadata agentGenerationMetadata;
 
+	/**
+	 * Create a new AgentGeneration with the specified text.
+	 * @param text the text content
+	 */
 	public AgentGeneration(String text) {
 		this(text, AgentGenerationMetadata.NULL);
 	}
 
+	/**
+	 * Create a new AgentGeneration with text and metadata.
+	 * @param text the text content
+	 * @param metadata the generation metadata
+	 */
 	public AgentGeneration(String text, AgentGenerationMetadata metadata) {
 		this.text = text != null ? text : "";
 		this.agentGenerationMetadata = metadata != null ? metadata : AgentGenerationMetadata.NULL;

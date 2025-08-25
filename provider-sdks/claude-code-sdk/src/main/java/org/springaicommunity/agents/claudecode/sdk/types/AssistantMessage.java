@@ -34,6 +34,7 @@ public record AssistantMessage(@JsonProperty("content") List<ContentBlock> conte
 
 	/**
 	 * Returns the first text content from this message, if any.
+	 * @return optional text content
 	 */
 	public Optional<String> getTextContent() {
 		return content.stream()
@@ -44,6 +45,7 @@ public record AssistantMessage(@JsonProperty("content") List<ContentBlock> conte
 
 	/**
 	 * Returns all tool use blocks in this message.
+	 * @return list of tool use blocks
 	 */
 	public List<ToolUseBlock> getToolUses() {
 		return content.stream()
@@ -54,6 +56,7 @@ public record AssistantMessage(@JsonProperty("content") List<ContentBlock> conte
 
 	/**
 	 * Returns true if this message contains any tool use blocks.
+	 * @return true if message contains tool use blocks
 	 */
 	public boolean hasToolUse() {
 		return content.stream().anyMatch(block -> block instanceof ToolUseBlock);
@@ -61,11 +64,17 @@ public record AssistantMessage(@JsonProperty("content") List<ContentBlock> conte
 
 	/**
 	 * Returns all text blocks in this message.
+	 * @return list of text blocks
 	 */
 	public List<TextBlock> getTextBlocks() {
 		return content.stream().filter(block -> block instanceof TextBlock).map(block -> (TextBlock) block).toList();
 	}
 
+	/**
+	 * Factory method to create an AssistantMessage from content blocks.
+	 * @param content the content blocks
+	 * @return new AssistantMessage instance
+	 */
 	public static AssistantMessage of(List<ContentBlock> content) {
 		return new AssistantMessage(content);
 	}

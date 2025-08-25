@@ -102,6 +102,7 @@ public interface AgentClient {
 	/**
 	 * Return a {@link AgentClient.Builder} to create a new {@link AgentClient} whose
 	 * settings are replicated from this client.
+	 * @return a new builder with settings from this client
 	 */
 	Builder mutate();
 

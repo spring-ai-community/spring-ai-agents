@@ -34,10 +34,16 @@ public class CircuitBreaker {
 
 	private static final Logger logger = LoggerFactory.getLogger(CircuitBreaker.class);
 
+	/**
+	 * Circuit breaker state enumeration.
+	 */
 	public enum State {
 
+		/** Normal operation - requests are allowed through. */
 		CLOSED, // Normal operation
+		/** Failing fast - requests are rejected immediately. */
 		OPEN, // Failing fast
+		/** Testing if service recovered - allowing limited requests. */
 		HALF_OPEN // Testing if service recovered
 
 	}
@@ -62,6 +68,13 @@ public class CircuitBreaker {
 
 	private final AtomicLong windowStartTime = new AtomicLong(System.currentTimeMillis());
 
+	/**
+	 * Constructor for CircuitBreaker.
+	 * @param name the circuit breaker name
+	 * @param failureThreshold the failure threshold to trigger open state
+	 * @param recoveryTimeout the timeout before attempting recovery
+	 * @param slidingWindowDuration the sliding window duration for failure tracking
+	 */
 	public CircuitBreaker(String name, int failureThreshold, Duration recoveryTimeout, Duration slidingWindowDuration) {
 		this.name = name;
 		this.failureThreshold = failureThreshold;
@@ -71,6 +84,7 @@ public class CircuitBreaker {
 
 	/**
 	 * Creates a default circuit breaker for Claude CLI operations.
+	 * @return a new CircuitBreaker with default settings
 	 */
 	public static CircuitBreaker defaultClaudeBreaker() {
 		return new CircuitBreaker("claude-cli", 5, // 5 failures trigger open
@@ -81,6 +95,8 @@ public class CircuitBreaker {
 
 	/**
 	 * Creates a sensitive circuit breaker for critical operations.
+	 * @param name the circuit breaker name
+	 * @return a new sensitive CircuitBreaker
 	 */
 	public static CircuitBreaker sensitive(String name) {
 		return new CircuitBreaker(name, 3, // 3 failures trigger open
@@ -91,6 +107,8 @@ public class CircuitBreaker {
 
 	/**
 	 * Creates a tolerant circuit breaker for background operations.
+	 * @param name the circuit breaker name
+	 * @return a new tolerant CircuitBreaker
 	 */
 	public static CircuitBreaker tolerant(String name) {
 		return new CircuitBreaker(name, 10, // 10 failures trigger open
@@ -101,6 +119,10 @@ public class CircuitBreaker {
 
 	/**
 	 * Executes a supplier with circuit breaker protection.
+	 * @param <T> the return type
+	 * @param operation the operation to execute
+	 * @return the operation result
+	 * @throws CircuitBreakerOpenException if circuit breaker is open
 	 */
 	public <T> T execute(Supplier<T> operation) throws CircuitBreakerOpenException {
 		State currentState = checkAndUpdateState();
@@ -122,6 +144,7 @@ public class CircuitBreaker {
 
 	/**
 	 * Gets the current state of the circuit breaker.
+	 * @return the current state
 	 */
 	public State getState() {
 		return checkAndUpdateState();
@@ -129,6 +152,7 @@ public class CircuitBreaker {
 
 	/**
 	 * Gets circuit breaker metrics.
+	 * @return the circuit breaker metrics
 	 */
 	public CircuitBreakerMetrics getMetrics() {
 		return new CircuitBreakerMetrics(name, state.get(), failureCount.get(), successCount.get(),
@@ -235,6 +259,10 @@ public class CircuitBreaker {
 	 */
 	public static class CircuitBreakerOpenException extends RuntimeException {
 
+		/**
+		 * Constructor for CircuitBreakerOpenException.
+		 * @param message the exception message
+		 */
 		public CircuitBreakerOpenException(String message) {
 			super(message);
 		}
@@ -247,10 +275,18 @@ public class CircuitBreaker {
 	public record CircuitBreakerMetrics(String name, State state, int failureCount, int successCount,
 			double failureRate, Instant lastFailureTime, Instant lastSuccessTime) {
 
+		/**
+		 * Checks if the circuit breaker is healthy.
+		 * @return true if the circuit breaker is in a healthy state
+		 */
 		public boolean isHealthy() {
 			return state == State.CLOSED && failureRate < 0.5;
 		}
 
+		/**
+		 * Gets a status description of the circuit breaker.
+		 * @return a formatted status description
+		 */
 		public String getStatusDescription() {
 			return String.format("CircuitBreaker[%s] state=%s, failures=%d, successes=%d, failureRate=%.2f%%", name,
 					state, failureCount, successCount, failureRate * 100);

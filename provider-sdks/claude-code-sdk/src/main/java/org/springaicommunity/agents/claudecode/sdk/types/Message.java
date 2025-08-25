@@ -31,6 +31,7 @@ public interface Message {
 
 	/**
 	 * Returns the type of this message.
+	 * @return the message type
 	 */
 	String getType();
 

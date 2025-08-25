@@ -59,6 +59,8 @@ public class ClaudeCodeClient implements AutoCloseable {
 
 	/**
 	 * Creates a new API client with default working directory and options.
+	 * @return a new ClaudeCodeClient instance
+	 * @throws ClaudeSDKException if client creation fails
 	 */
 	public static ClaudeCodeClient create() throws ClaudeSDKException {
 		return create(CLIOptions.defaultOptions());
@@ -66,6 +68,9 @@ public class ClaudeCodeClient implements AutoCloseable {
 
 	/**
 	 * Creates a new API client with specified options.
+	 * @param options the CLI options
+	 * @return a new ClaudeCodeClient instance
+	 * @throws ClaudeSDKException if client creation fails
 	 */
 	public static ClaudeCodeClient create(CLIOptions options) throws ClaudeSDKException {
 		return create(options, Paths.get(System.getProperty("user.dir")));
@@ -73,6 +78,10 @@ public class ClaudeCodeClient implements AutoCloseable {
 
 	/**
 	 * Creates a new API client with specified options and working directory.
+	 * @param options the CLI options
+	 * @param workingDirectory the working directory path
+	 * @return a new ClaudeCodeClient instance
+	 * @throws ClaudeSDKException if client creation fails
 	 */
 	public static ClaudeCodeClient create(CLIOptions options, Path workingDirectory) throws ClaudeSDKException {
 		return create(options, workingDirectory, null);
@@ -80,6 +89,11 @@ public class ClaudeCodeClient implements AutoCloseable {
 
 	/**
 	 * Creates a new API client with specified options, working directory, and CLI path.
+	 * @param options the CLI options
+	 * @param workingDirectory the working directory path
+	 * @param claudePath the path to Claude CLI executable
+	 * @return a new ClaudeCodeClient instance
+	 * @throws ClaudeSDKException if client creation fails
 	 */
 	public static ClaudeCodeClient create(CLIOptions options, Path workingDirectory, String claudePath)
 			throws ClaudeSDKException {
@@ -90,6 +104,7 @@ public class ClaudeCodeClient implements AutoCloseable {
 
 	/**
 	 * Connects to Claude CLI and validates availability.
+	 * @throws ClaudeSDKException if connection fails or CLI is not available
 	 */
 	public void connect() throws ClaudeSDKException {
 		logger.info("Connecting to Claude CLI");
@@ -106,6 +121,9 @@ public class ClaudeCodeClient implements AutoCloseable {
 
 	/**
 	 * Executes a synchronous query and returns the complete result.
+	 * @param prompt the query prompt
+	 * @return the query result
+	 * @throws ClaudeSDKException if query execution fails
 	 */
 	public QueryResult query(String prompt) throws ClaudeSDKException {
 		return query(prompt, defaultOptions);
@@ -113,6 +131,10 @@ public class ClaudeCodeClient implements AutoCloseable {
 
 	/**
 	 * Executes a synchronous query with specified options.
+	 * @param prompt the query prompt
+	 * @param options the CLI options
+	 * @return the query result
+	 * @throws ClaudeSDKException if query execution fails
 	 */
 	public QueryResult query(String prompt, CLIOptions options) throws ClaudeSDKException {
 		validateConnected();
@@ -125,6 +147,9 @@ public class ClaudeCodeClient implements AutoCloseable {
 
 	/**
 	 * Executes a streaming query with real-time message processing.
+	 * @param prompt the query prompt
+	 * @param messageHandler the message handler for streaming responses
+	 * @throws ClaudeSDKException if streaming query execution fails
 	 */
 	public void queryStreaming(String prompt, Consumer<Message> messageHandler) throws ClaudeSDKException {
 		// Override output format to STREAM_JSON for streaming queries
@@ -144,6 +169,10 @@ public class ClaudeCodeClient implements AutoCloseable {
 
 	/**
 	 * Executes a streaming query with specified options and real-time message processing.
+	 * @param prompt the query prompt
+	 * @param options the CLI options
+	 * @param messageHandler the message handler for streaming responses
+	 * @throws ClaudeSDKException if streaming query execution fails
 	 */
 	public void queryStreaming(String prompt, CLIOptions options, Consumer<Message> messageHandler)
 			throws ClaudeSDKException {
@@ -155,15 +184,20 @@ public class ClaudeCodeClient implements AutoCloseable {
 	}
 
 	/**
-	 * Executes an async query returning a Mono<QueryResult>. True reactive implementation
-	 * with non-blocking I/O.
+	 * Executes an async query returning a Mono&lt;QueryResult&gt;. True reactive
+	 * implementation with non-blocking I/O.
+	 * @param prompt the query prompt
+	 * @return a Mono emitting the query result
 	 */
 	public Mono<QueryResult> queryAsync(String prompt) {
 		return queryAsync(prompt, defaultOptions);
 	}
 
 	/**
-	 * Executes an async query with specified options returning a Mono<QueryResult>.
+	 * Executes an async query with specified options returning a Mono&lt;QueryResult&gt;.
+	 * @param prompt the query prompt
+	 * @param options the CLI options
+	 * @return a Mono emitting the query result
 	 */
 	public Mono<QueryResult> queryAsync(String prompt, CLIOptions options) {
 		return Mono.fromRunnable(() -> {
@@ -180,15 +214,21 @@ public class ClaudeCodeClient implements AutoCloseable {
 	}
 
 	/**
-	 * Executes an async streaming query returning a Flux<Message>. True reactive
+	 * Executes an async streaming query returning a Flux&lt;Message&gt;. True reactive
 	 * streaming with backpressure support.
+	 * @param prompt the query prompt
+	 * @return a Flux emitting streaming messages
 	 */
 	public Flux<Message> queryStreamAsync(String prompt) {
 		return queryStreamAsync(prompt, defaultOptions);
 	}
 
 	/**
-	 * Executes an async streaming query with specified options returning a Flux<Message>.
+	 * Executes an async streaming query with specified options returning a
+	 * Flux&lt;Message&gt;.
+	 * @param prompt the query prompt
+	 * @param options the CLI options
+	 * @return a Flux emitting streaming messages
 	 */
 	public Flux<Message> queryStreamAsync(String prompt, CLIOptions options) {
 		return reactiveTransport.executeReactiveQuery(prompt, options).doOnSubscribe(subscription -> {
@@ -206,6 +246,7 @@ public class ClaudeCodeClient implements AutoCloseable {
 
 	/**
 	 * Checks if the client is connected.
+	 * @return true if connected and CLI is available
 	 */
 	public boolean isConnected() {
 		return connected && transport.isAvailable();
@@ -242,6 +283,12 @@ public class ClaudeCodeClient implements AutoCloseable {
 		}
 	}
 
+	/**
+	 * Builds a QueryResult from messages and options.
+	 * @param messages the list of messages
+	 * @param options the CLI options
+	 * @return the built QueryResult
+	 */
 	private QueryResult buildQueryResult(List<Message> messages, CLIOptions options) {
 		// Find the result message to extract rich metadata
 		Optional<ResultMessage> resultMessage = messages.stream()
@@ -282,6 +329,11 @@ public class ClaudeCodeClient implements AutoCloseable {
 		return hasAssistantMessage ? ResultStatus.SUCCESS : ResultStatus.PARTIAL;
 	}
 
+	/**
+	 * Creates simple metadata when result message is not available.
+	 * @param options the CLI options
+	 * @return the created metadata
+	 */
 	private Metadata createSimpleMetadata(CLIOptions options) {
 		return Metadata.builder()
 			.model(options.getModel() != null ? options.getModel() : "unknown")
