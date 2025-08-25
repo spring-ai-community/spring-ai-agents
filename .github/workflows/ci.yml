@@ -41,49 +41,30 @@ jobs:
       - name: Install Claude Code CLI
         run: |
           # Install Claude Code CLI from npm globally - npm handles the symlink automatically
-          npm install -g @anthropic-ai/claude-code
+          npm install -g @anthropic-ai/claude-code --silent
           echo "✅ Claude Code CLI installed via npm"
 
       - name: Install Gemini CLI
         run: |
           # Install official Gemini CLI from npm
-          npm install -g @google/gemini-cli
+          npm install -g @google/gemini-cli --silent
           echo "✅ Gemini CLI installed via npm"
 
       - name: Verify CLI installations
         run: |
-          echo "=== PATH verification ==="
-          echo "PATH: $PATH"
-          echo ""
-          echo "=== Claude Code CLI ==="
-          # Check if the symlink exists (it's actually named 'claude', not 'claude-code')
+          echo "=== Verifying CLI installations ==="
+          # Check Claude CLI
           if [ -L "/usr/local/bin/claude" ] && [ -f "/usr/local/bin/claude" ]; then
-            echo "✅ Claude CLI symlink exists"
-            /usr/local/bin/claude --version || exit 1
-            echo "✅ Claude CLI verified"
-          elif [ -f "/usr/local/bin/claude-code" ]; then
-            echo "✅ Claude Code CLI found"
-            /usr/local/bin/claude-code --version || exit 1
-            echo "✅ Claude Code CLI verified"
+            echo "✅ Claude CLI verified: $(/usr/local/bin/claude --version 2>&1)"
           else
-            echo "ERROR: Claude CLI not found"
-            ls -la /usr/local/bin/claude* 2>/dev/null || echo "No claude binaries in /usr/local/bin"
+            echo "❌ Claude CLI not found"
             exit 1
           fi
-          echo ""
-          echo "=== Gemini CLI ==="
-          # Check if npm created the symlink (same pattern as Claude)
+          # Check Gemini CLI
           if [ -L "/usr/local/bin/gemini" ] && [ -f "/usr/local/bin/gemini" ]; then
-            echo "✅ Gemini CLI symlink exists"
-            /usr/local/bin/gemini --version || exit 1
-            echo "✅ Gemini CLI verified"
-          elif [ -f "/usr/local/bin/gemini" ]; then
-            echo "✅ Gemini CLI found"
-            /usr/local/bin/gemini --version || exit 1
-            echo "✅ Gemini CLI verified"
+            echo "✅ Gemini CLI verified: $(/usr/local/bin/gemini --version 2>&1)"
           else
-            echo "ERROR: Gemini CLI not found"
-            ls -la /usr/local/bin/gemini* 2>/dev/null || echo "No gemini binaries in /usr/local/bin"
+            echo "❌ Gemini CLI not found"
             exit 1
           fi
 
@@ -91,12 +72,12 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: ./mvnw --batch-mode clean test
+        run: ./mvnw --batch-mode --quiet clean test
 
       - name: Generate Java docs
         if: github.ref == 'refs/heads/main'
-        run: ./mvnw --batch-mode javadoc:aggregate
+        run: ./mvnw --batch-mode --quiet javadoc:aggregate
 
       - name: Build documentation
         if: github.ref == 'refs/heads/main'
-        run: ./mvnw clean antora:antora -pl docs
+        run: ./mvnw --quiet clean antora:antora -pl docs
