@@ -48,17 +48,17 @@ jobs:
         run: |
           # Create directories
           mkdir -p "$HOME/.local/bin"
-          mkdir -p "$HOME/bin"
-          # Try pip installation first (most reliable)
-          pip install google-generativeai[cli] || true
-          # Try the official installer
-          curl -fsSL https://cli.gemini.google.com/install.sh 2>/dev/null | bash || true
-          # Try direct download if available
-          curl -L -o "$HOME/.local/bin/gemini" "https://github.com/google-gemini/gemini-cli/releases/latest/download/gemini-linux-amd64" 2>/dev/null || true
-          chmod +x "$HOME/.local/bin/gemini" 2>/dev/null || true
-          # Add paths
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-          echo "$HOME/bin" >> $GITHUB_PATH
+          # Try pip installation (most reliable method)
+          pip install google-generativeai[cli]
+          echo "✅ Installed google-generativeai via pip"
+          # Check what was installed
+          which genai || echo "genai command not found"
+          pip show google-generativeai | grep Location || true
+          # The CLI might be named 'genai' not 'gemini'
+          if which genai >/dev/null 2>&1; then
+            echo "✅ Found 'genai' command, creating 'gemini' alias"
+            ln -sf "$(which genai)" "$HOME/.local/bin/gemini"
+          fi
 
       - name: Verify CLI installations
         run: |
