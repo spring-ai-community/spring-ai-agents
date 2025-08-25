@@ -46,19 +46,9 @@ jobs:
 
       - name: Install Gemini CLI
         run: |
-          # Create directories
-          mkdir -p "$HOME/.local/bin"
-          # Try pip installation (most reliable method)
-          pip install google-generativeai[cli]
-          echo "✅ Installed google-generativeai via pip"
-          # Check what was installed
-          which genai || echo "genai command not found"
-          pip show google-generativeai | grep Location || true
-          # The CLI might be named 'genai' not 'gemini'
-          if which genai >/dev/null 2>&1; then
-            echo "✅ Found 'genai' command, creating 'gemini' alias"
-            ln -sf "$(which genai)" "$HOME/.local/bin/gemini"
-          fi
+          # Install official Gemini CLI from npm
+          npm install -g @google/gemini-cli
+          echo "✅ Gemini CLI installed via npm"
 
       - name: Verify CLI installations
         run: |
@@ -82,20 +72,18 @@ jobs:
           fi
           echo ""
           echo "=== Gemini CLI ==="
-          # Check hardcoded locations first
-          if [ -f "$HOME/.local/bin/gemini" ]; then
-            echo "✅ Found gemini in ~/.local/bin"
-            "$HOME/.local/bin/gemini" --version || exit 1
+          # Check if npm created the symlink (same pattern as Claude)
+          if [ -L "/usr/local/bin/gemini" ] && [ -f "/usr/local/bin/gemini" ]; then
+            echo "✅ Gemini CLI symlink exists"
+            /usr/local/bin/gemini --version || exit 1
             echo "✅ Gemini CLI verified"
           elif [ -f "/usr/local/bin/gemini" ]; then
-            echo "✅ Found gemini in /usr/local/bin"
+            echo "✅ Gemini CLI found"
             /usr/local/bin/gemini --version || exit 1
             echo "✅ Gemini CLI verified"
           else
-            echo "ERROR: Gemini CLI not found in expected locations"
-            echo "Quick fallback check..."
-            ls -la "$HOME/.local/bin/" 2>/dev/null | head -3 || echo ".local/bin not accessible"
-            ls -la /usr/local/bin/ 2>/dev/null | grep -i gemini || echo "No gemini in /usr/local/bin"
+            echo "ERROR: Gemini CLI not found"
+            ls -la /usr/local/bin/gemini* 2>/dev/null || echo "No gemini binaries in /usr/local/bin"
             exit 1
           fi
 
