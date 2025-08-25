@@ -3,6 +3,8 @@
 [![Build Status](https://github.com/spring-ai-community/spring-ai-agents/workflows/CI/badge.svg)](https://github.com/spring-ai-community/spring-ai-agents/actions)
 [![Maven Central](https://img.shields.io/maven-central/v/org.springaicommunity.agents/spring-ai-agents-parent.svg)](https://search.maven.org/search?q=g:org.springaicommunity.agents)
 
+📖 **[Documentation](https://spring-ai-community.github.io/spring-ai-agents/)** | [Getting Started](https://spring-ai-community.github.io/spring-ai-agents/getting-started.html) | [API Reference](https://spring-ai-community.github.io/spring-ai-agents/api/agentclient.html)
+
 > **Note**: This project is currently in development. The repository structure and APIs are subject to change.
 
 Spring AI Agents provides autonomous CLI agent integrations for the Spring AI ecosystem. This project brings Claude Code, Gemini CLI, and SWE-bench agents to Spring applications as first-class citizens with Spring Boot auto-configuration support.

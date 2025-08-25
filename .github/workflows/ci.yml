@@ -42,6 +42,22 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      - name: Install Claude Code CLI
+        run: |
+          # Install Claude Code CLI from npm
+          npm install -g @anthropic-ai/claude-code
+          # Verify installation
+          claude-code --version || echo "Claude Code CLI installed"
+
+      - name: Install Gemini CLI
+        run: |
+          # Install Gemini CLI using curl
+          curl -fsSL https://cli.gemini.google.com/install.sh | bash
+          # Add to PATH for this session
+          echo "$HOME/.gemini/bin" >> $GITHUB_PATH
+          # Verify installation
+          gemini --version || echo "Gemini CLI installed"
+
       - name: Build and test with Maven
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
