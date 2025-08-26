@@ -1,0 +1,25 @@
+{
+  "number": 3794,
+  "title": "McpSyncServer: set immediate execution when in a servlet context",
+  "body": "When using an MCP sync server, in a servlet environment, use `SyncSpecification#immediateExecution(true)`, introduced in https://github.com/modelcontextprotocol/java-sdk/pull/371 .\r\n\r\nThis allows to propagate thread-locals to the `@Tool` method; granting access to e.g. Framework's `RequestContextHolder#getRequestAttributes()` or Security's `SecurityContextHolder#getContext()`.\r\n\r\nThis, in turn, allows users to use Spring Security's method-level security, e.g.:\r\n\r\n```java\r\n@PreAuthorize(\"hasScope('widget.read')\")\r\n@Tool(description = \"...\")\r\npublic Widget getWidget(...) {\r\n    // ...\r\n}\r\n\r\n@PreAuthorize(\"hasScope('widget.admin')\")\r\n@Tool(description = \"...\")\r\npublic Widget addWidget(...) {\r\n    // ...\r\n}\r\n```",
+  "state": "OPEN",
+  "draft": false,
+  "labels": [],
+  "assignees": [
+    "tzolov"
+  ],
+  "reviewers": [],
+  "created_at": "2025-07-11T10:26:37Z",
+  "updated_at": "2025-08-04T11:52:55Z",
+  "author": "Kehrlann",
+  "url": "https://github.com/spring-projects/spring-ai/pull/3794",
+  "base_branch": "main",
+  "head_branch": "dgarnier/mcp-sync-server-servlet-execution",
+  "commits_count": 1,
+  "changed_files": 2,
+  "additions": 28,
+  "deletions": 1,
+  "linked_issues": [],
+  "comments": [],
+  "reviews": []
+}

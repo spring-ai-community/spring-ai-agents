@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: pr-review-demo
+  ai:
+    agents:
+      claude-code:
+        # Working directory will be set programmatically
+        timeout: 120s
+
+# Logging configuration for demo visibility
+logging:
+  level:
+    org.springaicommunity.agents.samples.prreview: INFO
+    org.springaicommunity.agents.client: INFO
+    org.springaicommunity.agents.claudecode: INFO
+  pattern:
+    console: "%d{HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
