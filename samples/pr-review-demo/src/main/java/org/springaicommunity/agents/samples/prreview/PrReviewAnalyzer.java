@@ -83,10 +83,10 @@ public class PrReviewAnalyzer {
 			AgentClientResponse response = client.goal(goal).run();
 			
 			if (response.isSuccessful()) {
-				return response.getResult();
+				return extractCleanResult(response.getResult());
 			} else {
 				log.warn("Conversation analysis failed: {}", response.getResult());
-				return "Conversation analysis unavailable: " + response.getResult();
+				return "Conversation analysis unavailable: " + extractCleanResult(response.getResult());
 			}
 		} catch (Exception e) {
 			log.error("Error during conversation analysis", e);
@@ -109,10 +109,10 @@ public class PrReviewAnalyzer {
 			AgentClientResponse response = client.goal(goal).run();
 			
 			if (response.isSuccessful()) {
-				return response.getResult();
+				return extractCleanResult(response.getResult());
 			} else {
 				log.warn("Risk assessment failed: {}", response.getResult());
-				return "Risk assessment unavailable: " + response.getResult();
+				return "Risk assessment unavailable: " + extractCleanResult(response.getResult());
 			}
 		} catch (Exception e) {
 			log.error("Error during risk assessment", e);
@@ -135,15 +135,58 @@ public class PrReviewAnalyzer {
 			AgentClientResponse response = client.goal(goal).run();
 			
 			if (response.isSuccessful()) {
-				return response.getResult();
+				return extractCleanResult(response.getResult());
 			} else {
 				log.warn("Solution assessment failed: {}", response.getResult());
-				return "Solution assessment unavailable: " + response.getResult();
+				return "Solution assessment unavailable: " + extractCleanResult(response.getResult());
 			}
 		} catch (Exception e) {
 			log.error("Error during solution assessment", e);
 			return "Error during solution assessment: " + e.getMessage();
 		}
+	}
+
+	/**
+	 * Extract clean text from result message, removing metadata.
+	 * 
+	 * @param result the raw result string that may contain metadata
+	 * @return cleaned result text
+	 */
+	private String extractCleanResult(String result) {
+		if (result == null) {
+			return "No result available";
+		}
+		
+		// Check for ResultMessage pattern and extract the actual result
+		if (result.contains("ResultMessage[") && result.contains("result=")) {
+			// Extract text from result= field
+			int resultStart = result.indexOf("result=") + 7;
+			int resultEnd = result.lastIndexOf("]");
+			if (resultEnd > resultStart) {
+				String extracted = result.substring(resultStart, resultEnd);
+				// Also check for nested AssistantMessage
+				if (extracted.contains("AssistantMessage[")) {
+					return extracted;  // Will be further cleaned below
+				}
+				return extracted.trim();
+			}
+		}
+		
+		// Check for AssistantMessage pattern and extract the text content
+		if (result.contains("AssistantMessage[") && result.contains("text=")) {
+			int textStart = result.indexOf("text=") + 5;
+			// Find the closing brackets, accounting for nested content
+			int textEnd = result.lastIndexOf("]]]");
+			if (textEnd == -1) {
+				textEnd = result.lastIndexOf("]]");
+			}
+			if (textEnd > textStart) {
+				return result.substring(textStart, textEnd).trim();
+			}
+		}
+		
+		// If no patterns match, return the original result
+		return result;
 	}
 
 	/**
