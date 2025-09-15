@@ -1,5 +1,8 @@
 # Spring AI Agents
 
+## 📊 SpringOne 2025 Presentation
+This project was featured in a talk at SpringOne 2025 by Mark Pollack. View the presentation: [springone-2025-presentation.html](springone-2025-presentation.html)
+
 [![Build Status](https://github.com/spring-ai-community/spring-ai-agents/workflows/CI/badge.svg)](https://github.com/spring-ai-community/spring-ai-agents/actions)
 [![Maven Central](https://img.shields.io/maven-central/v/org.springaicommunity.agents/spring-ai-agents-parent.svg)](https://search.maven.org/search?q=g:org.springaicommunity.agents)
 
