@@ -87,6 +87,7 @@ class GeminiAgentModelIT {
 			.model("gemini-2.0-flash-exp")
 			.timeout(Duration.ofMinutes(3))
 			.executablePath(executablePath)
+			.yolo(true) // Enable yolo mode for debugging
 			.build();
 	}
 
@@ -98,8 +99,9 @@ class GeminiAgentModelIT {
 				System.out.println("Set gemini.cli.path to: " + options.getExecutablePath());
 			}
 
-			// Create Gemini CLI with the specific working directory
-			GeminiClient geminiApi = GeminiClient.create(CLIOptions.defaultOptions(), workingDirectory);
+			// Create Gemini CLI with debug options and specific working directory
+			CLIOptions cliOptions = CLIOptions.builder().debug(true).yoloMode(true).build();
+			GeminiClient geminiApi = GeminiClient.create(cliOptions, workingDirectory);
 
 			GeminiAgentModel model = new GeminiAgentModel(geminiApi, options);
 
