@@ -103,7 +103,7 @@ public class ReactiveTransport implements AutoCloseable {
 
 			try {
 				List<String> command = buildCommand(prompt, options);
-				logger.debug("Starting reactive query with command: {}", command);
+				logger.info("🔍 CLAUDE CLI REACTIVE COMMAND: {}", command);
 
 				// Create reactive message processor
 				ReactiveMessageProcessor processor = new ReactiveMessageProcessor(sink);
@@ -196,6 +196,8 @@ public class ReactiveTransport implements AutoCloseable {
 	private List<String> buildCommand(String prompt, CLIOptions options) {
 		List<String> command = new ArrayList<>();
 		command.add(claudeCommand);
+		command.add("--print"); // Essential for autonomous operations - enables
+								// programmatic execution
 
 		// For reactive transport, prefer streaming formats but respect user choice
 		OutputFormat format = options.getOutputFormat();

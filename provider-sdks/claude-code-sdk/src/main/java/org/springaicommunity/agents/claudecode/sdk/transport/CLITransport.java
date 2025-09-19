@@ -327,6 +327,8 @@ public class CLITransport implements AutoCloseable {
 	private List<String> buildCommand(String prompt, CLIOptions options) {
 		List<String> command = new ArrayList<>();
 		command.add(claudeCommand);
+		command.add("--print"); // Essential for autonomous operations - enables
+								// programmatic execution
 		command.add("--output-format");
 		command.add(options.getOutputFormat().getValue());
 
@@ -373,10 +375,9 @@ public class CLITransport implements AutoCloseable {
 		}
 
 		// Add the prompt
-		command.add("--print");
 		command.add(prompt);
 
-		logger.debug("Built command: {}", command);
+		logger.info("🔍 CLAUDE CLI COMMAND: {}", command);
 		return command;
 	}
 
