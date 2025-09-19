@@ -95,19 +95,37 @@ public class CLITransport implements AutoCloseable {
 			// Build command arguments
 			List<String> command = buildCommand(prompt, options);
 
+			// Remove debug flag now that authentication is working
+
 			// Handle different output formats
 			if (options.getOutputFormat() == OutputFormat.JSON) {
 				// For JSON format, get the complete output as a string
-				ProcessResult result = new ProcessExecutor().command(command)
+				ProcessExecutor executor = new ProcessExecutor().command(command)
 					.directory(workingDirectory.toFile())
 					.environment("CLAUDE_CODE_ENTRYPOINT", "sdk-java")
 					.timeout(options.getTimeout().toMillis(), TimeUnit.MILLISECONDS)
 					.redirectError(Slf4jStream.of(getClass()).asError())
-					.readOutput(true)
-					.execute();
+					.readOutput(true);
 
-				// Check exit code
+				// Pass through ANTHROPIC_API_KEY if set
+				String apiKey = System.getenv("ANTHROPIC_API_KEY");
+				if (apiKey != null) {
+					logger.info("Setting ANTHROPIC_API_KEY environment variable for Claude CLI (key present: {})",
+							apiKey.length() > 0);
+					executor.environment("ANTHROPIC_API_KEY", apiKey);
+				}
+				else {
+					logger.warn("ANTHROPIC_API_KEY environment variable not found - Claude CLI may fail");
+				}
+
+				ProcessResult result = executor.execute();
+
+				// Check exit code and provide detailed error information
 				if (result.getExitValue() != 0) {
+					logger.error("Claude CLI command failed with exit code {}", result.getExitValue());
+					logger.error("Command executed: {}", command);
+					logger.error("Working directory: {}", workingDirectory);
+					logger.error("Stdout output: {}", result.outputUTF8());
 					throw ProcessExecutionException.withExitCode("Claude CLI process failed", result.getExitValue());
 				}
 
@@ -142,18 +160,35 @@ public class CLITransport implements AutoCloseable {
 				// For streaming formats (STREAM_JSON, TEXT), use the collector
 				MessageCollector collector = new MessageCollector(messages::add, options.getOutputFormat());
 
-				ProcessResult result = new ProcessExecutor().command(command)
+				ProcessExecutor executor = new ProcessExecutor().command(command)
 					.directory(workingDirectory.toFile())
 					.environment("CLAUDE_CODE_ENTRYPOINT", "sdk-java")
 					.timeout(options.getTimeout().toMillis(), TimeUnit.MILLISECONDS)
 					.redirectOutput(collector)
 					.redirectError(Slf4jStream.of(getClass()).asError())
-					.readOutput(true)
-					.execute();
+					.readOutput(true);
 
-				// Check exit code
+				// Pass through ANTHROPIC_API_KEY if set
+				String apiKey = System.getenv("ANTHROPIC_API_KEY");
+				if (apiKey != null) {
+					logger.info("Setting ANTHROPIC_API_KEY environment variable for Claude CLI (key present: {})",
+							apiKey.length() > 0);
+					executor.environment("ANTHROPIC_API_KEY", apiKey);
+				}
+				else {
+					logger.warn("ANTHROPIC_API_KEY environment variable not found - Claude CLI may fail");
+				}
+
+				ProcessResult result = executor.execute();
+
+				// Check exit code and provide detailed error information
 				if (result.getExitValue() != 0) {
-					throw ProcessExecutionException.withExitCode("Claude CLI process failed", result.getExitValue());
+					logger.error("Claude CLI streaming command failed with exit code {}", result.getExitValue());
+					logger.error("Command executed: {}", command);
+					logger.error("Working directory: {}", workingDirectory);
+					logger.error("Stdout output: {}", result.outputUTF8());
+					throw ProcessExecutionException.withExitCode("Claude CLI streaming process failed",
+							result.getExitValue());
 				}
 
 				// Manually close collector to flush any buffered content (important for
@@ -194,22 +229,40 @@ public class CLITransport implements AutoCloseable {
 			// Build command arguments
 			List<String> command = buildCommand(prompt, options);
 
+			// Remove debug flag now that authentication is working
+
 			// Create streaming message processor
 			StreamingMessageProcessor processor = new StreamingMessageProcessor(messageHandler,
 					options.getOutputFormat());
 
 			// Execute process
-			ProcessResult result = new ProcessExecutor().command(command)
+			ProcessExecutor executor = new ProcessExecutor().command(command)
 				.directory(workingDirectory.toFile())
 				.environment("CLAUDE_CODE_ENTRYPOINT", "sdk-java")
 				.timeout(options.getTimeout().toMillis(), TimeUnit.MILLISECONDS)
 				.redirectOutput(processor)
 				.redirectError(Slf4jStream.of(getClass()).asError())
-				.readOutput(true)
-				.execute();
+				.readOutput(true);
 
-			// Check exit code
+			// Pass through ANTHROPIC_API_KEY if set
+			String apiKey = System.getenv("ANTHROPIC_API_KEY");
+			if (apiKey != null) {
+				logger.warn("Setting ANTHROPIC_API_KEY environment variable for streaming Claude CLI (key present: {})",
+						apiKey.length() > 0);
+				executor.environment("ANTHROPIC_API_KEY", apiKey);
+			}
+			else {
+				logger.warn("ANTHROPIC_API_KEY environment variable not found for streaming - Claude CLI may fail");
+			}
+
+			ProcessResult result = executor.execute();
+
+			// Check exit code and provide detailed error information
 			if (result.getExitValue() != 0) {
+				logger.error("Claude CLI streaming query failed with exit code {}", result.getExitValue());
+				logger.error("Command executed: {}", command);
+				logger.error("Working directory: {}", workingDirectory);
+				logger.error("Stdout output: {}", result.outputUTF8());
 				throw ProcessExecutionException.withExitCode("Claude CLI streaming process failed",
 						result.getExitValue());
 			}
