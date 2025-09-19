@@ -30,12 +30,20 @@ import org.springaicommunity.agents.model.AgentGenerationMetadata;
 import org.springaicommunity.agents.model.AgentModel;
 import org.springaicommunity.agents.model.AgentTaskRequest;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.zeroturnaround.exec.ProcessExecutor;
+import org.zeroturnaround.exec.ProcessResult;
 
 /**
  * Implementation of {@link AgentModel} for Claude Code CLI-based agents.
@@ -77,6 +85,52 @@ public class ClaudeCodeAgentModel implements AgentModel {
 	 */
 	public ClaudeCodeAgentModel(ClaudeCodeClient claudeCodeClient) {
 		this(claudeCodeClient, null);
+	}
+
+	/**
+	 * Creates a new ClaudeCodeAgentModel configured for workspace-specific execution.
+	 * This factory method handles all necessary workspace setup including authentication
+	 * and project configuration. IOException is converted to RuntimeException to simplify
+	 * exception handling throughout the application.
+	 * @param workspace the workspace directory path
+	 * @param timeout the execution timeout
+	 * @return a configured ClaudeCodeAgentModel instance
+	 * @throws ClaudeSDKException if Claude SDK operations fail
+	 * @throws RuntimeException if workspace setup fails (wraps IOException)
+	 */
+	public static ClaudeCodeAgentModel createWithWorkspaceSetup(Path workspace, Duration timeout)
+			throws IOException, ClaudeSDKException {
+		logger.debug("Creating ClaudeCodeAgentModel with workspace setup for: {}", workspace);
+
+		try {
+			// Setup clean Claude authentication state
+			setupCleanClaudeAuth();
+
+			// Create project-level Claude settings
+			createProjectClaudeSettings(workspace);
+
+			// Create CLI options with workspace-specific configuration
+			CLIOptions cliOptions = CLIOptions.builder()
+				.timeout(timeout)
+				.permissionMode(org.springaicommunity.agents.claudecode.sdk.config.PermissionMode.BYPASS_PERMISSIONS)
+				.build();
+
+			// Create client with the specific working directory
+			ClaudeCodeClient workspaceClient = ClaudeCodeClient.create(cliOptions, workspace.toAbsolutePath());
+
+			// Create agent options with yolo mode enabled
+			ClaudeCodeAgentOptions agentOptions = new ClaudeCodeAgentOptions();
+			agentOptions.setYolo(true);
+			agentOptions.setTimeout(timeout);
+
+			return new ClaudeCodeAgentModel(workspaceClient, agentOptions);
+		}
+		catch (RuntimeException e) {
+			throw e; // Re-throw RuntimeExceptions from helper methods
+		}
+		catch (Exception e) {
+			throw new RuntimeException("Failed to setup workspace for Claude agent: " + e.getMessage(), e);
+		}
 	}
 
 	@Override
@@ -253,6 +307,95 @@ public class ClaudeCodeAgentModel implements AgentModel {
 			case TIMEOUT -> "TIMEOUT";
 			case CANCELLED -> "CANCELLED";
 		};
+	}
+
+	/**
+	 * Sets up clean Claude authentication state by logging out to ensure API key usage.
+	 * IOException is converted to RuntimeException to simplify exception handling.
+	 */
+	private static void setupCleanClaudeAuth() {
+		logger.debug("Setting up clean Claude authentication state");
+
+		try {
+			// Use zt-exec to handle the logout process more reliably
+			ProcessResult result = new ProcessExecutor().command("/tmp/claude-logout-auto.sh")
+				.timeout(30, TimeUnit.SECONDS)
+				.readOutput(true)
+				.execute();
+
+			logger.debug("Logout script completed with exit code: {}", result.getExitValue());
+			if (!result.outputUTF8().isEmpty()) {
+				logger.debug("Logout output: {}", result.outputUTF8().trim());
+			}
+
+		}
+		catch (Exception e) {
+			logger.debug("Exception during logout: {}", e.getMessage());
+			// Continue anyway - logout failure shouldn't stop the setup
+		}
+	}
+
+	/**
+	 * Creates project-level Claude settings to avoid interactive API key prompts. This
+	 * creates a .claude/settings.json file in the workspace with the API key
+	 * configuration. IOException is converted to RuntimeException to simplify exception
+	 * handling.
+	 */
+	private static void createProjectClaudeSettings(Path workspace) {
+		logger.debug("Starting Claude settings creation for workspace: {}", workspace);
+
+		// Get API key from environment
+		String apiKey = System.getenv("ANTHROPIC_API_KEY");
+		logger.debug("API key from environment: {}",
+				(apiKey != null ? "present (length=" + apiKey.length() + ")" : "null"));
+
+		if (apiKey == null || apiKey.trim().isEmpty()) {
+			logger.debug("No ANTHROPIC_API_KEY found, skipping project settings creation");
+			return;
+		}
+
+		try {
+			// Create .claude directory in the workspace
+			Path claudeDir = workspace.resolve(".claude");
+			logger.debug("Creating .claude directory at: {}", claudeDir);
+			Files.createDirectories(claudeDir);
+			logger.debug(".claude directory created successfully: {}", Files.exists(claudeDir));
+
+			// Create settings configuration with API key pre-approval
+			Map<String, Object> settings = new HashMap<>();
+
+			// Extract last 20 characters for approval (Claude CLI requirement)
+			String last20Chars = apiKey.substring(Math.max(0, apiKey.length() - 20));
+			Map<String, Object> customApiKeyResponses = new HashMap<>();
+			customApiKeyResponses.put("approved", List.of(last20Chars));
+			customApiKeyResponses.put("rejected", List.of());
+
+			Map<String, Object> env = new HashMap<>();
+			env.put("ANTHROPIC_API_KEY", apiKey);
+
+			settings.put("hasCompletedOnboarding", true);
+			settings.put("customApiKeyResponses", customApiKeyResponses);
+			settings.put("env", env);
+
+			logger.debug("Settings configuration created with API key pre-approval");
+			logger.debug("API key last 20 chars approved: {}", last20Chars);
+
+			// Write settings.json file
+			Path settingsFile = claudeDir.resolve("settings.json");
+			ObjectMapper mapper = new ObjectMapper();
+			mapper.writerWithDefaultPrettyPrinter().writeValue(settingsFile.toFile(), settings);
+
+			logger.debug("Settings file written to: {}", settingsFile);
+			logger.debug("Settings file exists: {}", Files.exists(settingsFile));
+			logger.debug("Settings file size: {} bytes", Files.size(settingsFile));
+
+			// Read back and log the content for verification
+			String content = Files.readString(settingsFile);
+			logger.debug("Settings file content: {}", content);
+		}
+		catch (IOException e) {
+			throw new RuntimeException("Failed to create Claude project settings: " + e.getMessage(), e);
+		}
 	}
 
 }
