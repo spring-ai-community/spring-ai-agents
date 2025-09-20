@@ -109,10 +109,72 @@ public final class DockerSandbox implements Sandbox {
 		finalCommandList.addAll(command); // These become $1, $2, ...
 
 		try {
-			var result = this.container.execInContainer(finalCommandList.toArray(new String[0]));
+			// For environment variables, we need to set them in the shell command
+			// since TestContainers execInContainer doesn't support env variables directly
+			List<String> commandWithEnv = new ArrayList<>();
+			commandWithEnv.add("bash");
+			commandWithEnv.add("-lc");
+
+			// Build shell command that sets environment variables and then executes the
+			// command
+			StringBuilder shellScript = new StringBuilder();
+			for (var entry : customizedSpec.env().entrySet()) {
+				shellScript.append("export ")
+					.append(entry.getKey())
+					.append("='")
+					.append(entry.getValue())
+					.append("'; ");
+			}
+			shellScript.append("exec \"$@\"");
+
+			commandWithEnv.add(shellScript.toString());
+			commandWithEnv.add("bash"); // This becomes $0 for the script
+			commandWithEnv.addAll(command); // These become $1, $2, ...
+
+			// Execute with timeout
+			org.testcontainers.containers.Container.ExecResult result;
+			if (customizedSpec.timeout() != null) {
+				// TestContainers doesn't have built-in timeout support for
+				// execInContainer,
+				// so we need to implement it ourselves
+				var future = java.util.concurrent.CompletableFuture.supplyAsync(() -> {
+					try {
+						return this.container.execInContainer(commandWithEnv.toArray(new String[0]));
+					}
+					catch (Exception e) {
+						throw new RuntimeException(e);
+					}
+				});
+
+				try {
+					result = future.get(customizedSpec.timeout().toMillis(),
+							java.util.concurrent.TimeUnit.MILLISECONDS);
+				}
+				catch (java.util.concurrent.TimeoutException e) {
+					future.cancel(true);
+					throw new TimeoutException("Command timed out after " + customizedSpec.timeout(),
+							customizedSpec.timeout());
+				}
+				catch (java.util.concurrent.ExecutionException e) {
+					Throwable cause = e.getCause();
+					if (cause instanceof RuntimeException) {
+						throw (RuntimeException) cause;
+					}
+					throw new IOException("Failed to execute command", cause);
+				}
+			}
+			else {
+				// No timeout specified
+				result = this.container.execInContainer(commandWithEnv.toArray(new String[0]));
+			}
+
 			var duration = Duration.between(startTime, Instant.now());
 			String mergedLog = result.getStdout() + result.getStderr();
 			return new ExecResult(result.getExitCode(), mergedLog, duration);
+		}
+		catch (TimeoutException e) {
+			// Re-throw our custom TimeoutException
+			throw e;
 		}
 		catch (Exception e) {
 			throw new IOException("Failed to execute command in container", e);
