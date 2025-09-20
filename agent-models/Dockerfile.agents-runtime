@@ -1,0 +1,56 @@
+# Spring AI Agents Runtime Container
+# Provides execution environment for AI agents with Claude Code CLI and Gemini CLI
+FROM eclipse-temurin:17-jdk
+
+# Set build arguments for CLI versions (can be overridden at build time)
+ARG CLAUDE_CODE_VERSION=latest
+ARG GEMINI_CLI_VERSION=latest
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    unzip \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js LTS (required for npm packages)
+RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
+    && apt-get install -y nodejs
+
+# Install Maven 3.9.11
+RUN wget -q https://dlcdn.apache.org/maven/maven-3/3.9.11/binaries/apache-maven-3.9.11-bin.tar.gz \
+    && tar xzf apache-maven-3.9.11-bin.tar.gz -C /opt \
+    && ln -s /opt/apache-maven-3.9.11 /opt/maven \
+    && rm apache-maven-3.9.11-bin.tar.gz
+
+# Set Maven environment
+ENV PATH="/opt/maven/bin:${PATH}"
+ENV MAVEN_HOME="/opt/maven"
+
+# Install Claude Code CLI and Gemini CLI via npm (before creating non-root user)
+RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} --silent
+RUN npm install -g @google/gemini-cli@${GEMINI_CLI_VERSION} --silent
+
+# Create non-root user for running agents
+RUN useradd -m -s /bin/bash agentuser
+
+# Create working directory
+RUN mkdir -p /work && chown agentuser:agentuser /work
+
+# Switch to non-root user
+USER agentuser
+WORKDIR /work
+
+# Verify installations
+RUN which claude && claude --version || echo "Claude CLI installed"
+RUN which gemini && gemini --version || echo "Gemini CLI installed"
+RUN java -version
+RUN mvn -version
+
+# Set environment variables for agent runtime
+ENV CLAUDE_CODE_ENTRYPOINT=sdk-java
+ENV JAVA_HOME=/opt/java/openjdk
+
+# Default command (will be overridden by TestContainers)
+CMD ["sleep", "infinity"]

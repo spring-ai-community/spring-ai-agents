@@ -120,6 +120,42 @@ public class ClaudeCodeClient implements AutoCloseable {
 	}
 
 	/**
+	 * Builds the command line arguments for a query without executing it. This is useful
+	 * for integrating with external execution environments.
+	 * @param prompt the query prompt
+	 * @return the command line arguments as a list
+	 */
+	public List<String> buildCommand(String prompt) {
+		return buildCommand(prompt, defaultOptions);
+	}
+
+	/**
+	 * Builds the command line arguments for a query with specified options without
+	 * executing it. This is useful for integrating with external execution environments.
+	 * @param prompt the query prompt
+	 * @param options the CLI options
+	 * @return the command line arguments as a list
+	 */
+	public List<String> buildCommand(String prompt, CLIOptions options) {
+		// Delegate to transport's buildCommand method
+		return transport.buildCommand(prompt, options);
+	}
+
+	/**
+	 * Parses the output from external command execution into a QueryResult. This is
+	 * useful for integrating with external execution environments.
+	 * @param output the command output to parse
+	 * @param options the CLI options used for the command
+	 * @return the parsed query result
+	 * @throws ClaudeSDKException if parsing fails
+	 */
+	public QueryResult parseResult(String output, CLIOptions options) throws ClaudeSDKException {
+		// Parse the output into messages using the transport's parsing logic
+		List<Message> messages = transport.parseOutput(output, options);
+		return buildQueryResult(messages, options);
+	}
+
+	/**
 	 * Executes a synchronous query and returns the complete result.
 	 * @param prompt the query prompt
 	 * @return the query result

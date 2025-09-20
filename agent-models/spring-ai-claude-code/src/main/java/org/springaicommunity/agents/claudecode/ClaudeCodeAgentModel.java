@@ -29,6 +29,10 @@ import org.springaicommunity.agents.model.AgentGeneration;
 import org.springaicommunity.agents.model.AgentGenerationMetadata;
 import org.springaicommunity.agents.model.AgentModel;
 import org.springaicommunity.agents.model.AgentTaskRequest;
+import org.springaicommunity.agents.model.sandbox.SandboxProvider;
+import org.springaicommunity.agents.model.sandbox.DefaultSandboxProvider;
+import org.springaicommunity.agents.model.sandbox.ExecSpec;
+import org.springaicommunity.agents.model.sandbox.ExecResult;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -64,27 +68,44 @@ public class ClaudeCodeAgentModel implements AgentModel {
 
 	private final ClaudeCodeAgentOptions defaultOptions;
 
+	private final SandboxProvider sandboxProvider;
+
 	/**
-	 * Create a new ClaudeCodeAgentModel with the given API client and options.
+	 * Create a new ClaudeCodeAgentModel with the given API client and options. Uses
+	 * default sandbox provider with auto-detection.
 	 * @param claudeCodeClient the Claude Code CLI client
 	 * @param defaultOptions default execution options
 	 */
 	public ClaudeCodeAgentModel(ClaudeCodeClient claudeCodeClient, ClaudeCodeAgentOptions defaultOptions) {
+		this(claudeCodeClient, defaultOptions, new DefaultSandboxProvider());
+	}
+
+	/**
+	 * Create a new ClaudeCodeAgentModel with the given API client and default options.
+	 * Uses default sandbox provider with auto-detection.
+	 * @param claudeCodeClient the Claude Code CLI client
+	 */
+	public ClaudeCodeAgentModel(ClaudeCodeClient claudeCodeClient) {
+		this(claudeCodeClient, null, new DefaultSandboxProvider());
+	}
+
+	/**
+	 * Create a new ClaudeCodeAgentModel with full dependency injection. This is the
+	 * preferred constructor for Spring dependency injection.
+	 * @param claudeCodeClient the Claude Code CLI client
+	 * @param defaultOptions default execution options
+	 * @param sandboxProvider the sandbox provider for secure command execution
+	 */
+	public ClaudeCodeAgentModel(ClaudeCodeClient claudeCodeClient, ClaudeCodeAgentOptions defaultOptions,
+			SandboxProvider sandboxProvider) {
 		this.claudeCodeClient = claudeCodeClient;
 		this.defaultOptions = defaultOptions != null ? defaultOptions : new ClaudeCodeAgentOptions();
+		this.sandboxProvider = sandboxProvider != null ? sandboxProvider : new DefaultSandboxProvider();
 
 		// Set system property for executable path if provided
 		if (this.defaultOptions.getExecutablePath() != null) {
 			System.setProperty("claude.cli.path", this.defaultOptions.getExecutablePath());
 		}
-	}
-
-	/**
-	 * Create a new ClaudeCodeAgentModel with the given API client and default options.
-	 * @param claudeCodeClient the Claude Code CLI client
-	 */
-	public ClaudeCodeAgentModel(ClaudeCodeClient claudeCodeClient) {
-		this(claudeCodeClient, null);
 	}
 
 	/**
@@ -149,8 +170,15 @@ public class ClaudeCodeAgentModel implements AgentModel {
 			// Format the task as a prompt
 			String prompt = formatTaskPrompt(request);
 
-			// Execute the query
-			QueryResult result = claudeCodeClient.query(prompt, cliOptions);
+			QueryResult result;
+			if (sandboxProvider != null) {
+				// Use sandbox for execution
+				result = executeViaSandbox(prompt, cliOptions, request);
+			}
+			else {
+				// Fallback to direct execution (should rarely happen)
+				result = claudeCodeClient.query(prompt, cliOptions);
+			}
 
 			// Convert to AgentResponse
 			return convertResult(result, startTime);
@@ -178,6 +206,42 @@ public class ClaudeCodeAgentModel implements AgentModel {
 			logger.debug("Claude CLI not available: {}", e.getMessage());
 			return false;
 		}
+	}
+
+	/**
+	 * Executes a query via sandbox using the AgentModel-centric pattern. SDK builds
+	 * command -> Sandbox executes -> SDK parses result.
+	 */
+	private QueryResult executeViaSandbox(String prompt, CLIOptions cliOptions, AgentTaskRequest request)
+			throws ClaudeSDKException, IOException, InterruptedException,
+			org.springaicommunity.agents.model.sandbox.TimeoutException {
+		logger.debug("Executing query via sandbox");
+
+		// 1. SDK builds command
+		List<String> command = claudeCodeClient.buildCommand(prompt, cliOptions);
+
+		// 2. Create ExecSpec with environment variables
+		Map<String, String> environment = new java.util.HashMap<>();
+		environment.put("CLAUDE_CODE_ENTRYPOINT", "sdk-java");
+
+		String apiKey = System.getenv("ANTHROPIC_API_KEY");
+		if (apiKey != null) {
+			environment.put("ANTHROPIC_API_KEY", apiKey);
+		}
+
+		ExecSpec spec = ExecSpec.builder().command(command).env(environment).timeout(cliOptions.getTimeout()).build();
+
+		// 3. Execute via sandbox
+		ExecResult execResult = sandboxProvider.getSandbox().exec(spec);
+
+		// 4. Check for execution errors
+		if (execResult.exitCode() != 0) {
+			throw new ClaudeSDKException(
+					"Command execution failed with exit code " + execResult.exitCode() + ": " + execResult.mergedLog());
+		}
+
+		// 5. Parse via SDK
+		return claudeCodeClient.parseResult(execResult.mergedLog(), cliOptions);
 	}
 
 	/**

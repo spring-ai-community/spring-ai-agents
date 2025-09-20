@@ -324,7 +324,61 @@ public class CLITransport implements AutoCloseable {
 		}
 	}
 
-	private List<String> buildCommand(String prompt, CLIOptions options) {
+	/**
+	 * Parses command output into Messages. This is useful for integrating with external
+	 * execution environments.
+	 * @param output the command output to parse
+	 * @param options the CLI options used for the command
+	 * @return the parsed messages
+	 * @throws ClaudeSDKException if parsing fails
+	 */
+	public List<Message> parseOutput(String output, CLIOptions options) throws ClaudeSDKException {
+		List<Message> messages = new ArrayList<>();
+
+		try {
+			// Use the same parsing logic as executeQuery
+			if (options.getOutputFormat() == OutputFormat.JSON) {
+				String jsonOutput = output.trim();
+				if (!jsonOutput.isEmpty()) {
+					ResultMessage resultMessage = jsonResultParser.parseJsonResult(jsonOutput);
+					messages.add(resultMessage);
+
+					// Create AssistantMessage from the result content
+					if (resultMessage.result() != null && !resultMessage.result().isEmpty()) {
+						AssistantMessage assistantMessage = new AssistantMessage(
+								List.of(new TextBlock(resultMessage.result())));
+						messages.add(assistantMessage);
+					}
+				}
+			}
+			else {
+				// For STREAM_JSON format, parse line by line
+				String[] lines = output.split("\n");
+				for (String line : lines) {
+					line = line.trim();
+					if (!line.isEmpty()) {
+						try {
+							Message message = messageParser.parseMessage(line);
+							if (message != null) {
+								messages.add(message);
+							}
+						}
+						catch (Exception e) {
+							// Skip unparseable lines - they might be debug output
+							logger.debug("Skipping unparseable line: {}", line);
+						}
+					}
+				}
+			}
+		}
+		catch (Exception e) {
+			throw new ProcessExecutionException("Failed to parse command output: " + e.getMessage(), e);
+		}
+
+		return messages;
+	}
+
+	public List<String> buildCommand(String prompt, CLIOptions options) {
 		List<String> command = new ArrayList<>();
 		command.add(claudeCommand);
 		command.add("--print"); // Essential for autonomous operations - enables
