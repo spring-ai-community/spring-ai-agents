@@ -1,0 +1,38 @@
+# Build-capable image with JDK + Maven + Node + CLIs
+FROM eclipse-temurin:17-jdk-jammy
+
+# OS dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git python3 python3-pip ca-certificates curl \
+ && rm -rf /var/lib/apt/lists/*
+
+# Maven installation
+ARG MAVEN_VERSION=3.9.11
+RUN curl -fsSL https://dlcdn.apache.org/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz \
+ | tar -xz -C /opt && ln -s /opt/apache-maven-${MAVEN_VERSION}/bin/mvn /usr/local/bin/mvn
+
+# Node LTS (matching GitHub runners)
+RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
+ && apt-get update && apt-get install -y --no-install-recommends nodejs \
+ && rm -rf /var/lib/apt/lists/*
+
+# Install CLIs EXACTLY as proven in CI (as root for global install)
+ARG CLAUDE_CODE_VERSION=latest
+ARG GEMINI_CLI_VERSION=latest
+
+# Install Claude Code CLI from npm globally
+RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} --silent
+# Install official Gemini CLI from npm
+RUN npm install -g @google/gemini-cli@${GEMINI_CLI_VERSION} --silent
+
+# Create non-root user and workspace
+RUN useradd -m agent && mkdir -p /work && chown -R agent:agent /work
+USER agent
+WORKDIR /work
+
+# Verify installations work
+RUN echo "=== Verifying CLI installations ===" && \
+    claude --version && echo "✅ Claude CLI verified" && \
+    gemini --version && echo "✅ Gemini CLI verified"
+
+CMD ["sleep", "infinity"]
