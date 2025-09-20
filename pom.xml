@@ -138,6 +138,7 @@
         <junit-jupiter.version>5.10.1</junit-jupiter.version>
         <mockito.version>5.7.0</mockito.version>
         <assertj.version>3.24.2</assertj.version>
+        <testcontainers.version>1.20.4</testcontainers.version>
 
         <!-- Plugin versions -->
         <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
@@ -223,6 +224,15 @@
                 <groupId>org.zeroturnaround</groupId>
                 <artifactId>zt-exec</artifactId>
                 <version>${zt-exec.version}</version>
+            </dependency>
+
+            <!-- TestContainers for Docker sandbox -->
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>${testcontainers.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
 
             <!-- Slf4j API -->
