@@ -33,6 +33,9 @@ import org.springaicommunity.agents.model.sandbox.ExecResult;
 import org.springaicommunity.agents.model.sandbox.ExecSpec;
 import org.springaicommunity.agents.model.sandbox.Sandbox;
 
+import java.io.IOException;
+import java.util.Map;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -85,8 +88,28 @@ public class GeminiAgentModel implements AgentModel {
 		Instant startTime = Instant.now();
 
 		try {
-			// Execute through sandbox (Spring-idiomatic pattern)
-			return executeThroughSandbox(request, startTime);
+			// Connect if needed
+			ensureConnected();
+
+			// Build CLI options from request
+			CLIOptions cliOptions = buildCLIOptions(request);
+
+			// Format the task as a prompt
+			String prompt = formatTaskPrompt(request);
+
+			QueryResult result;
+			if (sandbox != null) {
+				// Use sandbox for execution (AgentModel-centric pattern)
+				result = executeViaSandbox(prompt, cliOptions, request);
+			}
+			else {
+				// Fallback to direct execution (should rarely happen)
+				result = geminiClient.query(prompt, cliOptions);
+			}
+
+			// Convert to AgentResponse
+			return convertResult(result, startTime);
+
 		}
 		catch (GeminiSDKException e) {
 			logger.error("Agent execution failed", e);
@@ -103,14 +126,66 @@ public class GeminiAgentModel implements AgentModel {
 	@Override
 	public boolean isAvailable() {
 		try {
-			// The GeminiClient handles connection state internally
-			geminiClient.connect();
+			ensureConnected();
 			return true;
 		}
 		catch (GeminiSDKException e) {
 			logger.debug("Gemini CLI not available: {}", e.getMessage());
 			return false;
 		}
+	}
+
+	/**
+	 * Executes a query via sandbox using the AgentModel-centric pattern. SDK builds
+	 * command -> Sandbox executes -> SDK parses result.
+	 */
+	private QueryResult executeViaSandbox(String prompt, CLIOptions cliOptions, AgentTaskRequest request)
+			throws GeminiSDKException, IOException, InterruptedException,
+			org.springaicommunity.agents.model.sandbox.TimeoutException {
+		logger.debug("Executing query via sandbox");
+
+		// 1. SDK builds command
+		List<String> command = geminiClient.buildCommand(prompt, cliOptions);
+
+		// 2. Create ExecSpec with environment variables
+		Map<String, String> environment = new java.util.HashMap<>();
+		environment.put("GEMINI_CLI_ENTRYPOINT", "sdk-java");
+
+		// Add API keys
+		String apiKey = System.getenv("GEMINI_API_KEY");
+		if (apiKey == null) {
+			apiKey = System.getenv("GOOGLE_API_KEY");
+		}
+		if (apiKey != null) {
+			environment.put("GEMINI_API_KEY", apiKey);
+			environment.put("GOOGLE_API_KEY", apiKey);
+		}
+
+		// NVM environment variables and PATH are not needed - getGeminiCommand() handles
+		// NVM Node.js paths internally
+
+		ExecSpec spec = ExecSpec.builder().command(command).env(environment).timeout(cliOptions.getTimeout()).build();
+
+		// 3. Execute via sandbox
+		ExecResult execResult = sandbox.exec(spec);
+
+		// 4. Check for execution errors
+		if (execResult.exitCode() != 0) {
+			throw new GeminiSDKException(
+					"Command execution failed with exit code " + execResult.exitCode() + ": " + execResult.mergedLog());
+		}
+
+		// 5. Parse via SDK
+		return geminiClient.parseResult(execResult.mergedLog(), cliOptions);
+	}
+
+	/**
+	 * Ensures the Gemini CLI API is connected and ready.
+	 */
+	private void ensureConnected() throws GeminiSDKException {
+		// The GeminiClient handles connection state internally
+		// This method can be extended for additional connection validation
+		geminiClient.connect();
 	}
 
 	/**
@@ -229,28 +304,6 @@ public class GeminiAgentModel implements AgentModel {
 			case TIMEOUT -> "TIMEOUT";
 			case CANCELLED -> "CANCELLED";
 		};
-	}
-
-	/**
-	 * Executes task through Gemini CLI. Note: Gemini SDK doesn't currently support the
-	 * buildCommand/parseResult pattern like Claude Code, so execution is direct. Sandbox
-	 * is injected for future extensibility and Spring-idiomatic patterns.
-	 */
-	private AgentResponse executeThroughSandbox(AgentTaskRequest request, Instant startTime) throws Exception {
-		// Connect if needed
-		geminiClient.connect();
-
-		// Build CLI options from request
-		CLIOptions cliOptions = buildCLIOptions(request);
-
-		// Format the task as a prompt
-		String prompt = formatTaskPrompt(request);
-
-		// Execute the query directly (Gemini SDK doesn't support sandbox pattern yet)
-		QueryResult result = geminiClient.query(prompt, cliOptions);
-
-		// Convert to AgentResponse
-		return convertResult(result, startTime);
 	}
 
 }

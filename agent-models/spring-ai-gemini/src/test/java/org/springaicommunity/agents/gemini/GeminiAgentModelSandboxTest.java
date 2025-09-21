@@ -90,27 +90,38 @@ class GeminiAgentModelSandboxTest {
 	}
 
 	@Test
-	void testDependencyInjectionWithoutSandboxExecution() throws Exception {
-		// Arrange: Gemini SDK doesn't currently support buildCommand/parseResult pattern
+	void testDependencyInjectionWithSandboxExecution() throws Exception {
+		// Arrange: Gemini SDK now supports buildCommand/parseResult pattern
 		Path workingDir = Paths.get("/tmp/test");
 		AgentTaskRequest request = AgentTaskRequest.builder("Fix the failing test", workingDir).build();
 
-		// Mock direct query execution (Gemini SDK pattern)
-		QueryResult queryResult = new QueryResult(List.of(), createMockMetadata(30000), ResultStatus.SUCCESS);
-		when(mockGeminiClient.query(anyString(), any(CLIOptions.class))).thenReturn(queryResult);
+		// Mock buildCommand to return command
+		List<String> command = List.of("gemini", "-m", "gemini-2.0-flash-exp", "-y", "-p", "test prompt");
+		when(mockGeminiClient.buildCommand(anyString(), any(CLIOptions.class))).thenReturn(command);
+
+		// Mock sandbox execution
+		ExecResult execResult = new ExecResult(0, "Test output", Duration.ofSeconds(1));
+		when(mockSandbox.exec(any(ExecSpec.class))).thenReturn(execResult);
+
+		// Mock parseResult
+		QueryResult queryResult = new QueryResult(List.of(), createMockMetadata(1000), ResultStatus.SUCCESS);
+		when(mockGeminiClient.parseResult(anyString(), any(CLIOptions.class))).thenReturn(queryResult);
 
 		// Act
 		AgentResponse result = agentModel.call(request);
 
-		// ASSERT: Dependency injection works and execution succeeds
+		// ASSERT: Dependency injection with sandbox pattern works
 
-		// 1. Verify SDK query was called
-		verify(mockGeminiClient).query(anyString(), any(CLIOptions.class));
+		// 1. Verify SDK buildCommand was called
+		verify(mockGeminiClient).buildCommand(anyString(), any(CLIOptions.class));
 
-		// 2. Verify sandbox was injected but not used for execution
-		// (Gemini SDK doesn't support sandbox pattern yet)
+		// 2. Verify sandbox was used for execution
+		verify(mockSandbox).exec(any(ExecSpec.class));
 
-		// 3. Verify final response
+		// 3. Verify SDK parseResult was called
+		verify(mockGeminiClient).parseResult(eq("Test output"), any(CLIOptions.class));
+
+		// 4. Verify final response
 		assertThat(result).isNotNull();
 		assertThat(result.getResults()).hasSize(1);
 	}
@@ -140,15 +151,24 @@ class GeminiAgentModelSandboxTest {
 		Path workingDir = Paths.get("/tmp/test");
 		AgentTaskRequest request = AgentTaskRequest.builder("Test Spring DI", workingDir).build();
 
+		// Mock the full sandbox execution pattern
+		List<String> command = List.of("gemini", "-m", "gemini-2.0-flash-exp", "-y", "-p", "test prompt");
+		when(mockGeminiClient.buildCommand(anyString(), any(CLIOptions.class))).thenReturn(command);
+
+		ExecResult execResult = new ExecResult(0, "Test output", Duration.ofSeconds(1));
+		when(mockSandbox.exec(any(ExecSpec.class))).thenReturn(execResult);
+
 		QueryResult queryResult = new QueryResult(List.of(), createMockMetadata(1000), ResultStatus.SUCCESS);
-		when(mockGeminiClient.query(anyString(), any(CLIOptions.class))).thenReturn(queryResult);
+		when(mockGeminiClient.parseResult(anyString(), any(CLIOptions.class))).thenReturn(queryResult);
 
 		// Act
 		agentModel.call(request);
 
-		// ASSERT: Spring-style dependency injection works
-		// Agent model successfully uses injected GeminiClient and has Sandbox available
-		verify(mockGeminiClient).query(anyString(), any(CLIOptions.class));
+		// ASSERT: Spring-style dependency injection works with sandbox pattern
+		// Agent model successfully uses injected GeminiClient and Sandbox
+		verify(mockGeminiClient).buildCommand(anyString(), any(CLIOptions.class));
+		verify(mockSandbox).exec(any(ExecSpec.class));
+		verify(mockGeminiClient).parseResult(anyString(), any(CLIOptions.class));
 		assertThat(agentModel).isNotNull();
 	}
 

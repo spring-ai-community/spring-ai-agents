@@ -155,6 +155,50 @@ public class GeminiClient implements AutoCloseable {
 		return result.getResponse().orElse("");
 	}
 
+	/**
+	 * Builds the command line arguments for a query without executing it. This is useful
+	 * for integrating with external execution environments like Docker containers.
+	 * @param prompt the query prompt
+	 * @return the command line arguments as a list
+	 */
+	public List<String> buildCommand(String prompt) {
+		return buildCommand(prompt, defaultOptions);
+	}
+
+	/**
+	 * Builds the command line arguments for a query with specified options without
+	 * executing it. This is useful for integrating with external execution environments.
+	 * @param prompt the query prompt
+	 * @param options the CLI options
+	 * @return the command line arguments as a list
+	 */
+	public List<String> buildCommand(String prompt, CLIOptions options) {
+		// Delegate to transport's buildCommand method
+		return transport.buildCommand(prompt, options);
+	}
+
+	/**
+	 * Parses the output from external command execution into a QueryResult. This is
+	 * useful for integrating with external execution environments.
+	 * @param output the command output to parse
+	 * @param options the CLI options used for the command
+	 * @return the parsed query result
+	 * @throws GeminiSDKException if parsing fails
+	 */
+	public QueryResult parseResult(String output, CLIOptions options) throws GeminiSDKException {
+		// Parse the output into messages using the transport's parsing logic
+		List<Message> messages = transport.parseOutput(output, options);
+
+		// Create metadata for the parsed result
+		Metadata metadata = Metadata.builder()
+			.model(options.getModel() != null ? options.getModel() : "gemini-default")
+			.timestamp(Instant.now())
+			.duration(Duration.ZERO) // Duration not available from external execution
+			.build();
+
+		return QueryResult.of(messages, metadata, ResultStatus.SUCCESS);
+	}
+
 	private void validateConnected() throws GeminiSDKException {
 		if (!connected) {
 			throw new GeminiSDKException("Not connected to Gemini CLI. Call connect() first.");
