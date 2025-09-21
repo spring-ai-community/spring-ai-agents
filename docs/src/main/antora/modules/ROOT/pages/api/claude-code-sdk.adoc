@@ -21,7 +21,16 @@ Claude Code is Anthropic's autonomous coding agent that can read, write, and exe
 npm install -g @anthropic-ai/claude-code
 ----
 
-2. **Set API Key**:
+2. **Authentication** (Choose one method):
++
+**Option A: Session Authentication (Recommended)**:
++
+[source,bash]
+----
+claude auth login
+----
++
+**Option B: API Key**:
 +
 [source,bash]
 ----
@@ -29,6 +38,8 @@ export ANTHROPIC_API_KEY="your-api-key-here"
 ----
 +
 Get your API key from the https://console.anthropic.com/[Anthropic Console].
++
+NOTE: Session authentication is preferred to avoid conflicts between authentication methods.
 
 3. **Verify Installation**:
 +
@@ -83,7 +94,7 @@ public class ClaudeCodeExample {
         
         // 2. Configure agent options
         ClaudeCodeAgentOptions options = ClaudeCodeAgentOptions.builder()
-            .model("claude-sonnet-4-0")
+            .model("claude-sonnet-4-20250514")
             .yolo(true)
             .build();
             

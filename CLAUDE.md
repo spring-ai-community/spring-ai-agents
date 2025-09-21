@@ -22,7 +22,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Sample Applications
 - `cd samples/hello-world && mvn spring-boot:run` - Run the Hello World sample
-- Requires ANTHROPIC_API_KEY environment variable for Claude Code integration
+- Authentication: Uses Claude CLI session authentication (recommended) or ANTHROPIC_API_KEY
+- Note: Session authentication (from `claude auth login`) is preferred over API keys to avoid conflicts
 
 ## Architecture Overview
 
@@ -58,15 +59,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **CLI Integration Pattern**
 - All provider SDKs wrap external CLI tools (claude, gemini, swe-agent)
-- Robust process management using zt-exec library
+- Robust process management using zt-exec library for reliable execution
+- Unix-style `--` separator for complex prompts to prevent shell parsing issues
+- Comprehensive permission handling with `--dangerously-skip-permissions` for autonomous mode
 - Circuit breakers, retries, and timeouts for resilience
 - JSON-based communication with CLI tools
+- Runtime exception-only design (no checked exceptions in codebase)
 
 **Sandbox Infrastructure** (`agent-models/spring-ai-agent-model/`)
-- `Sandbox` - Core interface for secure command execution
+- `Sandbox` - Core interface for secure command execution (runtime exceptions only)
 - `DockerSandbox` - Docker container-based isolation (preferred)
-- `LocalSandbox` - Local process execution (fallback)
+- `LocalSandbox` - Local process execution with zt-exec (fallback, enhanced logging)
 - `ExecSpec`/`ExecResult` - Command specification and results
+- `SandboxException` - Runtime exception wrapper for all sandbox errors
+- `TimeoutException` - Runtime exception for command timeouts
 
 **Spring Integration**
 - Uses Spring Boot auto-configuration patterns
@@ -88,9 +94,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `spring.ai.agent.timeout` - Execution timeout
 - `spring.ai.claude-code.model` - Claude model selection (default: claude-sonnet-4-20250514)
 - `spring.ai.claude-code.bin` - Claude CLI binary path
+- `spring.ai.claude-code.yolo` - Enable autonomous mode with --dangerously-skip-permissions (default: true)
 - `spring.ai.agents.sandbox.docker.enabled` - Enable/disable Docker sandbox (default: true)
 - `spring.ai.agents.sandbox.docker.image-tag` - Docker image for sandbox execution
 - `spring.ai.agents.sandbox.local.working-directory` - Working directory for local sandbox
+
+### Authentication and Environment Variables
+- **Preferred**: Claude CLI session authentication (`claude auth login`)
+- **Alternative**: ANTHROPIC_API_KEY environment variable (may conflict with session auth)
+- **Internal**: CLAUDE_CODE_ENTRYPOINT=sdk-java (set automatically by SDK)
 
 ### Testing Strategy
 - Unit tests for all core abstractions
@@ -108,3 +120,40 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `org.springaicommunity.agents.gemini.*` - Gemini implementation
 - `org.springaicommunity.agents.sweagent.*` - SWE-bench implementation
 - `org.springaicommunity.agents.*.sdk.*` - Provider SDK implementations
+
+## Troubleshooting
+
+### Complex Prompt Issues
+**Problem**: Agent hangs or fails with complex prompts containing quotes, commas, special characters
+**Solution**: The SDK now uses Unix-style `--` separator before prompts to prevent shell parsing issues
+**Example**: `claude --print -- "Create a directory called 'project', make README.md with info"`
+
+### Authentication Conflicts
+**Problem**: Tests hang or CLI authentication fails
+**Solution**: Use Claude CLI session authentication instead of mixing API keys and session auth
+```bash
+claude auth login  # Preferred approach
+unset ANTHROPIC_API_KEY  # Avoid conflicts
+```
+
+### Performance Expectations
+- **Simple tasks**: ~20-30 seconds
+- **Complex tasks**: ~40-60 seconds
+- **Timeout**: Tests use 3+ minute timeouts for complex operations
+
+### Sandbox Selection
+**Docker Sandbox** (preferred):
+- Provides complete isolation
+- Requires Docker daemon
+- Automatic container lifecycle management
+
+**Local Sandbox** (fallback):
+- Direct host execution (⚠️ NO ISOLATION)
+- Uses zt-exec for robust process management
+- Enhanced logging for debugging
+
+### Exception Handling
+All exceptions are runtime exceptions:
+- `SandboxException` - Wraps all sandbox execution errors
+- `TimeoutException` - Command timeout (runtime, not checked)
+- `ClaudeSDKException` - Claude CLI errors (runtime, not checked)
