@@ -29,6 +29,9 @@ import org.springaicommunity.agents.model.AgentGeneration;
 import org.springaicommunity.agents.model.AgentGenerationMetadata;
 import org.springaicommunity.agents.model.AgentModel;
 import org.springaicommunity.agents.model.AgentTaskRequest;
+import org.springaicommunity.agents.model.sandbox.ExecResult;
+import org.springaicommunity.agents.model.sandbox.ExecSpec;
+import org.springaicommunity.agents.model.sandbox.Sandbox;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -56,27 +59,23 @@ public class GeminiAgentModel implements AgentModel {
 
 	private final GeminiAgentOptions defaultOptions;
 
+	private final Sandbox sandbox;
+
 	/**
-	 * Create a new GeminiAgentModel with the given API client and options.
+	 * Create a new GeminiAgentModel with the given API client, options, and sandbox.
 	 * @param geminiClient the Gemini CLI client
 	 * @param defaultOptions default execution options
+	 * @param sandbox the sandbox for command execution
 	 */
-	public GeminiAgentModel(GeminiClient geminiClient, GeminiAgentOptions defaultOptions) {
+	public GeminiAgentModel(GeminiClient geminiClient, GeminiAgentOptions defaultOptions, Sandbox sandbox) {
 		this.geminiClient = geminiClient;
 		this.defaultOptions = defaultOptions != null ? defaultOptions : new GeminiAgentOptions();
+		this.sandbox = sandbox;
 
 		// Set system property for executable path if provided
 		if (this.defaultOptions.getExecutablePath() != null) {
 			System.setProperty("gemini.cli.path", this.defaultOptions.getExecutablePath());
 		}
-	}
-
-	/**
-	 * Create a new GeminiAgentModel with the given API client and default options.
-	 * @param geminiClient the Gemini CLI client
-	 */
-	public GeminiAgentModel(GeminiClient geminiClient) {
-		this(geminiClient, null);
 	}
 
 	@Override
@@ -86,21 +85,8 @@ public class GeminiAgentModel implements AgentModel {
 		Instant startTime = Instant.now();
 
 		try {
-			// Connect if needed
-			ensureConnected();
-
-			// Build CLI options from request
-			CLIOptions cliOptions = buildCLIOptions(request);
-
-			// Format the task as a prompt
-			String prompt = formatTaskPrompt(request);
-
-			// Execute the query
-			QueryResult result = geminiClient.query(prompt, cliOptions);
-
-			// Convert to AgentResponse
-			return convertResult(result, startTime);
-
+			// Execute through sandbox (Spring-idiomatic pattern)
+			return executeThroughSandbox(request, startTime);
 		}
 		catch (GeminiSDKException e) {
 			logger.error("Agent execution failed", e);
@@ -117,22 +103,14 @@ public class GeminiAgentModel implements AgentModel {
 	@Override
 	public boolean isAvailable() {
 		try {
-			ensureConnected();
+			// The GeminiClient handles connection state internally
+			geminiClient.connect();
 			return true;
 		}
 		catch (GeminiSDKException e) {
 			logger.debug("Gemini CLI not available: {}", e.getMessage());
 			return false;
 		}
-	}
-
-	/**
-	 * Ensures the Gemini CLI API is connected and ready.
-	 */
-	private void ensureConnected() throws GeminiSDKException {
-		// The GeminiClient handles connection state internally
-		// This method can be extended for additional connection validation
-		geminiClient.connect();
 	}
 
 	/**
@@ -251,6 +229,28 @@ public class GeminiAgentModel implements AgentModel {
 			case TIMEOUT -> "TIMEOUT";
 			case CANCELLED -> "CANCELLED";
 		};
+	}
+
+	/**
+	 * Executes task through Gemini CLI. Note: Gemini SDK doesn't currently support the
+	 * buildCommand/parseResult pattern like Claude Code, so execution is direct. Sandbox
+	 * is injected for future extensibility and Spring-idiomatic patterns.
+	 */
+	private AgentResponse executeThroughSandbox(AgentTaskRequest request, Instant startTime) throws Exception {
+		// Connect if needed
+		geminiClient.connect();
+
+		// Build CLI options from request
+		CLIOptions cliOptions = buildCLIOptions(request);
+
+		// Format the task as a prompt
+		String prompt = formatTaskPrompt(request);
+
+		// Execute the query directly (Gemini SDK doesn't support sandbox pattern yet)
+		QueryResult result = geminiClient.query(prompt, cliOptions);
+
+		// Convert to AgentResponse
+		return convertResult(result, startTime);
 	}
 
 }

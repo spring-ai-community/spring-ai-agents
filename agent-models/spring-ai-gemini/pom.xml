@@ -30,6 +30,12 @@
             <artifactId>gemini-cli-sdk</artifactId>
         </dependency>
 
+        <!-- Spring Boot AutoConfiguration -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+        </dependency>
+
         <!-- Slf4j API -->
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -50,6 +56,16 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

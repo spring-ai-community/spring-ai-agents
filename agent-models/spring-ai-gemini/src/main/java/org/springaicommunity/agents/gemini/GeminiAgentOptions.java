@@ -30,9 +30,9 @@ import java.util.Map;
 public class GeminiAgentOptions implements AgentOptions {
 
 	/**
-	 * The model name to use (e.g., "gemini-pro", "gemini-flash").
+	 * The model name to use (e.g., "gemini-2.0-flash-exp", "gemini-pro").
 	 */
-	private String model;
+	private String model = "gemini-2.0-flash-exp";
 
 	/**
 	 * Timeout for agent execution.
@@ -74,7 +74,7 @@ public class GeminiAgentOptions implements AgentOptions {
 	 * autonomous operation. When true, the agent will execute all operations without any
 	 * safety prompts including file modifications and command execution.
 	 */
-	private boolean yolo = false;
+	private boolean yolo = true;
 
 	public GeminiAgentOptions() {
 	}

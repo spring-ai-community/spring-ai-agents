@@ -30,6 +30,9 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springaicommunity.agents.model.AgentResponse;
 import org.springaicommunity.agents.model.AgentTaskRequest;
+import org.springaicommunity.agents.model.sandbox.ExecResult;
+import org.springaicommunity.agents.model.sandbox.ExecSpec;
+import org.springaicommunity.agents.model.sandbox.Sandbox;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -53,6 +56,9 @@ class GeminiAgentModelTest {
 	@Mock
 	private GeminiClient mockGeminiClient;
 
+	@Mock
+	private Sandbox mockSandbox;
+
 	private GeminiAgentModel agentModel;
 
 	private GeminiAgentOptions defaultOptions;
@@ -61,19 +67,22 @@ class GeminiAgentModelTest {
 	void setUp() {
 		MockitoAnnotations.openMocks(this);
 
-		defaultOptions = GeminiAgentOptions.builder().model("gemini-pro").timeout(Duration.ofMinutes(5)).build();
+		defaultOptions = GeminiAgentOptions.builder()
+			.model("gemini-2.0-flash-exp")
+			.timeout(Duration.ofMinutes(5))
+			.build();
 
-		agentModel = new GeminiAgentModel(mockGeminiClient, defaultOptions);
+		agentModel = new GeminiAgentModel(mockGeminiClient, defaultOptions, mockSandbox);
 	}
 
 	@Test
-	void callSuccessfulTask() throws GeminiSDKException {
+	void callSuccessfulTask() throws Exception {
 		// Arrange
 		Path workingDir = Paths.get("/tmp/test");
 		AgentTaskRequest request = AgentTaskRequest.builder("Fix the failing test", workingDir).build();
 
+		// Mock direct query execution (Gemini SDK pattern)
 		QueryResult mockResult = new QueryResult(List.of(), createMockMetadata(30000), ResultStatus.SUCCESS);
-
 		when(mockGeminiClient.query(anyString(), any(CLIOptions.class))).thenReturn(mockResult);
 
 		// Act
@@ -88,13 +97,13 @@ class GeminiAgentModelTest {
 	}
 
 	@Test
-	void callPartialTask() throws GeminiSDKException {
+	void callPartialTask() throws Exception {
 		// Arrange
 		Path workingDir = Paths.get("/tmp/test");
 		AgentTaskRequest request = AgentTaskRequest.builder("Complex refactoring task", workingDir).build();
 
+		// Mock direct query execution
 		QueryResult mockResult = new QueryResult(List.of(), createMockMetadata(45000), ResultStatus.PARTIAL);
-
 		when(mockGeminiClient.query(anyString(), any(CLIOptions.class))).thenReturn(mockResult);
 
 		// Act
@@ -107,13 +116,13 @@ class GeminiAgentModelTest {
 	}
 
 	@Test
-	void callErrorTask() throws GeminiSDKException {
+	void callErrorTask() throws Exception {
 		// Arrange
 		Path workingDir = Paths.get("/tmp/test");
 		AgentTaskRequest request = AgentTaskRequest.builder("Invalid task", workingDir).build();
 
+		// Mock direct query execution
 		QueryResult mockResult = new QueryResult(List.of(), createMockMetadata(5000), ResultStatus.ERROR);
-
 		when(mockGeminiClient.query(anyString(), any(CLIOptions.class))).thenReturn(mockResult);
 
 		// Act
@@ -125,7 +134,7 @@ class GeminiAgentModelTest {
 	}
 
 	@Test
-	void callWithException() throws GeminiSDKException {
+	void callWithException() throws Exception {
 		// Arrange
 		Path workingDir = Paths.get("/tmp/test");
 		AgentTaskRequest request = AgentTaskRequest.builder("Test exception handling", workingDir).build();
@@ -166,9 +175,9 @@ class GeminiAgentModelTest {
 	}
 
 	@Test
-	void constructorWithDefaultOptions() {
+	void constructorWithNullOptions() {
 		// Act
-		GeminiAgentModel model = new GeminiAgentModel(mockGeminiClient);
+		GeminiAgentModel model = new GeminiAgentModel(mockGeminiClient, null, mockSandbox);
 
 		// Assert - should not throw and should be usable
 		assertThat(model).isNotNull();
@@ -180,7 +189,7 @@ class GeminiAgentModelTest {
 		Usage mockUsage = Usage.of(100, 50);
 
 		return Metadata.builder()
-			.model("gemini-pro")
+			.model("gemini-2.0-flash-exp")
 			.timestamp(Instant.now())
 			.duration(Duration.ofMillis(durationMs))
 			.usage(mockUsage)

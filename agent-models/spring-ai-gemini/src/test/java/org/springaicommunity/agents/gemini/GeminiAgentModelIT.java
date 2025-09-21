@@ -25,6 +25,7 @@ import org.junit.jupiter.api.condition.EnabledIf;
 import org.junit.jupiter.api.io.TempDir;
 import org.springaicommunity.agents.model.AgentResponse;
 import org.springaicommunity.agents.model.AgentTaskRequest;
+import org.springaicommunity.agents.model.sandbox.LocalSandbox;
 
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
@@ -103,7 +104,9 @@ class GeminiAgentModelIT {
 			CLIOptions cliOptions = CLIOptions.builder().debug(true).yoloMode(true).build();
 			GeminiClient geminiApi = GeminiClient.create(cliOptions, workingDirectory);
 
-			GeminiAgentModel model = new GeminiAgentModel(geminiApi, options);
+			// Create a local sandbox for integration testing
+			LocalSandbox sandbox = new LocalSandbox(workingDirectory);
+			GeminiAgentModel model = new GeminiAgentModel(geminiApi, options, sandbox);
 
 			// Verify Gemini CLI is available before running tests
 			assumeTrue(model.isAvailable(), "Gemini CLI must be available for integration tests");
