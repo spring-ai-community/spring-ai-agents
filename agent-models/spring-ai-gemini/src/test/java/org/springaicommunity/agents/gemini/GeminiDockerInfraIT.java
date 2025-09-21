@@ -49,7 +49,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  * <li>Access to ghcr.io/spring-ai-community/agents-runtime:latest image</li>
  * </ul>
  */
-@EnabledIfSystemProperty(named = "sandbox.integration.test", matches = "true")
 class GeminiDockerInfraIT extends AbstractDockerInfrastructureTCK {
 
 	@Override

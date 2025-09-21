@@ -133,13 +133,71 @@ See the [`samples/`](samples/) directory for complete examples:
 - [Architecture Overview](docs/architecture.md)
 - [API Reference](docs/api-reference.md)
 
-## Requirements
+## Building and Testing
+
+### Prerequisites
 
 - Java 17 or higher
 - Maven 3.8+ or Gradle 7+
 - Claude CLI (for Claude Code agent)
 - Gemini CLI (for Gemini agent)
 - Docker (recommended for secure sandbox execution)
+
+### Build Commands
+
+#### Basic Build
+```bash
+# Compile all modules
+./mvnw clean compile
+
+# Build and run unit tests only
+./mvnw clean test
+
+# Full build with unit tests, no integration tests
+./mvnw clean install
+```
+
+#### Integration Tests
+```bash
+# Run integration tests (requires live APIs and Docker)
+./mvnw clean verify -Pfailsafe
+
+# Run all tests including integration tests
+./mvnw clean verify
+
+# Run specific integration test (Failsafe - proper way)
+./mvnw failsafe:integration-test -pl agent-models/spring-ai-claude-code -Dit.test=ClaudeCodeLocalSandboxIT
+
+# Run Docker infrastructure tests (Failsafe - proper way)
+./mvnw failsafe:integration-test -pl agent-models/spring-ai-claude-code -Dit.test=ClaudeDockerInfraIT
+
+# Alternative: Surefire can run IT tests when explicitly specified
+./mvnw test -pl agent-models/spring-ai-claude-code -Dtest=ClaudeDockerInfraIT
+```
+
+#### Authentication for Tests
+```bash
+# Option 1: Claude CLI session authentication (recommended)
+claude auth login
+./mvnw test
+
+# Option 2: Environment variables (may conflict with session)
+export ANTHROPIC_API_KEY="your-key"
+export GEMINI_API_KEY="your-key"
+./mvnw test
+```
+
+### Test Categories
+
+- **Unit Tests** (`*Test.java`): Fast, mocked dependencies
+- **Integration Tests** (`*IT.java`): Real CLI execution, requires authentication
+- **Docker Tests** (`*DockerInfraIT.java`): Container infrastructure testing
+
+### Performance Expectations
+
+- **Unit tests**: < 10 seconds total
+- **Integration tests**: 20-60 seconds per test (depends on complexity)
+- **Docker tests**: 10-15 seconds per test (container overhead)
 
 ## Contributing
 
