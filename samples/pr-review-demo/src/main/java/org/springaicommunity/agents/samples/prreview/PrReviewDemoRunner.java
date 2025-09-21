@@ -120,7 +120,7 @@ public class PrReviewDemoRunner implements CommandLineRunner {
 		
 		// Configure agent options
 		ClaudeCodeAgentOptions options = ClaudeCodeAgentOptions.builder()
-			.model("claude-sonnet-4-0")
+			.model("claude-sonnet-4-20250514")
 			.yolo(true)
 			.build();
 		

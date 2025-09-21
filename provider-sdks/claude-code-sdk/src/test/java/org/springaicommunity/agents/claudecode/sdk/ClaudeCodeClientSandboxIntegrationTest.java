@@ -43,7 +43,7 @@ class ClaudeCodeClientSandboxIntegrationTest {
 	@BeforeEach
 	void setUp() throws Exception {
 		defaultOptions = CLIOptions.builder()
-			.model("claude-3-5-sonnet-20241022")
+			.model("claude-sonnet-4-20250514")
 			.timeout(Duration.ofMinutes(2))
 			.outputFormat(OutputFormat.JSON)
 			.build();
@@ -65,7 +65,7 @@ class ClaudeCodeClientSandboxIntegrationTest {
 		assertThat(command.get(0)).isEqualTo("/usr/bin/echo"); // Mock claude path
 		assertThat(command).contains("--print"); // Essential for autonomous operations
 		assertThat(command).contains("--output-format", "json");
-		assertThat(command).contains("--model", "claude-3-5-sonnet-20241022");
+		assertThat(command).contains("--model", "claude-sonnet-4-20250514");
 		assertThat(command).contains(prompt);
 	}
 
@@ -110,7 +110,7 @@ class ClaudeCodeClientSandboxIntegrationTest {
 					"result": "I have successfully fixed the failing test by updating the assertion.",
 					"status": "success",
 					"metadata": {
-						"model": "claude-3-5-sonnet-20241022",
+						"model": "claude-sonnet-4-20250514",
 						"usage": {
 							"input_tokens": 100,
 							"output_tokens": 50

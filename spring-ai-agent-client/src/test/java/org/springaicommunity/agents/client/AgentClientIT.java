@@ -113,7 +113,7 @@ class AgentClientIT {
 		try {
 			// Create agent model
 			ClaudeCodeAgentOptions options = ClaudeCodeAgentOptions.builder()
-				.model("claude-3-5-sonnet-20241022")
+				.model("claude-sonnet-4-20250514")
 				.yolo(true) // Enable dangerous permissions for testing
 				.build();
 
@@ -174,7 +174,7 @@ class AgentClientIT {
 		DefaultAgentOptions taskOptions = DefaultAgentOptions.builder()
 			.workingDirectory(this.testWorkspace.toString())
 			.timeout(Duration.ofMinutes(2))
-			.model("claude-3-5-sonnet-20241022")
+			.model("claude-sonnet-4-20250514")
 			.build();
 
 		AgentClientResponse response = this.agentClient.run(

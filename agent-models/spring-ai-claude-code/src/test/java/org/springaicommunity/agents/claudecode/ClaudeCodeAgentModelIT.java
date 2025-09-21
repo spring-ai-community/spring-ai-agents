@@ -97,7 +97,7 @@ class ClaudeCodeAgentModelIT {
 		}
 
 		options = ClaudeCodeAgentOptions.builder()
-			.model("claude-3-5-sonnet-20241022")
+			.model("claude-sonnet-4-20250514")
 			.timeout(Duration.ofMinutes(3))
 			.executablePath(executablePath)
 			.yolo(true) // Enable YOLO mode for tests to accept all edits automatically
@@ -257,7 +257,7 @@ class ClaudeCodeAgentModelIT {
 
 		// Create agent with very short timeout
 		ClaudeCodeAgentOptions shortTimeoutOptions = ClaudeCodeAgentOptions.builder()
-			.model("claude-3-5-sonnet-20241022")
+			.model("claude-sonnet-4-20250514")
 			.timeout(Duration.ofSeconds(1)) // Very short timeout
 			.build();
 

@@ -86,7 +86,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `spring.ai.agent.provider` - Select agent provider (claude-code, gemini, swebench)
 - `spring.ai.agent.max-steps` - Maximum execution steps
 - `spring.ai.agent.timeout` - Execution timeout
-- `spring.ai.claude-code.model` - Claude model selection
+- `spring.ai.claude-code.model` - Claude model selection (default: claude-sonnet-4-20250514)
 - `spring.ai.claude-code.bin` - Claude CLI binary path
 - `spring.ai.agents.sandbox.docker.enabled` - Enable/disable Docker sandbox (default: true)
 - `spring.ai.agents.sandbox.docker.image-tag` - Docker image for sandbox execution

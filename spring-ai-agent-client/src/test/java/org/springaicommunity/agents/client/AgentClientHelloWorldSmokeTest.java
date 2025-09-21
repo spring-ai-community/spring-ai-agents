@@ -75,7 +75,7 @@ class AgentClientHelloWorldSmokeTest {
 
 		// Create Claude Code agent
 		ClaudeCodeAgentOptions options = ClaudeCodeAgentOptions.builder()
-			.model("claude-3-5-sonnet-20241022")
+			.model("claude-sonnet-4-20250514")
 			.yolo(true) // Bypass permissions for test
 			.build();
 

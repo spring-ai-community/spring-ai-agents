@@ -72,7 +72,7 @@ class ClaudeCodeAgentModelSandboxTest {
 		MockitoAnnotations.openMocks(this);
 
 		defaultOptions = ClaudeCodeAgentOptions.builder()
-			.model("claude-3-5-sonnet-20241022")
+			.model("claude-sonnet-4-20250514")
 			.timeout(Duration.ofMinutes(5))
 			.build();
 
@@ -96,7 +96,7 @@ class ClaudeCodeAgentModelSandboxTest {
 
 		// Mock SDK buildCommand - proves SDK builds command
 		List<String> expectedCommand = List.of("claude", "--print", "--output-format", "json", "--model",
-				"claude-3-5-sonnet-20241022", "Fix the failing test");
+				"claude-sonnet-4-20250514", "Fix the failing test");
 		when(mockClaudeCodeClient.buildCommand(anyString(), any(CLIOptions.class))).thenReturn(expectedCommand);
 
 		// Mock sandbox execution - proves AgentModel executes via sandbox
@@ -218,7 +218,7 @@ class ClaudeCodeAgentModelSandboxTest {
 
 	private Metadata createMockMetadata(long durationMs) {
 		Cost mockCost = Cost.builder()
-			.model("claude-3-5-sonnet")
+			.model("claude-sonnet-4-20250514")
 			.inputTokens(100)
 			.outputTokens(50)
 			.inputTokenCost(0.01)
@@ -228,7 +228,7 @@ class ClaudeCodeAgentModelSandboxTest {
 		Usage mockUsage = Usage.builder().inputTokens(100).outputTokens(50).thinkingTokens(25).build();
 
 		return Metadata.builder()
-			.model("claude-3-5-sonnet")
+			.model("claude-sonnet-4-20250514")
 			.cost(mockCost)
 			.usage(mockUsage)
 			.durationMs(durationMs)
