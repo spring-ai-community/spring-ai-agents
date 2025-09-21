@@ -25,6 +25,7 @@ import org.springaicommunity.agents.client.AgentClientResponse;
 import org.springaicommunity.agents.claudecode.ClaudeCodeAgentModel;
 import org.springaicommunity.agents.claudecode.ClaudeCodeAgentOptions;
 import org.springaicommunity.agents.claudecode.sdk.ClaudeCodeClient;
+import org.springaicommunity.agents.model.sandbox.LocalSandbox;
 
 /**
  * Command line runner that demonstrates a simple hello world example using Spring AI
@@ -65,8 +66,9 @@ public class HelloWorldRunner implements CommandLineRunner {
 				.yolo(true) // Allow agent to make changes
 				.build();
 
-			// 3. Create agent model
-			ClaudeCodeAgentModel agentModel = new ClaudeCodeAgentModel(claudeClient, options);
+			// 3. Create sandbox and agent model
+			LocalSandbox sandbox = new LocalSandbox();
+			ClaudeCodeAgentModel agentModel = new ClaudeCodeAgentModel(claudeClient, options, sandbox);
 
 			// 4. Check if agent is available
 			if (!agentModel.isAvailable()) {

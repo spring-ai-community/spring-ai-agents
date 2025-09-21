@@ -29,8 +29,8 @@ import org.springaicommunity.agents.model.AgentGeneration;
 import org.springaicommunity.agents.model.AgentGenerationMetadata;
 import org.springaicommunity.agents.model.AgentModel;
 import org.springaicommunity.agents.model.AgentTaskRequest;
-import org.springaicommunity.agents.model.sandbox.SandboxProvider;
-import org.springaicommunity.agents.model.sandbox.DefaultSandboxProvider;
+import org.springaicommunity.agents.model.sandbox.Sandbox;
+import org.springaicommunity.agents.model.sandbox.LocalSandbox;
 import org.springaicommunity.agents.model.sandbox.ExecSpec;
 import org.springaicommunity.agents.model.sandbox.ExecResult;
 
@@ -68,39 +68,20 @@ public class ClaudeCodeAgentModel implements AgentModel {
 
 	private final ClaudeCodeAgentOptions defaultOptions;
 
-	private final SandboxProvider sandboxProvider;
+	private final Sandbox sandbox;
 
 	/**
-	 * Create a new ClaudeCodeAgentModel with the given API client and options. Uses
-	 * default sandbox provider with auto-detection.
+	 * Create a new ClaudeCodeAgentModel with the given API client, options, and sandbox.
+	 * This is the preferred constructor for Spring dependency injection.
 	 * @param claudeCodeClient the Claude Code CLI client
 	 * @param defaultOptions default execution options
-	 */
-	public ClaudeCodeAgentModel(ClaudeCodeClient claudeCodeClient, ClaudeCodeAgentOptions defaultOptions) {
-		this(claudeCodeClient, defaultOptions, new DefaultSandboxProvider());
-	}
-
-	/**
-	 * Create a new ClaudeCodeAgentModel with the given API client and default options.
-	 * Uses default sandbox provider with auto-detection.
-	 * @param claudeCodeClient the Claude Code CLI client
-	 */
-	public ClaudeCodeAgentModel(ClaudeCodeClient claudeCodeClient) {
-		this(claudeCodeClient, null, new DefaultSandboxProvider());
-	}
-
-	/**
-	 * Create a new ClaudeCodeAgentModel with full dependency injection. This is the
-	 * preferred constructor for Spring dependency injection.
-	 * @param claudeCodeClient the Claude Code CLI client
-	 * @param defaultOptions default execution options
-	 * @param sandboxProvider the sandbox provider for secure command execution
+	 * @param sandbox the sandbox for secure command execution
 	 */
 	public ClaudeCodeAgentModel(ClaudeCodeClient claudeCodeClient, ClaudeCodeAgentOptions defaultOptions,
-			SandboxProvider sandboxProvider) {
+			Sandbox sandbox) {
 		this.claudeCodeClient = claudeCodeClient;
 		this.defaultOptions = defaultOptions != null ? defaultOptions : new ClaudeCodeAgentOptions();
-		this.sandboxProvider = sandboxProvider != null ? sandboxProvider : new DefaultSandboxProvider();
+		this.sandbox = sandbox;
 
 		// Set system property for executable path if provided
 		if (this.defaultOptions.getExecutablePath() != null) {
@@ -144,7 +125,10 @@ public class ClaudeCodeAgentModel implements AgentModel {
 			agentOptions.setYolo(true);
 			agentOptions.setTimeout(timeout);
 
-			return new ClaudeCodeAgentModel(workspaceClient, agentOptions);
+			// Create a default sandbox for standalone usage (local execution for
+			// simplicity)
+			Sandbox sandbox = new LocalSandbox(workspace);
+			return new ClaudeCodeAgentModel(workspaceClient, agentOptions, sandbox);
 		}
 		catch (RuntimeException e) {
 			throw e; // Re-throw RuntimeExceptions from helper methods
@@ -171,7 +155,7 @@ public class ClaudeCodeAgentModel implements AgentModel {
 			String prompt = formatTaskPrompt(request);
 
 			QueryResult result;
-			if (sandboxProvider != null) {
+			if (sandbox != null) {
 				// Use sandbox for execution
 				result = executeViaSandbox(prompt, cliOptions, request);
 			}
@@ -232,7 +216,7 @@ public class ClaudeCodeAgentModel implements AgentModel {
 		ExecSpec spec = ExecSpec.builder().command(command).env(environment).timeout(cliOptions.getTimeout()).build();
 
 		// 3. Execute via sandbox
-		ExecResult execResult = sandboxProvider.getSandbox().exec(spec);
+		ExecResult execResult = sandbox.exec(spec);
 
 		// 4. Check for execution errors
 		if (execResult.exitCode() != 0) {

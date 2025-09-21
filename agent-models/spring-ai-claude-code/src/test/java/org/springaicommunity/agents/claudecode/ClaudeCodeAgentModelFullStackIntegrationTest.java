@@ -25,8 +25,6 @@ import org.springaicommunity.agents.model.sandbox.DockerSandbox;
 import org.springaicommunity.agents.model.sandbox.ExecResult;
 import org.springaicommunity.agents.model.sandbox.ExecSpec;
 import org.springaicommunity.agents.model.sandbox.Sandbox;
-import org.springaicommunity.agents.model.sandbox.SandboxFactory;
-import org.springaicommunity.agents.model.sandbox.SandboxProvider;
 
 import java.nio.file.Paths;
 import java.time.Duration;
@@ -50,13 +48,10 @@ class ClaudeCodeAgentModelFullStackIntegrationTest {
 
 	private Sandbox dockerSandbox;
 
-	private SandboxProvider sandboxProvider;
-
 	@BeforeEach
 	void setUp() {
 		// Use real DockerSandbox with agents-runtime image
-		dockerSandbox = SandboxFactory.createDockerSandbox();
-		sandboxProvider = () -> dockerSandbox;
+		dockerSandbox = new DockerSandbox("ghcr.io/spring-ai-community/agents-runtime:latest", List.of());
 	}
 
 	@AfterEach
@@ -191,32 +186,27 @@ class ClaudeCodeAgentModelFullStackIntegrationTest {
 	}
 
 	@Test
-	void testSandboxFactoryAutoDetection() {
-		// CRITICAL TEST: Prove SandboxFactory auto-detection works
+	void testDockerSandboxDirectCreation() {
+		// CRITICAL TEST: Prove DockerSandbox can be created directly
 
 		// Act
-		Sandbox autoDetectedSandbox = SandboxFactory.createSandbox();
+		Sandbox dockerSandbox = new DockerSandbox("ghcr.io/spring-ai-community/agents-runtime:latest", List.of());
 
-		// Assert: Auto-detection returns DockerSandbox when Docker is available
-		assertThat(autoDetectedSandbox).isInstanceOf(DockerSandbox.class);
-		assertThat(autoDetectedSandbox.workDir()).isNotNull();
-		assertThat(autoDetectedSandbox.isClosed()).isFalse();
+		// Assert: DockerSandbox works when created directly
+		assertThat(dockerSandbox).isInstanceOf(DockerSandbox.class);
+		assertThat(dockerSandbox.workDir()).isNotNull();
+		assertThat(dockerSandbox.isClosed()).isFalse();
 	}
 
 	@Test
-	void testSandboxProviderDependencyInjectionPattern() throws Exception {
-		// CRITICAL TEST: Prove dependency injection pattern works end-to-end
+	void testSandboxDirectDependencyInjectionPattern() throws Exception {
+		// CRITICAL TEST: Prove direct dependency injection pattern works end-to-end
 
-		// Arrange: Create SandboxProvider that returns our DockerSandbox
-		SandboxProvider testProvider = () -> dockerSandbox;
-
-		// Act: Use the provider to get sandbox and execute
-		Sandbox providedSandbox = testProvider.getSandbox();
-		ExecResult result = providedSandbox
+		// Act: Use the sandbox directly and execute
+		ExecResult result = dockerSandbox
 			.exec(ExecSpec.builder().command("echo", "dependency injection works").build());
 
-		// Assert: Dependency injection pattern works
-		assertThat(providedSandbox).isSameAs(dockerSandbox);
+		// Assert: Direct dependency injection pattern works
 		assertThat(result.success()).isTrue();
 		assertThat(result.mergedLog()).contains("dependency injection works");
 	}

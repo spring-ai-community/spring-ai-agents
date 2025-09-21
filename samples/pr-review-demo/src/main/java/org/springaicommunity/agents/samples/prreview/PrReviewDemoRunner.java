@@ -9,6 +9,8 @@ import org.springaicommunity.agents.client.AgentClient;
 import org.springaicommunity.agents.claudecode.ClaudeCodeAgentModel;
 import org.springaicommunity.agents.claudecode.ClaudeCodeAgentOptions;
 import org.springaicommunity.agents.claudecode.sdk.ClaudeCodeClient;
+import org.springaicommunity.agents.model.sandbox.LocalSandbox;
+import org.springaicommunity.agents.model.sandbox.Sandbox;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -122,8 +124,11 @@ public class PrReviewDemoRunner implements CommandLineRunner {
 			.yolo(true)
 			.build();
 		
+		// Create sandbox for execution
+		Sandbox sandbox = new LocalSandbox(Paths.get(System.getProperty("user.dir")));
+
 		// Create agent model
-		ClaudeCodeAgentModel agentModel = new ClaudeCodeAgentModel(claudeClient, options);
+		ClaudeCodeAgentModel agentModel = new ClaudeCodeAgentModel(claudeClient, options, sandbox);
 		
 		return AgentClient.create(agentModel);
 	}
