@@ -105,7 +105,8 @@ class AgentClientHelloWorldSmokeTest {
 			.build();
 
 		GeminiClient geminiClient = GeminiClient.create();
-		GeminiAgentModel agentModel = new GeminiAgentModel(geminiClient, options);
+		LocalSandbox sandbox = new LocalSandbox(this.tempWorkspace);
+		GeminiAgentModel agentModel = new GeminiAgentModel(geminiClient, options, sandbox);
 
 		// Skip if agent not available
 		assumeTrue(agentModel.isAvailable(), "Gemini agent must be available");
