@@ -92,16 +92,14 @@ public class ClaudeCodeAgentModel implements AgentModel {
 	/**
 	 * Creates a new ClaudeCodeAgentModel configured for workspace-specific execution.
 	 * This factory method handles all necessary workspace setup including authentication
-	 * and project configuration. IOException is converted to RuntimeException to simplify
-	 * exception handling throughout the application.
+	 * and project configuration.
 	 * @param workspace the workspace directory path
 	 * @param timeout the execution timeout
 	 * @return a configured ClaudeCodeAgentModel instance
 	 * @throws ClaudeSDKException if Claude SDK operations fail
-	 * @throws RuntimeException if workspace setup fails (wraps IOException)
+	 * @throws RuntimeException if workspace setup fails
 	 */
-	public static ClaudeCodeAgentModel createWithWorkspaceSetup(Path workspace, Duration timeout)
-			throws IOException, ClaudeSDKException {
+	public static ClaudeCodeAgentModel createWithWorkspaceSetup(Path workspace, Duration timeout) {
 		logger.debug("Creating ClaudeCodeAgentModel with workspace setup for: {}", workspace);
 
 		try {
@@ -140,6 +138,9 @@ public class ClaudeCodeAgentModel implements AgentModel {
 
 	@Override
 	public AgentResponse call(AgentTaskRequest request) {
+		logger.info("=== STARTING AGENT TASK ===");
+		logger.info("Goal: {}", request.goal());
+		logger.info("Working directory: {}", request.workingDirectory());
 		logger.debug("Executing agent task: {}", request.goal());
 
 		Instant startTime = Instant.now();
@@ -197,22 +198,22 @@ public class ClaudeCodeAgentModel implements AgentModel {
 	 * command -> Sandbox executes -> SDK parses result.
 	 */
 	private QueryResult executeViaSandbox(String prompt, CLIOptions cliOptions, AgentTaskRequest request)
-			throws ClaudeSDKException, IOException, InterruptedException,
-			org.springaicommunity.agents.model.sandbox.TimeoutException {
-		logger.debug("Executing query via sandbox");
+			throws ClaudeSDKException {
+		logger.info("Executing query via sandbox");
+		logger.info("CLI Options: timeout={}, model={}, permissionMode={}, interactive={}", cliOptions.getTimeout(),
+				cliOptions.getModel(), cliOptions.getPermissionMode(), cliOptions.isInteractive());
 
 		// 1. SDK builds command
 		List<String> command = claudeCodeClient.buildCommand(prompt, cliOptions);
+		logger.info("Built command: {}", String.join(" ", command));
 
 		// 2. Create ExecSpec with environment variables
 		Map<String, String> environment = new java.util.HashMap<>();
 		environment.put("CLAUDE_CODE_ENTRYPOINT", "sdk-java");
 
-		// Add API keys
-		String apiKey = System.getenv("ANTHROPIC_API_KEY");
-		if (apiKey != null) {
-			environment.put("ANTHROPIC_API_KEY", apiKey);
-		}
+		// Don't set ANTHROPIC_API_KEY - let Claude CLI use existing authenticated session
+		// This avoids conflicts between API key auth and session auth
+		logger.info("Using existing Claude CLI authenticated session (no API key override)");
 
 		// NVM environment variables and PATH are not needed - ClaudeCliDiscovery handles
 		// NVM Node.js paths internally
@@ -220,7 +221,10 @@ public class ClaudeCodeAgentModel implements AgentModel {
 		ExecSpec spec = ExecSpec.builder().command(command).env(environment).timeout(cliOptions.getTimeout()).build();
 
 		// 3. Execute via sandbox
+		logger.info("About to execute command via sandbox: {}", String.join(" ", command));
+		logger.info("Timeout: {}", cliOptions.getTimeout());
 		ExecResult execResult = sandbox.exec(spec);
+		logger.info("Command execution completed with exit code: {}", execResult.exitCode());
 
 		// 4. Check for execution errors
 		if (execResult.exitCode() != 0) {
@@ -229,7 +233,26 @@ public class ClaudeCodeAgentModel implements AgentModel {
 		}
 
 		// 5. Parse via SDK
-		return claudeCodeClient.parseResult(execResult.mergedLog(), cliOptions);
+		QueryResult result = claudeCodeClient.parseResult(execResult.mergedLog(), cliOptions);
+
+		// Log metadata for authentication analysis
+		logger.info("Claude CLI result metadata: {}", result.metadata());
+		if (result.metadata() != null) {
+			var metadata = result.metadata();
+			logger.info("  - model: {}", metadata.model());
+			logger.info("  - sessionId: {}", metadata.sessionId());
+			logger.info("  - numTurns: {}", metadata.numTurns());
+			logger.info("  - durationMs: {}", metadata.durationMs());
+			logger.info("  - apiDurationMs: {}", metadata.apiDurationMs());
+			if (metadata.cost() != null) {
+				logger.info("  - totalCost: {}", metadata.cost().calculateTotal());
+			}
+			if (metadata.usage() != null) {
+				logger.info("  - totalTokens: {}", metadata.usage().getTotalTokens());
+			}
+		}
+
+		return result;
 	}
 
 	/**
@@ -246,6 +269,8 @@ public class ClaudeCodeAgentModel implements AgentModel {
 	 */
 	private CLIOptions buildCLIOptions(AgentTaskRequest request) {
 		ClaudeCodeAgentOptions options = getEffectiveOptions(request);
+		logger.info("Effective agent options: yolo={}, timeout={}, model={}", options.isYolo(), options.getTimeout(),
+				options.getModel());
 
 		CLIOptions.Builder builder = CLIOptions.builder();
 
@@ -261,9 +286,9 @@ public class ClaudeCodeAgentModel implements AgentModel {
 
 		// Set permission mode based on yolo option
 		if (options.isYolo()) {
-			// YOLO mode - bypass all permission checks (dangerous!)
-			builder
-				.permissionMode(org.springaicommunity.agents.claudecode.sdk.config.PermissionMode.BYPASS_PERMISSIONS);
+			// YOLO mode - dangerously skip all permission checks (dangerous!)
+			builder.permissionMode(
+					org.springaicommunity.agents.claudecode.sdk.config.PermissionMode.DANGEROUSLY_SKIP_PERMISSIONS);
 		}
 		// else use default permission mode (will prompt for permissions)
 
@@ -363,7 +388,6 @@ public class ClaudeCodeAgentModel implements AgentModel {
 
 	/**
 	 * Sets up clean Claude authentication state by logging out to ensure API key usage.
-	 * IOException is converted to RuntimeException to simplify exception handling.
 	 */
 	private static void setupCleanClaudeAuth() {
 		logger.debug("Setting up clean Claude authentication state");
@@ -390,8 +414,7 @@ public class ClaudeCodeAgentModel implements AgentModel {
 	/**
 	 * Creates project-level Claude settings to avoid interactive API key prompts. This
 	 * creates a .claude/settings.json file in the workspace with the API key
-	 * configuration. IOException is converted to RuntimeException to simplify exception
-	 * handling.
+	 * configuration.
 	 */
 	private static void createProjectClaudeSettings(Path workspace) {
 		logger.debug("Starting Claude settings creation for workspace: {}", workspace);

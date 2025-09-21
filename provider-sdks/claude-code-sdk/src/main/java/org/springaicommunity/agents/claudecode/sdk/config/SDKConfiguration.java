@@ -94,8 +94,8 @@ public record SDKConfiguration(String model, String systemPrompt, String appendS
 
 	public static SDKConfiguration defaultConfiguration() {
 		return new SDKConfiguration(null, null, null, null, 8000, Duration.ofMinutes(2),
-				Paths.get(System.getProperty("user.dir")), List.of(), List.of(), PermissionMode.DEFAULT, false, null,
-				null, Map.of());
+				Paths.get(System.getProperty("user.dir")), List.of(), List.of(), PermissionMode.BYPASS_PERMISSIONS,
+				false, null, null, Map.of());
 	}
 
 	// Convenience getters
@@ -171,7 +171,7 @@ public record SDKConfiguration(String model, String systemPrompt, String appendS
 
 		private List<String> disallowedTools = List.of();
 
-		private PermissionMode permissionMode = PermissionMode.DEFAULT;
+		private PermissionMode permissionMode = PermissionMode.BYPASS_PERMISSIONS;
 
 		private boolean continueConversation = false;
 

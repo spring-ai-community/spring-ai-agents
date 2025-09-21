@@ -53,8 +53,8 @@ public record CLIOptions(String model, String systemPrompt, Integer maxTokens, D
 	}
 
 	public static CLIOptions defaultOptions() {
-		return new CLIOptions(null, null, null, Duration.ofMinutes(2), List.of(), List.of(), PermissionMode.DEFAULT,
-				false, OutputFormat.JSON);
+		return new CLIOptions(null, null, null, Duration.ofMinutes(2), List.of(), List.of(),
+				PermissionMode.DANGEROUSLY_SKIP_PERMISSIONS, false, OutputFormat.JSON);
 	}
 
 	// Convenience getters
@@ -108,7 +108,7 @@ public record CLIOptions(String model, String systemPrompt, Integer maxTokens, D
 
 		private List<String> disallowedTools = List.of();
 
-		private PermissionMode permissionMode = PermissionMode.DEFAULT;
+		private PermissionMode permissionMode = PermissionMode.BYPASS_PERMISSIONS;
 
 		private boolean interactive = false;
 

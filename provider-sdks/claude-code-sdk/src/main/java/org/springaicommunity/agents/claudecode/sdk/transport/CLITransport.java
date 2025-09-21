@@ -419,8 +419,14 @@ public class CLITransport implements AutoCloseable {
 		// Add permission mode
 		if (options.getPermissionMode() != null && options
 			.getPermissionMode() != org.springaicommunity.agents.claudecode.sdk.config.PermissionMode.DEFAULT) {
-			command.add("--permission-mode");
-			command.add(options.getPermissionMode().getValue());
+			if (options
+				.getPermissionMode() == org.springaicommunity.agents.claudecode.sdk.config.PermissionMode.DANGEROUSLY_SKIP_PERMISSIONS) {
+				command.add("--dangerously-skip-permissions");
+			}
+			else {
+				command.add("--permission-mode");
+				command.add(options.getPermissionMode().getValue());
+			}
 		}
 
 		// Add interactive mode
@@ -428,7 +434,8 @@ public class CLITransport implements AutoCloseable {
 			command.add("--interactive");
 		}
 
-		// Add the prompt
+		// Add the prompt using -- separator to prevent argument parsing issues
+		command.add("--"); // Everything after this is positional arguments
 		command.add(prompt);
 
 		logger.info("🔍 CLAUDE CLI COMMAND: {}", command);

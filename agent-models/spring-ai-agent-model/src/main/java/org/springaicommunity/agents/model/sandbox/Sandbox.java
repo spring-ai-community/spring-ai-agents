@@ -15,7 +15,6 @@
  */
 package org.springaicommunity.agents.model.sandbox;
 
-import java.io.IOException;
 import java.nio.file.Path;
 
 /**
@@ -31,11 +30,10 @@ public interface Sandbox extends AutoCloseable {
 	 * Execute a command specification in the sandbox.
 	 * @param spec the execution specification containing command, environment, etc.
 	 * @return the execution result
-	 * @throws IOException if execution fails due to I/O errors
-	 * @throws InterruptedException if execution is interrupted
-	 * @throws TimeoutException if execution times out
+	 * @throws SandboxException if execution fails (wraps IOException,
+	 * InterruptedException, TimeoutException)
 	 */
-	ExecResult exec(ExecSpec spec) throws IOException, InterruptedException, TimeoutException;
+	ExecResult exec(ExecSpec spec);
 
 	/**
 	 * Get the working directory path within the sandbox.
@@ -51,9 +49,9 @@ public interface Sandbox extends AutoCloseable {
 
 	/**
 	 * Close the sandbox and release resources.
-	 * @throws IOException if cleanup fails
+	 * @throws SandboxException if cleanup fails (wraps IOException)
 	 */
 	@Override
-	void close() throws IOException;
+	void close();
 
 }

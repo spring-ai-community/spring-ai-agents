@@ -35,7 +35,13 @@ public enum PermissionMode {
 	/**
 	 * Bypass all permission checks (use with caution).
 	 */
-	BYPASS_PERMISSIONS("bypassPermissions");
+	BYPASS_PERMISSIONS("bypassPermissions"),
+
+	/**
+	 * Dangerously skip all permission checks. Recommended only for sandboxes with no
+	 * internet access.
+	 */
+	DANGEROUSLY_SKIP_PERMISSIONS("dangerously-skip-permissions");
 
 	private final String value;
 

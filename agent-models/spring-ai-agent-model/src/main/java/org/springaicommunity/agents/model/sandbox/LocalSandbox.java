@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.zeroturnaround.exec.ProcessExecutor;
+import org.zeroturnaround.exec.ProcessResult;
 
 /**
  * Sandbox implementation that executes commands directly on the host system.
@@ -79,7 +81,7 @@ public final class LocalSandbox implements Sandbox {
 	}
 
 	@Override
-	public ExecResult exec(ExecSpec spec) throws IOException, InterruptedException, TimeoutException {
+	public ExecResult exec(ExecSpec spec) {
 		if (closed) {
 			throw new IllegalStateException("Sandbox is closed");
 		}
@@ -96,45 +98,56 @@ public final class LocalSandbox implements Sandbox {
 		List<String> finalCommand = processCommand(command);
 
 		try {
-			ProcessBuilder pb = new ProcessBuilder(finalCommand);
-			pb.directory(workingDirectory.toFile());
+			// Use zt-exec for robust process execution
+			ProcessExecutor executor = new ProcessExecutor().command(finalCommand)
+				.directory(workingDirectory.toFile())
+				.readOutput(true)
+				.destroyOnExit();
+
+			logger.info("LocalSandbox executing command in directory: {}", workingDirectory);
+			logger.info("LocalSandbox command size: {} args", finalCommand.size());
+			for (int i = 0; i < finalCommand.size(); i++) {
+				String arg = finalCommand.get(i);
+				if (i == finalCommand.size() - 1 && arg.length() > 200) {
+					logger.info("LocalSandbox arg[{}]: {} ... (truncated, length={})", i, arg.substring(0, 200),
+							arg.length());
+				}
+				else {
+					logger.info("LocalSandbox arg[{}]: {}", i, arg);
+				}
+			}
 
 			// Apply environment variables
 			if (!customizedSpec.env().isEmpty()) {
-				pb.environment().putAll(customizedSpec.env());
+				logger.info("LocalSandbox environment variables: {}", customizedSpec.env().keySet());
+				executor.environment(customizedSpec.env());
 			}
-
-			// Merge stdout and stderr for consistent behavior with DockerSandbox
-			pb.redirectErrorStream(true);
-
-			Process process = pb.start();
 
 			// Handle timeout
-			boolean finished;
 			if (customizedSpec.timeout() != null) {
-				finished = process.waitFor(customizedSpec.timeout().toMillis(), TimeUnit.MILLISECONDS);
-				if (!finished) {
-					process.destroyForcibly();
-					throw new TimeoutException("Command timed out after " + customizedSpec.timeout(),
-							customizedSpec.timeout());
-				}
-			}
-			else {
-				process.waitFor();
+				logger.info("LocalSandbox timeout: {}", customizedSpec.timeout());
+				executor.timeout(customizedSpec.timeout().toMillis(), TimeUnit.MILLISECONDS);
 			}
 
-			// Read output
-			String output = new String(process.getInputStream().readAllBytes());
-			int exitCode = process.exitValue();
+			logger.info("LocalSandbox about to execute command...");
+			ProcessResult result = executor.execute();
+			logger.info("LocalSandbox command completed with exit code: {}", result.getExitValue());
 			Duration duration = Duration.between(startTime, Instant.now());
 
-			return new ExecResult(exitCode, output, duration);
+			return new ExecResult(result.getExitValue(), result.outputUTF8(), duration);
 		}
-		catch (IOException | InterruptedException e) {
-			throw e;
+		catch (org.zeroturnaround.exec.InvalidExitValueException e) {
+			// zt-exec throws this for non-zero exit codes, but we want to return the
+			// result anyway
+			Duration duration = Duration.between(startTime, Instant.now());
+			return new ExecResult(e.getExitValue(), e.getResult().outputUTF8(), duration);
+		}
+		catch (java.util.concurrent.TimeoutException e) {
+			throw new org.springaicommunity.agents.model.sandbox.TimeoutException(
+					"Command timed out after " + customizedSpec.timeout(), customizedSpec.timeout());
 		}
 		catch (Exception e) {
-			throw new IOException("Failed to execute command", e);
+			throw new SandboxException("Failed to execute command", e);
 		}
 	}
 
@@ -162,7 +175,7 @@ public final class LocalSandbox implements Sandbox {
 	}
 
 	@Override
-	public void close() throws IOException {
+	public void close() {
 		closed = true;
 		logger.debug("LocalSandbox closed");
 	}

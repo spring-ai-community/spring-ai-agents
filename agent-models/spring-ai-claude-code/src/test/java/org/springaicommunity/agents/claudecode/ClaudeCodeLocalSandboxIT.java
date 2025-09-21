@@ -49,7 +49,8 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  *
  * @author Mark Pollack
  */
-@EnabledIfEnvironmentVariable(named = "ANTHROPIC_API_KEY", matches = ".+")
+// Temporarily disabled to test with authenticated Claude session instead of API key
+// @EnabledIfEnvironmentVariable(named = "ANTHROPIC_API_KEY", matches = ".+")
 class ClaudeCodeLocalSandboxIT extends AbstractAgentModelTCK {
 
 	@BeforeEach
@@ -58,7 +59,7 @@ class ClaudeCodeLocalSandboxIT extends AbstractAgentModelTCK {
 			// Create LocalSandbox with temp directory
 			this.sandbox = new LocalSandbox(tempDir);
 
-			// Create Claude Code CLI with working directory
+			// Create Claude Code CLI with default autonomous options
 			ClaudeCodeClient claudeApi = ClaudeCodeClient.create(CLIOptions.defaultOptions(), tempDir);
 
 			// Create agent options

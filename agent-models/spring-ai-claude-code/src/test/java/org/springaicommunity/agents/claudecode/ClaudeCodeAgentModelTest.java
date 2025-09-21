@@ -30,8 +30,11 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springaicommunity.agents.model.AgentResponse;
 import org.springaicommunity.agents.model.AgentTaskRequest;
+import org.springaicommunity.agents.model.sandbox.ExecResult;
 import org.springaicommunity.agents.model.sandbox.Sandbox;
+import org.springaicommunity.agents.model.sandbox.TimeoutException;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
@@ -73,12 +76,28 @@ class ClaudeCodeAgentModelTest {
 	}
 
 	@Test
-	void callSuccessfulTask() throws ClaudeSDKException {
+	void callSuccessfulTask() {
 		// Arrange
 		Path workingDir = Paths.get("/tmp/test");
 		AgentTaskRequest request = AgentTaskRequest.builder("Fix the failing test", workingDir).build();
 
 		QueryResult mockResult = new QueryResult(List.of(), createMockMetadata(30000), ResultStatus.SUCCESS);
+
+		// Mock the buildCommand method for sandbox execution
+		when(mockClaudeCodeClient.buildCommand(anyString(), any(CLIOptions.class)))
+			.thenReturn(List.of("claude", "--print", "Fix the failing test"));
+
+		// Mock sandbox execution
+		try {
+			ExecResult mockExecResult = new ExecResult(0, "Mock Claude output", Duration.ofSeconds(5));
+			when(mockSandbox.exec(any())).thenReturn(mockExecResult);
+		}
+		catch (Exception e) {
+			throw new RuntimeException("Test setup failed", e);
+		}
+
+		// Mock parseResult method
+		when(mockClaudeCodeClient.parseResult(anyString(), any(CLIOptions.class))).thenReturn(mockResult);
 
 		when(mockClaudeCodeClient.query(anyString(), any(CLIOptions.class))).thenReturn(mockResult);
 
@@ -94,12 +113,28 @@ class ClaudeCodeAgentModelTest {
 	}
 
 	@Test
-	void callPartialTask() throws ClaudeSDKException {
+	void callPartialTask() {
 		// Arrange
 		Path workingDir = Paths.get("/tmp/test");
 		AgentTaskRequest request = AgentTaskRequest.builder("Complex refactoring task", workingDir).build();
 
 		QueryResult mockResult = new QueryResult(List.of(), createMockMetadata(45000), ResultStatus.PARTIAL);
+
+		// Mock the buildCommand method for sandbox execution
+		when(mockClaudeCodeClient.buildCommand(anyString(), any(CLIOptions.class)))
+			.thenReturn(List.of("claude", "--print", "Complex refactoring task"));
+
+		// Mock sandbox execution
+		try {
+			ExecResult mockExecResult = new ExecResult(0, "Mock Claude output", Duration.ofSeconds(45));
+			when(mockSandbox.exec(any())).thenReturn(mockExecResult);
+		}
+		catch (Exception e) {
+			throw new RuntimeException("Test setup failed", e);
+		}
+
+		// Mock parseResult method
+		when(mockClaudeCodeClient.parseResult(anyString(), any(CLIOptions.class))).thenReturn(mockResult);
 
 		when(mockClaudeCodeClient.query(anyString(), any(CLIOptions.class))).thenReturn(mockResult);
 
@@ -120,7 +155,12 @@ class ClaudeCodeAgentModelTest {
 
 		QueryResult mockResult = new QueryResult(List.of(), createMockMetadata(5000), ResultStatus.ERROR);
 
-		when(mockClaudeCodeClient.query(anyString(), any(CLIOptions.class))).thenReturn(mockResult);
+		try {
+			when(mockClaudeCodeClient.query(anyString(), any(CLIOptions.class))).thenReturn(mockResult);
+		}
+		catch (ClaudeSDKException e) {
+			throw new RuntimeException("Mock setup failed", e);
+		}
 
 		// Act
 		AgentResponse result = agentModel.call(request);
@@ -131,10 +171,22 @@ class ClaudeCodeAgentModelTest {
 	}
 
 	@Test
-	void callWithException() throws ClaudeSDKException {
+	void callWithException() {
 		// Arrange
 		Path workingDir = Paths.get("/tmp/test");
 		AgentTaskRequest request = AgentTaskRequest.builder("Test exception handling", workingDir).build();
+
+		// Mock the buildCommand method - it should work
+		when(mockClaudeCodeClient.buildCommand(anyString(), any(CLIOptions.class)))
+			.thenReturn(List.of("claude", "--print", "Test exception handling"));
+
+		// Mock sandbox execution to fail
+		try {
+			when(mockSandbox.exec(any())).thenThrow(new RuntimeException("CLI not available"));
+		}
+		catch (Exception e) {
+			throw new RuntimeException("Test setup failed", e);
+		}
 
 		when(mockClaudeCodeClient.query(anyString(), any(CLIOptions.class)))
 			.thenThrow(new ClaudeSDKException("CLI not available"));
