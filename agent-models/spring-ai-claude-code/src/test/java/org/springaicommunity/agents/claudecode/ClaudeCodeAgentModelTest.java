@@ -65,7 +65,7 @@ class ClaudeCodeAgentModelTest {
 		MockitoAnnotations.openMocks(this);
 
 		defaultOptions = ClaudeCodeAgentOptions.builder()
-			.model("claude-3-5-sonnet-20241022")
+			.model("claude-sonnet-4-20250514")
 			.timeout(Duration.ofMinutes(5))
 			.build();
 
@@ -183,7 +183,7 @@ class ClaudeCodeAgentModelTest {
 
 	private Metadata createMockMetadata(long durationMs) {
 		Cost mockCost = Cost.builder()
-			.model("claude-3-5-sonnet")
+			.model("claude-sonnet-4-20250514")
 			.inputTokens(100)
 			.outputTokens(50)
 			.inputTokenCost(0.01)
@@ -193,7 +193,7 @@ class ClaudeCodeAgentModelTest {
 		Usage mockUsage = Usage.builder().inputTokens(100).outputTokens(50).thinkingTokens(25).build();
 
 		return Metadata.builder()
-			.model("claude-3-5-sonnet")
+			.model("claude-sonnet-4-20250514")
 			.cost(mockCost)
 			.usage(mockUsage)
 			.durationMs(durationMs)

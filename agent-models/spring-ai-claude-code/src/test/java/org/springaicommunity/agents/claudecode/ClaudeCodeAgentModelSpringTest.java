@@ -37,7 +37,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * AI agent models, following the patterns established by Spring AI.
  */
 @SpringBootTest(classes = ClaudeCodeAgentModelSpringTest.TestConfig.class)
-@TestPropertySource(properties = { "spring.ai.agents.claude-code.model=claude-3-5-sonnet-20241022",
+@TestPropertySource(properties = { "spring.ai.agents.claude-code.model=claude-sonnet-4-20250514",
 		"spring.ai.agents.claude-code.timeout=PT5M", "spring.ai.agents.claude-code.yolo=true",
 		"spring.ai.agents.sandbox.docker.enabled=false" })
 class ClaudeCodeAgentModelSpringTest {
@@ -88,7 +88,7 @@ class ClaudeCodeAgentModelSpringTest {
 		public ClaudeCodeAgentModel claudeCodeAgentModel(ClaudeCodeClient claudeCodeClient, Sandbox sandbox) {
 			// Create agent model with default options
 			ClaudeCodeAgentOptions options = ClaudeCodeAgentOptions.builder()
-				.model("claude-3-5-sonnet-20241022")
+				.model("claude-sonnet-4-20250514")
 				.timeout(java.time.Duration.ofMinutes(5))
 				.yolo(true)
 				.build();

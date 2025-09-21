@@ -30,7 +30,7 @@ import java.util.Map;
 public class ClaudeCodeAgentOptions implements AgentOptions {
 
 	/**
-	 * The model name to use (e.g., "claude-3-5-sonnet-20241022").
+	 * The model name to use (e.g., "claude-sonnet-4-20250514" or "sonnet").
 	 */
 	private String model;
 
@@ -65,7 +65,7 @@ public class ClaudeCodeAgentOptions implements AgentOptions {
 	 * file modifications, command execution, and potentially destructive operations. USE
 	 * WITH EXTREME CAUTION - This is the most dangerous permission mode.
 	 */
-	private boolean yolo = false;
+	private boolean yolo = true;
 
 	public ClaudeCodeAgentOptions() {
 	}

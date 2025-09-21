@@ -10,7 +10,7 @@ This project was featured in a talk at SpringOne 2025 by Mark Pollack. View the 
 
 > **Note**: This project is currently in development. The repository structure and APIs are subject to change.
 
-Spring AI Agents provides autonomous CLI agent integrations for the Spring AI ecosystem. This project brings Claude Code, Gemini CLI, and SWE-bench agents to Spring applications as first-class citizens with Spring Boot auto-configuration support.
+Spring AI Agents provides autonomous CLI agent integrations for the Spring AI ecosystem. This project brings Claude Code, Gemini CLI, and SWE-bench agents to Spring applications as first-class citizens with Spring Boot auto-configuration support and secure sandbox isolation.
 
 ## Overview
 
@@ -18,6 +18,7 @@ Transform autonomous CLI agents into pluggable Spring components:
 - **Claude Code CLI** - Production-ready code assistance and autonomous development tasks
 - **Gemini CLI** - Google's Gemini models through command-line interface
 - **SWE-bench Agent** - Software engineering benchmarking and evaluation
+- **Secure Sandbox Execution** - Docker container isolation with local fallback
 
 ## Quick Start
 
@@ -56,9 +57,17 @@ spring:
       provider: claude-code  # or gemini, swebench
       max-steps: 6
       timeout: 300s
+    agents:
+      sandbox:
+        docker:
+          enabled: true
+          image-tag: ghcr.io/spring-ai-community/agents-runtime:latest
+        local:
+          working-directory: /tmp
     claude-code:
-      model: claude-3-5-sonnet-20241022
+      model: claude-sonnet-4-20250514
       bin: /usr/local/bin/claude
+      yolo: true
     gemini:
       model: gemini-2.0-flash
       bin: /usr/local/bin/gemini
@@ -87,6 +96,7 @@ spring-ai-agents/
 
 - **`AgentModel`** - Core interface for autonomous agents
 - **`AgentClient`** - ChatClient-inspired fluent API
+- **`Sandbox`** - Secure execution environment (Docker/Local)
 - **Provider SDKs** - CLI integrations with resilience features
 - **Spring Boot Starter** - Auto-configuration and metrics
 
@@ -106,6 +116,7 @@ spring-ai-agents/
 ## Features
 
 - **Production Ready**: Circuit breakers, retries, timeouts, and comprehensive error handling
+- **Secure by Default**: Docker container isolation with automatic fallback to local execution
 - **Spring Boot Integration**: Auto-configuration, externalized configuration, and actuator support
 - **Observability**: Micrometer metrics and structured logging
 - **Type Safe**: Full Java type safety with comprehensive JavaDoc
@@ -128,6 +139,7 @@ See the [`samples/`](samples/) directory for complete examples:
 - Maven 3.8+ or Gradle 7+
 - Claude CLI (for Claude Code agent)
 - Gemini CLI (for Gemini agent)
+- Docker (recommended for secure sandbox execution)
 
 ## Contributing
 

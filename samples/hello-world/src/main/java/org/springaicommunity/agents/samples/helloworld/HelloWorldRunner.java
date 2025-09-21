@@ -62,7 +62,7 @@ public class HelloWorldRunner implements CommandLineRunner {
 
 			// 2. Configure agent options
 			ClaudeCodeAgentOptions options = ClaudeCodeAgentOptions.builder()
-				.model("claude-sonnet-4-0")
+				.model("claude-sonnet-4-20250514")
 				.yolo(true) // Allow agent to make changes
 				.build();
 
