@@ -30,6 +30,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springaicommunity.agents.model.AgentResponse;
 import org.springaicommunity.agents.model.AgentTaskRequest;
+import org.springaicommunity.agents.model.sandbox.Sandbox;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -52,6 +53,9 @@ class ClaudeCodeAgentModelTest {
 	@Mock
 	private ClaudeCodeClient mockClaudeCodeClient;
 
+	@Mock
+	private Sandbox mockSandbox;
+
 	private ClaudeCodeAgentModel agentModel;
 
 	private ClaudeCodeAgentOptions defaultOptions;
@@ -65,7 +69,7 @@ class ClaudeCodeAgentModelTest {
 			.timeout(Duration.ofMinutes(5))
 			.build();
 
-		agentModel = new ClaudeCodeAgentModel(mockClaudeCodeClient, defaultOptions);
+		agentModel = new ClaudeCodeAgentModel(mockClaudeCodeClient, defaultOptions, mockSandbox);
 	}
 
 	@Test
@@ -170,7 +174,8 @@ class ClaudeCodeAgentModelTest {
 	@Test
 	void constructorWithDefaultOptions() {
 		// Act
-		ClaudeCodeAgentModel model = new ClaudeCodeAgentModel(mockClaudeCodeClient);
+		ClaudeCodeAgentModel model = new ClaudeCodeAgentModel(mockClaudeCodeClient, new ClaudeCodeAgentOptions(),
+				mockSandbox);
 
 		// Assert - should not throw and should be usable
 		assertThat(model).isNotNull();

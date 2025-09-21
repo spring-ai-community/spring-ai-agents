@@ -26,6 +26,7 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.io.TempDir;
 import org.springaicommunity.agents.claudecode.ClaudeCodeAgentModel;
 import org.springaicommunity.agents.claudecode.ClaudeCodeAgentOptions;
+import org.springaicommunity.agents.model.sandbox.LocalSandbox;
 import org.springaicommunity.agents.claudecode.sdk.ClaudeCodeClient;
 import org.springaicommunity.agents.claudecode.sdk.transport.CLIOptions;
 import org.springaicommunity.agents.claudecode.sdk.config.ClaudeCliDiscovery;
@@ -79,7 +80,8 @@ class AgentClientHelloWorldSmokeTest {
 			.build();
 
 		ClaudeCodeClient claudeClient = ClaudeCodeClient.create(CLIOptions.defaultOptions(), this.tempWorkspace);
-		ClaudeCodeAgentModel agentModel = new ClaudeCodeAgentModel(claudeClient, options);
+		LocalSandbox sandbox = new LocalSandbox(this.tempWorkspace);
+		ClaudeCodeAgentModel agentModel = new ClaudeCodeAgentModel(claudeClient, options, sandbox);
 
 		// Skip if agent not available
 		assumeTrue(agentModel.isAvailable(), "Claude agent must be available");

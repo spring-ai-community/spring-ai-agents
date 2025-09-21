@@ -62,18 +62,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Circuit breakers, retries, and timeouts for resilience
 - JSON-based communication with CLI tools
 
+**Sandbox Infrastructure** (`agent-models/spring-ai-agent-model/`)
+- `Sandbox` - Core interface for secure command execution
+- `DockerSandbox` - Docker container-based isolation (preferred)
+- `LocalSandbox` - Local process execution (fallback)
+- `ExecSpec`/`ExecResult` - Command specification and results
+
 **Spring Integration**
 - Uses Spring Boot auto-configuration patterns
+- Direct dependency injection of `Sandbox` implementations
+- Conditional beans for Docker vs Local sandbox selection
 - Micrometer metrics integration
 - Externalized configuration support
-- Standard Spring dependency injection
 
 ### Agent Task Flow
 1. Create `AgentTaskRequest` with goal and working directory
 2. `AgentClient` delegates to configured `AgentModel` implementation
-3. Model implementation uses provider SDK to execute CLI command
-4. CLI tool performs autonomous development tasks
-5. Results parsed and returned as `AgentResponse`
+3. Model uses injected `Sandbox` for secure command execution
+4. Sandbox executes CLI tool in isolated environment
+5. Provider SDK parses results and returns as `AgentResponse`
 
 ### Configuration Properties
 - `spring.ai.agent.provider` - Select agent provider (claude-code, gemini, swebench)
@@ -81,12 +88,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `spring.ai.agent.timeout` - Execution timeout
 - `spring.ai.claude-code.model` - Claude model selection
 - `spring.ai.claude-code.bin` - Claude CLI binary path
+- `spring.ai.agents.sandbox.docker.enabled` - Enable/disable Docker sandbox (default: true)
+- `spring.ai.agents.sandbox.docker.image-tag` - Docker image for sandbox execution
+- `spring.ai.agents.sandbox.local.working-directory` - Working directory for local sandbox
 
 ### Testing Strategy
 - Unit tests for all core abstractions
 - Integration tests (`*IT.java`) for CLI integrations
 - Smoke tests for end-to-end workflows
-- Mock implementations for testing without external dependencies
+- Spring testing patterns:
+  - `@Import(MockSandboxConfiguration.class)` for unit tests with mocked sandbox
+  - `@TestPropertySource(properties = "spring.ai.agents.sandbox.docker.enabled=false")` for local sandbox testing
+  - Direct `Sandbox` dependency injection in test classes
 
 ## Package Structure
 - `org.springaicommunity.agents.model.*` - Core abstractions

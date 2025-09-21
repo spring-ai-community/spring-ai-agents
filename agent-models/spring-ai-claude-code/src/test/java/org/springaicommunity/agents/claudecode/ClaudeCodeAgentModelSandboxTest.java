@@ -34,7 +34,6 @@ import org.springaicommunity.agents.model.AgentTaskRequest;
 import org.springaicommunity.agents.model.sandbox.ExecResult;
 import org.springaicommunity.agents.model.sandbox.ExecSpec;
 import org.springaicommunity.agents.model.sandbox.Sandbox;
-import org.springaicommunity.agents.model.sandbox.SandboxProvider;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -53,17 +52,13 @@ import static org.mockito.Mockito.when;
  * Tests for ClaudeCodeAgentModel sandbox integration using dependency injection pattern.
  *
  * These tests prove the key accomplishments: - Interface-based dependency injection with
- * SandboxProvider - AgentModel-centric pattern: SDK builds command -> Sandbox executes ->
- * SDK parses result - Clean separation: SDKs handle protocol, AgentModels handle
- * execution
+ * Sandbox - AgentModel-centric pattern: SDK builds command -> Sandbox executes -> SDK
+ * parses result - Clean separation: SDKs handle protocol, AgentModels handle execution
  */
 class ClaudeCodeAgentModelSandboxTest {
 
 	@Mock
 	private ClaudeCodeClient mockClaudeCodeClient;
-
-	@Mock
-	private SandboxProvider mockSandboxProvider;
 
 	@Mock
 	private Sandbox mockSandbox;
@@ -81,15 +76,15 @@ class ClaudeCodeAgentModelSandboxTest {
 			.timeout(Duration.ofMinutes(5))
 			.build();
 
-		// Use constructor injection with SandboxProvider
-		agentModel = new ClaudeCodeAgentModel(mockClaudeCodeClient, defaultOptions, mockSandboxProvider);
+		// Use constructor injection with Sandbox
+		agentModel = new ClaudeCodeAgentModel(mockClaudeCodeClient, defaultOptions, mockSandbox);
 	}
 
 	@Test
 	void testDependencyInjectionPattern() {
-		// ASSERT: Constructor injection with SandboxProvider works
+		// ASSERT: Constructor injection with Sandbox works
 		assertThat(agentModel).isNotNull();
-		// Verify that the agentModel was created with the injected SandboxProvider
+		// Verify that the agentModel was created with the injected Sandbox
 		// (implicitly tested by successful construction)
 	}
 
@@ -107,7 +102,6 @@ class ClaudeCodeAgentModelSandboxTest {
 		// Mock sandbox execution - proves AgentModel executes via sandbox
 		ExecResult execResult = new ExecResult(0, "{\"result\": \"Task completed successfully\"}",
 				Duration.ofSeconds(30));
-		when(mockSandboxProvider.getSandbox()).thenReturn(mockSandbox);
 		when(mockSandbox.exec(any(ExecSpec.class))).thenReturn(execResult);
 
 		// Mock SDK parseResult - proves SDK parses result
@@ -141,7 +135,7 @@ class ClaudeCodeAgentModelSandboxTest {
 	}
 
 	@Test
-	void testSandboxProviderIntegration() throws Exception {
+	void testSandboxIntegration() throws Exception {
 		// Arrange
 		Path workingDir = Paths.get("/tmp/test");
 		AgentTaskRequest request = AgentTaskRequest.builder("Test task", workingDir).build();
@@ -150,7 +144,6 @@ class ClaudeCodeAgentModelSandboxTest {
 			.thenReturn(List.of("claude", "--help"));
 
 		ExecResult execResult = new ExecResult(0, "Command executed", Duration.ofSeconds(1));
-		when(mockSandboxProvider.getSandbox()).thenReturn(mockSandbox);
 		when(mockSandbox.exec(any(ExecSpec.class))).thenReturn(execResult);
 
 		QueryResult queryResult = new QueryResult(List.of(), createMockMetadata(1000), ResultStatus.SUCCESS);
@@ -159,8 +152,7 @@ class ClaudeCodeAgentModelSandboxTest {
 		// Act
 		agentModel.call(request);
 
-		// ASSERT: SandboxProvider dependency injection works
-		verify(mockSandboxProvider).getSandbox();
+		// ASSERT: Sandbox dependency injection works
 		verify(mockSandbox).exec(any(ExecSpec.class));
 	}
 
@@ -174,7 +166,6 @@ class ClaudeCodeAgentModelSandboxTest {
 			.thenReturn(List.of("claude", "--version"));
 
 		ExecResult execResult = new ExecResult(0, "Claude CLI version", Duration.ofSeconds(1));
-		when(mockSandboxProvider.getSandbox()).thenReturn(mockSandbox);
 		when(mockSandbox.exec(any(ExecSpec.class))).thenReturn(execResult);
 
 		QueryResult queryResult = new QueryResult(List.of(), createMockMetadata(1000), ResultStatus.SUCCESS);
@@ -204,7 +195,6 @@ class ClaudeCodeAgentModelSandboxTest {
 
 		// Mock sandbox returning non-zero exit code
 		ExecResult execResult = new ExecResult(1, "Error: invalid flag", Duration.ofSeconds(1));
-		when(mockSandboxProvider.getSandbox()).thenReturn(mockSandbox);
 		when(mockSandbox.exec(any(ExecSpec.class))).thenReturn(execResult);
 
 		// Act
@@ -218,19 +208,9 @@ class ClaudeCodeAgentModelSandboxTest {
 	}
 
 	@Test
-	void testDefaultSandboxProviderFallback() {
-		// ASSERT: Constructor without SandboxProvider creates DefaultSandboxProvider
-		ClaudeCodeAgentModel modelWithDefaults = new ClaudeCodeAgentModel(mockClaudeCodeClient, defaultOptions);
-		assertThat(modelWithDefaults).isNotNull();
-		// The fact that this doesn't throw proves the DefaultSandboxProvider fallback
-		// works
-	}
-
-	@Test
 	void testSpringStyleConstructorInjection() {
 		// ASSERT: Full dependency injection constructor works (Spring-style)
-		ClaudeCodeAgentModel model = new ClaudeCodeAgentModel(mockClaudeCodeClient, defaultOptions,
-				mockSandboxProvider);
+		ClaudeCodeAgentModel model = new ClaudeCodeAgentModel(mockClaudeCodeClient, defaultOptions, mockSandbox);
 
 		assertThat(model).isNotNull();
 		// This proves the Spring-idiomatic constructor injection pattern

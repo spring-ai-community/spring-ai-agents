@@ -25,6 +25,7 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.io.TempDir;
 import org.springaicommunity.agents.model.AgentResponse;
 import org.springaicommunity.agents.model.AgentTaskRequest;
+import org.springaicommunity.agents.model.sandbox.LocalSandbox;
 
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
@@ -114,7 +115,9 @@ class ClaudeCodeAgentModelIT {
 			// Create Claude Code CLI with the specific working directory
 			ClaudeCodeClient claudeApi = ClaudeCodeClient.create(CLIOptions.defaultOptions(), workingDirectory);
 
-			ClaudeCodeAgentModel model = new ClaudeCodeAgentModel(claudeApi, options);
+			// Create a local sandbox for integration testing
+			LocalSandbox sandbox = new LocalSandbox(workingDirectory);
+			ClaudeCodeAgentModel model = new ClaudeCodeAgentModel(claudeApi, options, sandbox);
 
 			// Verify Claude CLI is available before running tests
 			assumeTrue(model.isAvailable(), "Claude CLI must be available for integration tests");
