@@ -98,6 +98,14 @@
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-failsafe-plugin</artifactId>
                         <version>3.1.2</version>
+                        <configuration>
+                            <!-- Pass environment variables to test JVM for API keys -->
+                            <environmentVariables>
+                                <ANTHROPIC_API_KEY>${env.ANTHROPIC_API_KEY}</ANTHROPIC_API_KEY>
+                                <GEMINI_API_KEY>${env.GEMINI_API_KEY}</GEMINI_API_KEY>
+                                <GOOGLE_API_KEY>${env.GOOGLE_API_KEY}</GOOGLE_API_KEY>
+                            </environmentVariables>
+                        </configuration>
                         <executions>
                             <execution>
                                 <goals>
@@ -338,6 +346,14 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${maven-surefire-plugin.version}</version>
+                    <configuration>
+                        <!-- Pass environment variables to test JVM for API keys -->
+                        <environmentVariables>
+                            <ANTHROPIC_API_KEY>${env.ANTHROPIC_API_KEY}</ANTHROPIC_API_KEY>
+                            <GEMINI_API_KEY>${env.GEMINI_API_KEY}</GEMINI_API_KEY>
+                            <GOOGLE_API_KEY>${env.GOOGLE_API_KEY}</GOOGLE_API_KEY>
+                        </environmentVariables>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>

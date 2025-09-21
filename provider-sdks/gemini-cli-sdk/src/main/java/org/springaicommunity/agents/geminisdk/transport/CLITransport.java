@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -143,9 +144,21 @@ public class CLITransport {
 		}
 	}
 
-	private List<String> buildCommand(String prompt, CLIOptions options) {
+	/**
+	 * Builds the command line arguments for a query with specified options. This is
+	 * exposed publicly to support the sandbox execution pattern where the AgentModel
+	 * builds the command and executes it via a Sandbox.
+	 * @param prompt the query prompt
+	 * @param options the CLI options
+	 * @return the command line arguments as a list
+	 */
+	public List<String> buildCommand(String prompt, CLIOptions options) {
 		List<String> command = new ArrayList<>();
-		command.add(geminiCommand);
+
+		// Use getGeminiCommand to handle NVM Node.js wrapper if needed
+		String[] geminiCmd = org.springaicommunity.agents.geminisdk.util.GeminiCliDiscovery
+			.getGeminiCommand(geminiCommand);
+		Collections.addAll(command, geminiCmd);
 
 		// Add model flag if specified
 		if (options.getModel() != null && !options.getModel().trim().isEmpty()) {
@@ -205,6 +218,18 @@ public class CLITransport {
 		command.add(prompt);
 
 		return command;
+	}
+
+	/**
+	 * Parses the output from external command execution into messages. This is exposed
+	 * publicly to support the sandbox execution pattern where the AgentModel executes
+	 * commands via a Sandbox and then parses the results.
+	 * @param output the command output to parse
+	 * @param options the CLI options used for the command (for future use)
+	 * @return list of parsed messages
+	 */
+	public List<Message> parseOutput(String output, CLIOptions options) {
+		return parseResponse(output);
 	}
 
 	private List<Message> parseResponse(String output) {

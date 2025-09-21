@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.springaicommunity.agents.claudecode;
+package org.springaicommunity.agents.gemini;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,16 +35,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Full-stack integration tests proving the complete sandbox solution works with real
- * Docker containers.
+ * Docker containers for Gemini.
  *
  * These tests are the critical proof that: - DockerSandbox works with TestContainers -
  * AgentModel-centric pattern works end-to-end - SDK command building and parsing works
  * with real execution - Dependency injection pattern works in practice
  *
- * Run with: mvn test -Dtest=*FullStackIntegration* -Dsandbox.integration.test=true
+ * Run with: mvn test -Dtest=*FullStackIT* -Dsandbox.integration.test=true
  */
 @EnabledIfSystemProperty(named = "sandbox.integration.test", matches = "true")
-class ClaudeCodeAgentModelFullStackIntegrationTest {
+class GeminiAgentModelFullStackIT {
 
 	private Sandbox dockerSandbox;
 
@@ -152,19 +152,19 @@ class ClaudeCodeAgentModelFullStackIntegrationTest {
 	}
 
 	@Test
-	void testDockerSandboxJavaExecution() throws Exception {
-		// CRITICAL TEST: Prove Java execution works in Docker (important for agents
-		// runtime)
+	void testDockerSandboxNodejsExecution() throws Exception {
+		// CRITICAL TEST: Prove Node.js execution works in Docker (important for Gemini
+		// CLI runtime)
 
-		// Arrange: Test Java is available
-		ExecSpec javaTest = ExecSpec.builder().command("java", "-version").timeout(Duration.ofSeconds(30)).build();
+		// Arrange: Test Node.js is available
+		ExecSpec nodeTest = ExecSpec.builder().command("node", "--version").timeout(Duration.ofSeconds(30)).build();
 
 		// Act
-		ExecResult result = dockerSandbox.exec(javaTest);
+		ExecResult result = dockerSandbox.exec(nodeTest);
 
-		// Assert: Java is available in the agents-runtime image
+		// Assert: Node.js is available in the agents-runtime image
 		assertThat(result.success()).isTrue();
-		assertThat(result.mergedLog()).containsIgnoringCase("openjdk");
+		assertThat(result.mergedLog()).startsWith("v");
 	}
 
 	@Test
@@ -235,18 +235,18 @@ class ClaudeCodeAgentModelFullStackIntegrationTest {
 		// CRITICAL TEST: Prove the complete AgentModel-centric pattern with real
 		// execution
 
-		// This test simulates what ClaudeCodeAgentModel does:
+		// This test simulates what GeminiAgentModel does:
 		// 1. Build command (simulated)
 		// 2. Execute via sandbox (real)
 		// 3. Parse result (simulated)
 
 		// Step 1: Build command (simulated - real SDK would do this)
-		List<String> command = List.of("echo", "{\"result\": \"Success\", \"status\": \"completed\"}");
+		List<String> command = List.of("echo", "TextMessage[type=ASSISTANT, content=Success from Gemini CLI]");
 
 		// Step 2: Execute via sandbox (REAL execution)
 		ExecSpec spec = ExecSpec.builder()
 			.command(command)
-			.env(Map.of("CLAUDE_CODE_ENTRYPOINT", "sdk-java"))
+			.env(Map.of("GEMINI_CLI_ENTRYPOINT", "sdk-java"))
 			.timeout(Duration.ofSeconds(30))
 			.build();
 
@@ -254,13 +254,33 @@ class ClaudeCodeAgentModelFullStackIntegrationTest {
 
 		// Step 3: Verify result (simulated parsing)
 		assertThat(execResult.success()).isTrue();
-		assertThat(execResult.mergedLog()).contains("\"result\": \"Success\"");
-		assertThat(execResult.mergedLog()).contains("\"status\": \"completed\"");
+		assertThat(execResult.mergedLog()).contains("Success from Gemini CLI");
+		assertThat(execResult.mergedLog()).contains("TextMessage[type=ASSISTANT");
 
 		// ASSERT: Complete pattern works end-to-end with real Docker execution
 		assertThat(execResult.exitCode()).isEqualTo(0);
 		assertThat(execResult.duration()).isPositive();
 		assertThat(execResult.hasOutput()).isTrue();
+	}
+
+	@Test
+	void testGeminiSpecificEnvironmentVariables() throws Exception {
+		// CRITICAL TEST: Prove Gemini-specific environment variables work
+
+		// Arrange: Test Gemini API key environment variables
+		ExecSpec geminiEnvTest = ExecSpec.builder()
+			.command("printenv")
+			.env(Map.of("GEMINI_API_KEY", "test-key", "GOOGLE_API_KEY", "test-google-key"))
+			.timeout(Duration.ofSeconds(30))
+			.build();
+
+		// Act
+		ExecResult result = dockerSandbox.exec(geminiEnvTest);
+
+		// Assert: Environment variables are properly injected
+		assertThat(result.success()).isTrue();
+		assertThat(result.mergedLog()).contains("GEMINI_API_KEY=test-key");
+		assertThat(result.mergedLog()).contains("GOOGLE_API_KEY=test-google-key");
 	}
 
 	private void fail(String message) {

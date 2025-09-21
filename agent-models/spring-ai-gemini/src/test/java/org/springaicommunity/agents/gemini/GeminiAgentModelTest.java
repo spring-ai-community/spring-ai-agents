@@ -81,9 +81,15 @@ class GeminiAgentModelTest {
 		Path workingDir = Paths.get("/tmp/test");
 		AgentTaskRequest request = AgentTaskRequest.builder("Fix the failing test", workingDir).build();
 
-		// Mock direct query execution (Gemini SDK pattern)
+		// Mock sandbox execution pattern
+		List<String> command = List.of("gemini", "-m", "gemini-2.0-flash-exp", "-y", "-p", "test prompt");
+		when(mockGeminiClient.buildCommand(anyString(), any(CLIOptions.class))).thenReturn(command);
+
+		ExecResult execResult = new ExecResult(0, "Test output", Duration.ofSeconds(1));
+		when(mockSandbox.exec(any(ExecSpec.class))).thenReturn(execResult);
+
 		QueryResult mockResult = new QueryResult(List.of(), createMockMetadata(30000), ResultStatus.SUCCESS);
-		when(mockGeminiClient.query(anyString(), any(CLIOptions.class))).thenReturn(mockResult);
+		when(mockGeminiClient.parseResult(anyString(), any(CLIOptions.class))).thenReturn(mockResult);
 
 		// Act
 		AgentResponse result = agentModel.call(request);
@@ -102,9 +108,15 @@ class GeminiAgentModelTest {
 		Path workingDir = Paths.get("/tmp/test");
 		AgentTaskRequest request = AgentTaskRequest.builder("Complex refactoring task", workingDir).build();
 
-		// Mock direct query execution
+		// Mock sandbox execution pattern
+		List<String> command = List.of("gemini", "-m", "gemini-2.0-flash-exp", "-y", "-p", "test prompt");
+		when(mockGeminiClient.buildCommand(anyString(), any(CLIOptions.class))).thenReturn(command);
+
+		ExecResult execResult = new ExecResult(0, "Test output", Duration.ofSeconds(1));
+		when(mockSandbox.exec(any(ExecSpec.class))).thenReturn(execResult);
+
 		QueryResult mockResult = new QueryResult(List.of(), createMockMetadata(45000), ResultStatus.PARTIAL);
-		when(mockGeminiClient.query(anyString(), any(CLIOptions.class))).thenReturn(mockResult);
+		when(mockGeminiClient.parseResult(anyString(), any(CLIOptions.class))).thenReturn(mockResult);
 
 		// Act
 		AgentResponse result = agentModel.call(request);
@@ -121,9 +133,15 @@ class GeminiAgentModelTest {
 		Path workingDir = Paths.get("/tmp/test");
 		AgentTaskRequest request = AgentTaskRequest.builder("Invalid task", workingDir).build();
 
-		// Mock direct query execution
+		// Mock sandbox execution pattern
+		List<String> command = List.of("gemini", "-m", "gemini-2.0-flash-exp", "-y", "-p", "test prompt");
+		when(mockGeminiClient.buildCommand(anyString(), any(CLIOptions.class))).thenReturn(command);
+
+		ExecResult execResult = new ExecResult(0, "Test output", Duration.ofSeconds(1));
+		when(mockSandbox.exec(any(ExecSpec.class))).thenReturn(execResult);
+
 		QueryResult mockResult = new QueryResult(List.of(), createMockMetadata(5000), ResultStatus.ERROR);
-		when(mockGeminiClient.query(anyString(), any(CLIOptions.class))).thenReturn(mockResult);
+		when(mockGeminiClient.parseResult(anyString(), any(CLIOptions.class))).thenReturn(mockResult);
 
 		// Act
 		AgentResponse result = agentModel.call(request);
@@ -139,7 +157,8 @@ class GeminiAgentModelTest {
 		Path workingDir = Paths.get("/tmp/test");
 		AgentTaskRequest request = AgentTaskRequest.builder("Test exception handling", workingDir).build();
 
-		when(mockGeminiClient.query(anyString(), any(CLIOptions.class)))
+		// Mock buildCommand to throw exception
+		when(mockGeminiClient.buildCommand(anyString(), any(CLIOptions.class)))
 			.thenThrow(new GeminiSDKException("CLI not available"));
 
 		// Act

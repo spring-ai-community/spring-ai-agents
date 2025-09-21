@@ -208,10 +208,14 @@ public class ClaudeCodeAgentModel implements AgentModel {
 		Map<String, String> environment = new java.util.HashMap<>();
 		environment.put("CLAUDE_CODE_ENTRYPOINT", "sdk-java");
 
+		// Add API keys
 		String apiKey = System.getenv("ANTHROPIC_API_KEY");
 		if (apiKey != null) {
 			environment.put("ANTHROPIC_API_KEY", apiKey);
 		}
+
+		// NVM environment variables and PATH are not needed - ClaudeCliDiscovery handles
+		// NVM Node.js paths internally
 
 		ExecSpec spec = ExecSpec.builder().command(command).env(environment).timeout(cliOptions.getTimeout()).build();
 
