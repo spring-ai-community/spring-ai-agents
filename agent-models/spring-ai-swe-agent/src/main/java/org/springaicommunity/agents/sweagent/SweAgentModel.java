@@ -28,11 +28,15 @@ import org.springaicommunity.agents.model.AgentGeneration;
 import org.springaicommunity.agents.model.AgentGenerationMetadata;
 import org.springaicommunity.agents.model.AgentModel;
 import org.springaicommunity.agents.model.AgentTaskRequest;
+import org.springaicommunity.agents.model.sandbox.Sandbox;
+import org.springaicommunity.agents.model.sandbox.ExecResult;
+import org.springaicommunity.agents.model.sandbox.ExecSpec;
 
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -55,14 +59,36 @@ public class SweAgentModel implements AgentModel {
 
 	private final SweAgentOptions defaultOptions;
 
+	private final Sandbox sandbox;
+
+	/**
+	 * Create a new SweAgentModel with the given CLI API client, options, and sandbox.
+	 * @param sweCliApi the SWE Agent CLI client
+	 * @param defaultOptions default execution options
+	 * @param sandbox the sandbox for command execution
+	 */
+	public SweAgentModel(SweCliApi sweCliApi, SweAgentOptions defaultOptions, Sandbox sandbox) {
+		this.sweCliApi = sweCliApi;
+		this.defaultOptions = defaultOptions != null ? defaultOptions : new SweAgentOptions();
+		this.sandbox = sandbox;
+
+		// Set system property for executable path if provided
+		if (this.defaultOptions.getExecutablePath() != null) {
+			System.setProperty("swe.cli.path", this.defaultOptions.getExecutablePath());
+		}
+	}
+
 	/**
 	 * Create a new SweAgentModel with the given CLI API client and options.
 	 * @param sweCliApi the SWE Agent CLI client
 	 * @param defaultOptions default execution options
+	 * @deprecated Use constructor with Sandbox parameter for better isolation
 	 */
+	@Deprecated
 	public SweAgentModel(SweCliApi sweCliApi, SweAgentOptions defaultOptions) {
 		this.sweCliApi = sweCliApi;
 		this.defaultOptions = defaultOptions != null ? defaultOptions : new SweAgentOptions();
+		this.sandbox = null; // Legacy mode - no sandbox
 
 		// Set system property for executable path if provided
 		if (this.defaultOptions.getExecutablePath() != null) {
@@ -73,7 +99,9 @@ public class SweAgentModel implements AgentModel {
 	/**
 	 * Create a new SweAgentModel with the given CLI API client and default options.
 	 * @param sweCliApi the SWE Agent CLI client
+	 * @deprecated Use constructor with Sandbox parameter for better isolation
 	 */
+	@Deprecated
 	public SweAgentModel(SweCliApi sweCliApi) {
 		this(sweCliApi, null);
 	}
@@ -85,32 +113,66 @@ public class SweAgentModel implements AgentModel {
 		Instant startTime = Instant.now();
 
 		try {
-			// Build SWE agent options from request
-			org.springaicommunity.agents.sweagentsdk.types.SweAgentOptions cliOptions = buildCliOptions(request);
-
-			// Format the task as a prompt
-			String prompt = formatTaskPrompt(request);
-
-			// Get working directory
-			Path workingDirectory = request.workingDirectory();
-
-			// Execute the query
-			SweResult result = sweCliApi.execute(prompt, workingDirectory, cliOptions);
-
-			// Convert to AgentResponse
-			return convertResult(result, startTime);
-
-		}
-		catch (SweCliException e) {
-			logger.error("Agent execution failed", e);
-			Duration duration = Duration.between(startTime, Instant.now());
-			return createErrorResponse(e.getMessage(), duration);
+			if (sandbox != null) {
+				// Use sandbox-based execution (new pattern)
+				return executeWithSandbox(request, startTime);
+			}
+			else {
+				// Use legacy direct CLI execution (deprecated)
+				return executeLegacy(request, startTime);
+			}
 		}
 		catch (Exception e) {
 			logger.error("Unexpected error during agent execution", e);
 			Duration duration = Duration.between(startTime, Instant.now());
 			return createErrorResponse("Unexpected error: " + e.getMessage(), duration);
 		}
+	}
+
+	/**
+	 * Execute agent task using sandbox-based execution (preferred pattern).
+	 */
+	private AgentResponse executeWithSandbox(AgentTaskRequest request, Instant startTime) throws Exception {
+		SweAgentOptions options = getEffectiveOptions(request);
+
+		// Build the SWE CLI command
+		List<String> command = buildSweCommand(request, options);
+
+		// Build environment variables
+		Map<String, String> environment = buildEnvironment(options);
+
+		// Create execution specification
+		ExecSpec execSpec = ExecSpec.builder()
+			.command(command)
+			.env(environment)
+			.timeout(options.getTimeout() != null ? options.getTimeout() : Duration.ofMinutes(5))
+			.build();
+
+		// Execute via sandbox
+		ExecResult execResult = sandbox.exec(execSpec);
+
+		// Convert to AgentResponse
+		return convertSandboxResult(execResult, startTime);
+	}
+
+	/**
+	 * Execute agent task using legacy direct CLI execution (deprecated).
+	 */
+	private AgentResponse executeLegacy(AgentTaskRequest request, Instant startTime) throws SweCliException {
+		// Build SWE agent options from request
+		org.springaicommunity.agents.sweagentsdk.types.SweAgentOptions cliOptions = buildCliOptions(request);
+
+		// Format the task as a prompt
+		String prompt = formatTaskPrompt(request);
+
+		// Get working directory
+		Path workingDirectory = request.workingDirectory();
+
+		// Execute the query
+		SweResult result = sweCliApi.execute(prompt, workingDirectory, cliOptions);
+
+		// Convert to AgentResponse
+		return convertResult(result, startTime);
 	}
 
 	@Override
@@ -122,6 +184,89 @@ public class SweAgentModel implements AgentModel {
 			logger.debug("SWE Agent CLI not available: {}", e.getMessage());
 			return false;
 		}
+	}
+
+	/**
+	 * Build SWE CLI command for sandbox execution.
+	 */
+	private List<String> buildSweCommand(AgentTaskRequest request, SweAgentOptions options) {
+		List<String> command = new ArrayList<>();
+
+		// Add the SWE CLI executable
+		if (options.getExecutablePath() != null) {
+			command.add(options.getExecutablePath());
+		}
+		else {
+			// Try to use sweCliApi to get the executable path
+			command.add("mini"); // Default fallback
+		}
+
+		// Add model parameter
+		if (options.getModel() != null) {
+			command.add("--model");
+			command.add(options.getModel());
+		}
+
+		// Add max iterations
+		if (options.getMaxIterations() > 0) {
+			command.add("--max-iterations");
+			command.add(String.valueOf(options.getMaxIterations()));
+		}
+
+		// Add verbose flag
+		if (options.isVerbose()) {
+			command.add("--verbose");
+		}
+
+		// Add the task prompt
+		command.add(formatTaskPrompt(request));
+
+		return command;
+	}
+
+	/**
+	 * Build environment variables for sandbox execution.
+	 */
+	private Map<String, String> buildEnvironment(SweAgentOptions options) {
+		Map<String, String> environment = new HashMap<>(options.getEnvironmentVariables());
+
+		// Add any SWE-specific environment variables
+		if (options.getWorkingDirectory() != null) {
+			environment.put("SWE_WORKING_DIR", options.getWorkingDirectory());
+		}
+
+		return environment;
+	}
+
+	/**
+	 * Convert sandbox ExecResult to AgentResponse.
+	 */
+	private AgentResponse convertSandboxResult(ExecResult execResult, Instant startTime) {
+		Duration duration = Duration.between(startTime, Instant.now());
+
+		// Create generations from sandbox result
+		List<AgentGeneration> generations = new ArrayList<>();
+		StringBuilder combinedText = new StringBuilder();
+
+		if (execResult.hasOutput()) {
+			combinedText.append(execResult.mergedLog());
+		}
+
+		String finishReason = execResult.success() ? "SUCCESS" : "ERROR";
+		AgentGenerationMetadata generationMetadata = new AgentGenerationMetadata(finishReason,
+				Map.of("exitCode", execResult.exitCode(), "duration", execResult.duration().toString()));
+		generations.add(new AgentGeneration(combinedText.toString(), generationMetadata));
+
+		// Create response metadata
+		AgentResponseMetadata responseMetadata = AgentResponseMetadata.builder()
+			.model("mini-swe-agent")
+			.duration(duration)
+			.sessionId("")
+			.providerFields(Map.of("sandbox_execution", true, "exit_code", execResult.exitCode(), "execution_duration",
+					execResult.duration().toString()))
+			.build();
+
+		return new AgentResponse(generations, responseMetadata);
 	}
 
 	/**
