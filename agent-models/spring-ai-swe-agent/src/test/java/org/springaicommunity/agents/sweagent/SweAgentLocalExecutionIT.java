@@ -35,17 +35,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
- * Integration tests for SweAgentModel.
+ * Integration tests for SweAgentModel with local execution.
  *
  * <p>
- * These tests verify the SWE Agent integration with the mini-SWE-agent CLI tool. Tests
- * use conservative timeouts and iteration limits as safety measures.
+ * These tests verify the SWE Agent integration with the mini-SWE-agent CLI tool using
+ * local execution. Tests use conservative timeouts and iteration limits as safety
+ * measures. This test uses the legacy pattern and should be updated to use the TCK
+ * pattern once SweAgentModel is updated to support the Sandbox pattern.
  * </p>
  *
  * @author Mark Pollack
  */
 @DisabledIfSystemProperty(named = "skipIntegrationTests", matches = "true")
-class SweAgentModelIT {
+class SweAgentLocalExecutionIT {
 
 	private SweAgentModel agentModel;
 
