@@ -20,7 +20,7 @@ import java.time.Duration;
 /**
  * Exception thrown when a command execution times out.
  */
-public class TimeoutException extends Exception {
+public class TimeoutException extends RuntimeException {
 
 	private final Duration timeout;
 

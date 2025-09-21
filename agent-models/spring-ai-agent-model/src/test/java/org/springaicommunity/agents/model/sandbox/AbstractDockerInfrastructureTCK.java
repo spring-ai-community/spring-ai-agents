@@ -14,68 +14,70 @@
  * limitations under the License.
  */
 
-package org.springaicommunity.agents.claudecode;
+package org.springaicommunity.agents.model.sandbox;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
-import org.springaicommunity.agents.model.AgentTaskRequest;
-import org.springaicommunity.agents.model.sandbox.DockerSandbox;
-import org.springaicommunity.agents.model.sandbox.ExecResult;
-import org.springaicommunity.agents.model.sandbox.ExecSpec;
-import org.springaicommunity.agents.model.sandbox.Sandbox;
 
-import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
- * Docker sandbox infrastructure tests for agent runtime environment.
+ * Test Compatibility Kit (TCK) for testing Docker sandbox infrastructure.
  *
  * <p>
- * These tests prove that the DockerSandbox infrastructure works correctly with
- * agent-specific requirements including Java execution and environment variables. These
- * tests focus on sandbox infrastructure rather than actual agent CLI functionality.
+ * This abstract test class defines the standard test suite for Docker sandbox
+ * infrastructure that all agent implementations should pass. Concrete test classes should
+ * extend this class and provide agent-specific configuration and tests.
  * </p>
  *
  * <p>
- * Run with: mvn test -Dtest=DockerSandboxInfrastructureIT -Dsandbox.integration.test=true
+ * The TCK ensures consistent Docker infrastructure behavior across all agent
+ * implementations including: - Basic command execution - Environment variable handling -
+ * Working directory behavior - Timeout handling - Error handling - Multiple executions -
+ * Resource isolation
  * </p>
  *
  * <p>
- * Requirements:
+ * Agent-specific tests (runtime requirements, environment variables) should be
+ * implemented in concrete test classes.
  * </p>
- * <ul>
- * <li>Docker to be available</li>
- * <li>Access to ghcr.io/spring-ai-community/agents-runtime:latest image</li>
- * </ul>
  */
-@EnabledIfSystemProperty(named = "sandbox.integration.test", matches = "true")
-class DockerSandboxInfrastructureIT {
+public abstract class AbstractDockerInfrastructureTCK {
 
-	private Sandbox dockerSandbox;
+	/**
+	 * The Docker sandbox instance under test.
+	 */
+	protected DockerSandbox dockerSandbox;
 
+	/**
+	 * Setup Docker sandbox before each test.
+	 */
 	@BeforeEach
-	void setUp() {
-		// Use real DockerSandbox with agents-runtime image
-		dockerSandbox = new DockerSandbox("ghcr.io/spring-ai-community/agents-runtime:latest", List.of());
+	void setUpDockerSandbox() {
+		this.dockerSandbox = new DockerSandbox(getDockerImage(), getCustomizers());
 	}
 
+	/**
+	 * Cleanup after each test to ensure resource isolation.
+	 */
 	@AfterEach
-	void tearDown() throws Exception {
-		if (dockerSandbox != null) {
+	void tearDownDockerSandbox() throws Exception {
+		if (dockerSandbox != null && !dockerSandbox.isClosed()) {
 			dockerSandbox.close();
 		}
 	}
 
+	/**
+	 * Test basic command execution in Docker container.
+	 */
 	@Test
 	void testDockerSandboxBasicExecution() throws Exception {
-		// CRITICAL TEST: Prove DockerSandbox works with TestContainers
-
 		// Arrange
 		ExecSpec echoTest = ExecSpec.builder()
 			.command("echo", "Hello from Docker sandbox")
@@ -85,17 +87,18 @@ class DockerSandboxInfrastructureIT {
 		// Act
 		ExecResult result = dockerSandbox.exec(echoTest);
 
-		// Assert: Real Docker execution works
+		// Assert
 		assertThat(result.success()).isTrue();
 		assertThat(result.mergedLog()).contains("Hello from Docker sandbox");
 		assertThat(result.exitCode()).isEqualTo(0);
 		assertThat(result.duration()).isPositive();
 	}
 
+	/**
+	 * Test environment variable injection in Docker container.
+	 */
 	@Test
-	void testDockerSandboxWithEnvironmentVariables() throws Exception {
-		// CRITICAL TEST: Prove environment variable injection works
-
+	void testDockerSandboxEnvironmentVariables() throws Exception {
 		// Arrange
 		ExecSpec envTest = ExecSpec.builder()
 			.command("printenv", "TEST_VAR")
@@ -106,47 +109,53 @@ class DockerSandboxInfrastructureIT {
 		// Act
 		ExecResult result = dockerSandbox.exec(envTest);
 
-		// Assert: Environment variables are properly injected
+		// Assert
 		assertThat(result.success()).isTrue();
 		assertThat(result.mergedLog().trim()).isEqualTo("test-value");
 	}
 
+	/**
+	 * Test working directory configuration in Docker container.
+	 */
 	@Test
 	void testDockerSandboxWorkingDirectory() throws Exception {
-		// CRITICAL TEST: Prove working directory is properly set
-
 		// Arrange
 		ExecSpec pwdTest = ExecSpec.builder().command("pwd").timeout(Duration.ofSeconds(30)).build();
 
 		// Act
 		ExecResult result = dockerSandbox.exec(pwdTest);
 
-		// Assert: Working directory is /work (as configured in DockerSandbox)
+		// Assert
 		assertThat(result.success()).isTrue();
 		assertThat(result.mergedLog().trim()).isEqualTo("/work");
 	}
 
+	/**
+	 * Test timeout handling in Docker container.
+	 */
 	@Test
-	void testDockerSandboxCommandTimeout() throws Exception {
-		// CRITICAL TEST: Prove timeout handling works
-
+	void testDockerSandboxTimeoutHandling() {
 		// Arrange: Command that takes longer than timeout
 		ExecSpec timeoutTest = ExecSpec.builder().command("sleep", "10").timeout(Duration.ofSeconds(2)).build();
 
-		// Act & Assert: Should throw TimeoutException
+		// Act & Assert: Should throw SandboxException wrapping TimeoutException
 		try {
 			dockerSandbox.exec(timeoutTest);
-			fail("Expected TimeoutException");
+			fail("Expected SandboxException wrapping TimeoutException");
 		}
-		catch (org.springaicommunity.agents.model.sandbox.TimeoutException e) {
-			assertThat(e.getTimeout()).isEqualTo(Duration.ofSeconds(2));
+		catch (SandboxException e) {
+			// Should wrap TimeoutException
+			assertThat(e.getCause()).isInstanceOf(TimeoutException.class);
+			TimeoutException timeoutException = (TimeoutException) e.getCause();
+			assertThat(timeoutException.getTimeout()).isEqualTo(Duration.ofSeconds(2));
 		}
 	}
 
+	/**
+	 * Test error handling in Docker container.
+	 */
 	@Test
 	void testDockerSandboxErrorHandling() throws Exception {
-		// CRITICAL TEST: Prove error handling works correctly
-
 		// Arrange: Command that will fail
 		ExecSpec failTest = ExecSpec.builder()
 			.command("ls", "/nonexistent-directory")
@@ -162,26 +171,11 @@ class DockerSandboxInfrastructureIT {
 		assertThat(result.mergedLog()).contains("No such file or directory");
 	}
 
-	@Test
-	void testDockerSandboxJavaExecution() throws Exception {
-		// CRITICAL TEST: Prove Java execution works in Docker (important for agents
-		// runtime)
-
-		// Arrange: Test Java is available
-		ExecSpec javaTest = ExecSpec.builder().command("java", "-version").timeout(Duration.ofSeconds(30)).build();
-
-		// Act
-		ExecResult result = dockerSandbox.exec(javaTest);
-
-		// Assert: Java is available in the agents-runtime image
-		assertThat(result.success()).isTrue();
-		assertThat(result.mergedLog()).containsIgnoringCase("openjdk");
-	}
-
+	/**
+	 * Test multiple command execution in same Docker container.
+	 */
 	@Test
 	void testDockerSandboxMultipleExecutions() throws Exception {
-		// CRITICAL TEST: Prove multiple executions work in same container
-
 		// Act: Execute multiple commands in same sandbox
 		ExecResult result1 = dockerSandbox.exec(ExecSpec.builder().command("echo", "first").build());
 		ExecResult result2 = dockerSandbox.exec(ExecSpec.builder().command("echo", "second").build());
@@ -196,68 +190,40 @@ class DockerSandboxInfrastructureIT {
 		assertThat(result3.mergedLog()).contains("third");
 	}
 
-	@Test
-	void testDockerSandboxDirectCreation() {
-		// CRITICAL TEST: Prove DockerSandbox can be created directly
-
-		// Act
-		Sandbox dockerSandbox = new DockerSandbox("ghcr.io/spring-ai-community/agents-runtime:latest", List.of());
-
-		// Assert: DockerSandbox works when created directly
-		assertThat(dockerSandbox).isInstanceOf(DockerSandbox.class);
-		assertThat(dockerSandbox.workDir()).isNotNull();
-		assertThat(dockerSandbox.isClosed()).isFalse();
-	}
-
-	@Test
-	void testSandboxDirectDependencyInjectionPattern() throws Exception {
-		// CRITICAL TEST: Prove direct dependency injection pattern works end-to-end
-
-		// Act: Use the sandbox directly and execute
-		ExecResult result = dockerSandbox
-			.exec(ExecSpec.builder().command("echo", "dependency injection works").build());
-
-		// Assert: Direct dependency injection pattern works
-		assertThat(result.success()).isTrue();
-		assertThat(result.mergedLog()).contains("dependency injection works");
-	}
-
+	/**
+	 * Test resource isolation in Docker container.
+	 */
 	@Test
 	void testDockerSandboxResourceIsolation() throws Exception {
-		// CRITICAL TEST: Prove resource isolation (container is isolated from host)
-
 		// Arrange: Try to access host filesystem (should be isolated)
-		ExecSpec isolationTest = ExecSpec.builder()
-			.command("ls", "/home") // Host's /home should not be accessible
-			.timeout(Duration.ofSeconds(30))
-			.build();
+		ExecSpec isolationTest = ExecSpec.builder().command("ls", "/home").timeout(Duration.ofSeconds(30)).build();
 
 		// Act
 		ExecResult result = dockerSandbox.exec(isolationTest);
 
 		// Assert: Container is isolated - /home should be empty or different from host
 		assertThat(result.success()).isTrue();
-		// The exact assertion depends on the container image, but it should be isolated
 		assertThat(result.mergedLog()).isNotNull();
+		// Note: The exact isolation behavior depends on the container image
 	}
 
+	/**
+	 * Test agent model-centric pattern end-to-end with Docker execution.
+	 */
 	@Test
 	void testAgentModelCentricPatternEndToEnd() throws Exception {
-		// CRITICAL TEST: Prove the complete AgentModel-centric pattern with real
-		// execution
-
-		// This test simulates what ClaudeCodeAgentModel does:
+		// This test simulates what AgentModel implementations do:
 		// 1. Build command (simulated)
 		// 2. Execute via sandbox (real)
 		// 3. Parse result (simulated)
 
 		// Step 1: Build command (simulated - real SDK would do this)
-		List<String> command = List.of("echo", "{\"result\": \"Success\", \"status\": \"completed\"}");
+		List<String> command = List.of("echo", getExpectedAgentOutput());
 
 		// Step 2: Execute via sandbox (REAL execution)
 		ExecSpec spec = ExecSpec.builder()
 			.command(command)
-			.env(Map.of("CLAUDE_CODE_ENTRYPOINT", "sdk-java"))
+			.env(getAgentSpecificEnvironment())
 			.timeout(Duration.ofSeconds(30))
 			.build();
 
@@ -265,8 +231,7 @@ class DockerSandboxInfrastructureIT {
 
 		// Step 3: Verify result (simulated parsing)
 		assertThat(execResult.success()).isTrue();
-		assertThat(execResult.mergedLog()).contains("\"result\": \"Success\"");
-		assertThat(execResult.mergedLog()).contains("\"status\": \"completed\"");
+		assertThat(execResult.mergedLog()).contains(getExpectedAgentOutput());
 
 		// ASSERT: Complete pattern works end-to-end with real Docker execution
 		assertThat(execResult.exitCode()).isEqualTo(0);
@@ -274,8 +239,34 @@ class DockerSandboxInfrastructureIT {
 		assertThat(execResult.hasOutput()).isTrue();
 	}
 
-	private void fail(String message) {
-		throw new AssertionError(message);
+	/**
+	 * Get the Docker image to use for testing. Must be implemented by concrete test
+	 * classes.
+	 * @return the Docker image name
+	 */
+	protected abstract String getDockerImage();
+
+	/**
+	 * Get exec spec customizers for the Docker container. Can be overridden by concrete
+	 * test classes.
+	 * @return list of exec spec customizers
+	 */
+	protected List<ExecSpecCustomizer> getCustomizers() {
+		return List.of();
 	}
+
+	/**
+	 * Get agent-specific environment variables for testing. Must be implemented by
+	 * concrete test classes.
+	 * @return map of environment variables
+	 */
+	protected abstract Map<String, String> getAgentSpecificEnvironment();
+
+	/**
+	 * Get expected output for agent-specific end-to-end test. Must be implemented by
+	 * concrete test classes.
+	 * @return expected output string
+	 */
+	protected abstract String getExpectedAgentOutput();
 
 }

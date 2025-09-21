@@ -125,20 +125,17 @@ public abstract class AbstractSandboxTCK {
 	 * timeout are properly terminated.
 	 */
 	@Test
-	void testTimeoutHandling() throws Exception {
+	void testTimeoutHandling() {
 		// Arrange: Command that takes longer than timeout
 		ExecSpec timeoutTest = ExecSpec.builder().command("sleep", "10").timeout(Duration.ofSeconds(2)).build();
 
-		// Act & Assert: Should throw TimeoutException (may be wrapped in IOException)
+		// Act & Assert: Should throw SandboxException wrapping TimeoutException
 		try {
 			sandbox.exec(timeoutTest);
-			fail("Expected TimeoutException or IOException wrapping TimeoutException");
+			fail("Expected SandboxException wrapping TimeoutException");
 		}
-		catch (TimeoutException e) {
-			assertThat(e.getTimeout()).isEqualTo(Duration.ofSeconds(2));
-		}
-		catch (java.io.IOException e) {
-			// LocalSandbox may wrap TimeoutException in IOException
+		catch (SandboxException e) {
+			// Should wrap TimeoutException
 			assertThat(e.getCause()).isInstanceOf(TimeoutException.class);
 			TimeoutException timeoutException = (TimeoutException) e.getCause();
 			assertThat(timeoutException.getTimeout()).isEqualTo(Duration.ofSeconds(2));

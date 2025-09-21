@@ -330,6 +330,15 @@
         </dependencies>
     </dependencyManagement>
 
+    <dependencies>
+        <!-- Spring Boot starter logging for all test modules -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-logging</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
     <build>
         <pluginManagement>
             <plugins>

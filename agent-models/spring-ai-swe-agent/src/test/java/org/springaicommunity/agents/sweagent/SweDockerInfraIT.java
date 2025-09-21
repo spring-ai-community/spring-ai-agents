@@ -16,22 +16,19 @@
 
 package org.springaicommunity.agents.sweagent;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
-import org.springaicommunity.agents.model.sandbox.DockerSandbox;
+import org.springaicommunity.agents.model.sandbox.AbstractDockerInfrastructureTCK;
 import org.springaicommunity.agents.model.sandbox.ExecResult;
 import org.springaicommunity.agents.model.sandbox.ExecSpec;
 
 import java.time.Duration;
-import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Docker sandbox infrastructure tests for SWE agent runtime environment.
+ * Docker infrastructure tests for SWE agent runtime environment.
  *
  * <p>
  * These tests prove that the DockerSandbox infrastructure works correctly with
@@ -41,7 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * </p>
  *
  * <p>
- * Run with: mvn test -Dtest=DockerSandboxInfrastructureIT -Dsandbox.integration.test=true
+ * Run with: mvn test -Dtest=SweDockerInfraIT -Dsandbox.integration.test=true
  * </p>
  *
  * <p>
@@ -53,27 +50,29 @@ import static org.assertj.core.api.Assertions.assertThat;
  * </ul>
  */
 @EnabledIfSystemProperty(named = "sandbox.integration.test", matches = "true")
-class DockerSandboxInfrastructureIT {
+class SweDockerInfraIT extends AbstractDockerInfrastructureTCK {
 
-	private DockerSandbox dockerSandbox;
-
-	@BeforeEach
-	void setUp() {
-		// Use real DockerSandbox with agents-runtime image
-		dockerSandbox = new DockerSandbox("ghcr.io/spring-ai-community/agents-runtime:latest", List.of());
+	@Override
+	protected String getDockerImage() {
+		return "ghcr.io/spring-ai-community/agents-runtime:latest";
 	}
 
-	@AfterEach
-	void tearDown() throws Exception {
-		if (dockerSandbox != null) {
-			dockerSandbox.close();
-		}
+	@Override
+	protected Map<String, String> getAgentSpecificEnvironment() {
+		return Map.of("OPENAI_API_KEY", "test-key", "SWE_AGENT_CONFIG", "test-config");
 	}
 
+	@Override
+	protected String getExpectedAgentOutput() {
+		return "SWE Agent execution success";
+	}
+
+	/**
+	 * Test Python runtime availability for SWE Agent.
+	 */
 	@Test
-	void testDockerSandboxPythonExecution() throws Exception {
-		// CRITICAL TEST: Prove Python execution works in Docker (important for SWE
-		// agent runtime)
+	void testSweSpecificPythonRuntime() throws Exception {
+		// CRITICAL TEST: Prove Python execution works in Docker (required for SWE Agent)
 
 		// Arrange: Test Python is available
 		ExecSpec pythonTest = ExecSpec.builder()
@@ -89,6 +88,9 @@ class DockerSandboxInfrastructureIT {
 		assertThat(result.mergedLog()).containsIgnoringCase("python");
 	}
 
+	/**
+	 * Test SWE Agent-specific environment variables.
+	 */
 	@Test
 	void testSweAgentSpecificEnvironmentVariables() throws Exception {
 		// CRITICAL TEST: Prove SWE agent-specific environment variables work
@@ -107,57 +109,6 @@ class DockerSandboxInfrastructureIT {
 		assertThat(result.success()).isTrue();
 		assertThat(result.mergedLog()).contains("OPENAI_API_KEY=test-key");
 		assertThat(result.mergedLog()).contains("SWE_AGENT_CONFIG=test-config");
-	}
-
-	@Test
-	void testAgentModelCentricPatternEndToEnd() throws Exception {
-		// CRITICAL TEST: Prove the complete AgentModel-centric pattern with real
-		// execution
-
-		// This test simulates what SweAgentModel would do:
-		// 1. Build command (simulated)
-		// 2. Execute via sandbox (real)
-		// 3. Parse result (simulated)
-
-		// Step 1: Build command (simulated - real SDK would do this)
-		List<String> command = List.of("echo", "{\"status\": \"success\", \"message\": \"SWE Agent execution\"}");
-
-		// Step 2: Execute via sandbox (REAL execution)
-		ExecSpec spec = ExecSpec.builder()
-			.command(command)
-			.env(Map.of("SWE_AGENT_ENTRYPOINT", "sdk-java"))
-			.timeout(Duration.ofSeconds(30))
-			.build();
-
-		ExecResult execResult = dockerSandbox.exec(spec);
-
-		// Step 3: Verify result (simulated parsing)
-		assertThat(execResult.success()).isTrue();
-		assertThat(execResult.mergedLog()).contains("\"status\": \"success\"");
-		assertThat(execResult.mergedLog()).contains("SWE Agent execution");
-
-		// ASSERT: Complete pattern works end-to-end with real Docker execution
-		assertThat(execResult.exitCode()).isEqualTo(0);
-		assertThat(execResult.duration()).isPositive();
-		assertThat(execResult.hasOutput()).isTrue();
-	}
-
-	@Test
-	void testPythonScriptExecution() throws Exception {
-		// CRITICAL TEST: Prove Python script execution works (important for SWE agent)
-
-		// Arrange: Test Python script execution
-		ExecSpec pythonScript = ExecSpec.builder()
-			.command("python3", "-c", "print('Hello from SWE Agent Docker')")
-			.timeout(Duration.ofSeconds(30))
-			.build();
-
-		// Act
-		ExecResult result = dockerSandbox.exec(pythonScript);
-
-		// Assert: Python script execution works
-		assertThat(result.success()).isTrue();
-		assertThat(result.mergedLog()).contains("Hello from SWE Agent Docker");
 	}
 
 }

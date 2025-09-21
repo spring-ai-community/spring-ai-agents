@@ -16,30 +16,29 @@
 
 package org.springaicommunity.agents.gemini;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
-import org.springaicommunity.agents.model.sandbox.DockerSandbox;
+import org.springaicommunity.agents.model.sandbox.AbstractDockerInfrastructureTCK;
 import org.springaicommunity.agents.model.sandbox.ExecResult;
 import org.springaicommunity.agents.model.sandbox.ExecSpec;
 
 import java.time.Duration;
-import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Docker sandbox infrastructure tests for agent runtime environment.
+ * Docker infrastructure tests for Gemini agent runtime environment.
  *
  * <p>
  * These tests prove that the DockerSandbox infrastructure works correctly with
- * agent-specific requirements including Node.js execution and environment variables.
- * These tests focus on sandbox infrastructure rather than actual agent CLI functionality.
+ * Gemini-specific requirements including Node.js execution and environment variables.
+ * These tests focus on sandbox infrastructure rather than actual Gemini CLI
+ * functionality.
  * </p>
  *
  * <p>
- * Run with: mvn test -Dtest=DockerSandboxInfrastructureIT -Dsandbox.integration.test=true
+ * Run with: mvn test -Dtest=GeminiDockerInfraIT -Dsandbox.integration.test=true
  * </p>
  *
  * <p>
@@ -51,27 +50,30 @@ import static org.assertj.core.api.Assertions.assertThat;
  * </ul>
  */
 @EnabledIfSystemProperty(named = "sandbox.integration.test", matches = "true")
-class DockerSandboxInfrastructureIT {
+class GeminiDockerInfraIT extends AbstractDockerInfrastructureTCK {
 
-	private DockerSandbox dockerSandbox;
-
-	@BeforeEach
-	void setUp() {
-		// Use real DockerSandbox with agents-runtime image
-		dockerSandbox = new DockerSandbox("ghcr.io/spring-ai-community/agents-runtime:latest", List.of());
+	@Override
+	protected String getDockerImage() {
+		return "ghcr.io/spring-ai-community/agents-runtime:latest";
 	}
 
-	@org.junit.jupiter.api.AfterEach
-	void tearDown() throws Exception {
-		if (dockerSandbox != null) {
-			dockerSandbox.close();
-		}
+	@Override
+	protected Map<String, String> getAgentSpecificEnvironment() {
+		return Map.of("GEMINI_API_KEY", "test-key", "GOOGLE_API_KEY", "test-google-key");
 	}
 
+	@Override
+	protected String getExpectedAgentOutput() {
+		return "Gemini execution success";
+	}
+
+	/**
+	 * Test Node.js runtime availability for Gemini CLI.
+	 */
 	@Test
-	void testDockerSandboxNodejsExecution() throws Exception {
-		// CRITICAL TEST: Prove Node.js execution works in Docker (important for Gemini
-		// CLI runtime)
+	void testGeminiSpecificNodeJsRuntime() throws Exception {
+		// CRITICAL TEST: Prove Node.js execution works in Docker (required for Gemini
+		// CLI)
 
 		// Arrange: Test Node.js is available
 		ExecSpec nodeTest = ExecSpec.builder().command("node", "--version").timeout(Duration.ofSeconds(30)).build();
@@ -84,6 +86,9 @@ class DockerSandboxInfrastructureIT {
 		assertThat(result.mergedLog()).startsWith("v");
 	}
 
+	/**
+	 * Test Gemini-specific environment variables.
+	 */
 	@Test
 	void testGeminiSpecificEnvironmentVariables() throws Exception {
 		// CRITICAL TEST: Prove Gemini-specific environment variables work
@@ -102,39 +107,6 @@ class DockerSandboxInfrastructureIT {
 		assertThat(result.success()).isTrue();
 		assertThat(result.mergedLog()).contains("GEMINI_API_KEY=test-key");
 		assertThat(result.mergedLog()).contains("GOOGLE_API_KEY=test-google-key");
-	}
-
-	@Test
-	void testAgentModelCentricPatternEndToEnd() throws Exception {
-		// CRITICAL TEST: Prove the complete AgentModel-centric pattern with real
-		// execution
-
-		// This test simulates what GeminiAgentModel does:
-		// 1. Build command (simulated)
-		// 2. Execute via sandbox (real)
-		// 3. Parse result (simulated)
-
-		// Step 1: Build command (simulated - real SDK would do this)
-		List<String> command = List.of("echo", "TextMessage[type=ASSISTANT, content=Success from Gemini CLI]");
-
-		// Step 2: Execute via sandbox (REAL execution)
-		ExecSpec spec = ExecSpec.builder()
-			.command(command)
-			.env(Map.of("GEMINI_CLI_ENTRYPOINT", "sdk-java"))
-			.timeout(Duration.ofSeconds(30))
-			.build();
-
-		ExecResult execResult = dockerSandbox.exec(spec);
-
-		// Step 3: Verify result (simulated parsing)
-		assertThat(execResult.success()).isTrue();
-		assertThat(execResult.mergedLog()).contains("Success from Gemini CLI");
-		assertThat(execResult.mergedLog()).contains("TextMessage[type=ASSISTANT");
-
-		// ASSERT: Complete pattern works end-to-end with real Docker execution
-		assertThat(execResult.exitCode()).isEqualTo(0);
-		assertThat(execResult.duration()).isPositive();
-		assertThat(execResult.hasOutput()).isTrue();
 	}
 
 }

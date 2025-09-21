@@ -14,22 +14,23 @@
  * limitations under the License.
  */
 
-package org.springaicommunity.agents.claudecode.sdk.exceptions;
+package org.springaicommunity.agents.model.sandbox;
 
 /**
- * Base exception for all Claude SDK errors. Corresponds to ClaudeSDKError in Python SDK.
+ * Runtime exception for all sandbox execution errors. Wraps checked exceptions from
+ * underlying system operations.
  */
-public class ClaudeSDKException extends RuntimeException {
+public class SandboxException extends RuntimeException {
 
-	public ClaudeSDKException(String message) {
+	public SandboxException(String message) {
 		super(message);
 	}
 
-	public ClaudeSDKException(String message, Throwable cause) {
+	public SandboxException(String message, Throwable cause) {
 		super(message, cause);
 	}
 
-	public ClaudeSDKException(Throwable cause) {
+	public SandboxException(Throwable cause) {
 		super(cause);
 	}
 

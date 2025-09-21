@@ -86,7 +86,7 @@ public final class DockerSandbox implements Sandbox {
 	}
 
 	@Override
-	public ExecResult exec(ExecSpec spec) throws IOException, InterruptedException, TimeoutException {
+	public ExecResult exec(ExecSpec spec) {
 		if (closed) {
 			throw new IllegalStateException("Sandbox is closed");
 		}
@@ -173,11 +173,10 @@ public final class DockerSandbox implements Sandbox {
 			return new ExecResult(result.getExitCode(), mergedLog, duration);
 		}
 		catch (TimeoutException e) {
-			// Re-throw our custom TimeoutException
-			throw e;
+			throw new SandboxException("Command timed out", e);
 		}
 		catch (Exception e) {
-			throw new IOException("Failed to execute command in container", e);
+			throw new SandboxException("Failed to execute command in container", e);
 		}
 	}
 
@@ -190,7 +189,7 @@ public final class DockerSandbox implements Sandbox {
 	}
 
 	@Override
-	public void close() throws IOException {
+	public void close() {
 		if (closed) {
 			return;
 		}
@@ -204,7 +203,7 @@ public final class DockerSandbox implements Sandbox {
 		}
 		catch (Exception e) {
 			logger.warn("Failed to stop container cleanly", e);
-			throw new IOException("Failed to close DockerSandbox", e);
+			throw new SandboxException("Failed to close DockerSandbox", e);
 		}
 	}
 

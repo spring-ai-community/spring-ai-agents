@@ -107,14 +107,18 @@ class ClaudeCodeClientSandboxIntegrationTest {
 		// Arrange: Mock JSON output from Claude CLI
 		String mockJsonOutput = """
 				{
+					"type": "result",
+					"subtype": "success",
+					"is_error": false,
+					"duration_ms": 2406,
+					"duration_api_ms": 2153,
+					"num_turns": 1,
 					"result": "I have successfully fixed the failing test by updating the assertion.",
-					"status": "success",
-					"metadata": {
-						"model": "claude-sonnet-4-20250514",
-						"usage": {
-							"input_tokens": 100,
-							"output_tokens": 50
-						}
+					"session_id": "test-session-id",
+					"total_cost_usd": 0.001,
+					"usage": {
+						"input_tokens": 100,
+						"output_tokens": 50
 					}
 				}
 				""";
