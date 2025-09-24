@@ -142,23 +142,35 @@ public class GeminiAgentModel implements AgentModel {
 	private QueryResult executeViaSandbox(String prompt, CLIOptions cliOptions, AgentTaskRequest request)
 			throws GeminiSDKException, IOException, InterruptedException,
 			org.springaicommunity.agents.model.sandbox.TimeoutException {
-		logger.debug("Executing query via sandbox");
+		logger.info("Executing Gemini query via sandbox");
+		logger.info("Working directory: {}", request.workingDirectory());
+		logger.info("Prompt length: {} characters", prompt.length());
+		logger.debug("Full prompt: {}", prompt);
 
 		// 1. SDK builds command
 		List<String> command = geminiClient.buildCommand(prompt, cliOptions);
+		logger.info("Gemini command: {}", String.join(" ", command));
 
 		// 2. Create ExecSpec with environment variables
 		Map<String, String> environment = new java.util.HashMap<>();
 		environment.put("GEMINI_CLI_ENTRYPOINT", "sdk-java");
 
-		// Add API keys
+		// Add API key - prefer GEMINI_API_KEY over GOOGLE_API_KEY
 		String apiKey = System.getenv("GEMINI_API_KEY");
 		if (apiKey == null) {
 			apiKey = System.getenv("GOOGLE_API_KEY");
+			logger.debug("Using GOOGLE_API_KEY as fallback");
+		}
+		else {
+			logger.debug("Using GEMINI_API_KEY");
 		}
 		if (apiKey != null) {
+			// Only set GEMINI_API_KEY to avoid confusion in Gemini CLI
 			environment.put("GEMINI_API_KEY", apiKey);
-			environment.put("GOOGLE_API_KEY", apiKey);
+			logger.debug("API key configured for Gemini CLI");
+		}
+		else {
+			logger.warn("No API key found - Gemini CLI may fail");
 		}
 
 		// NVM environment variables and PATH are not needed - getGeminiCommand() handles
@@ -168,15 +180,22 @@ public class GeminiAgentModel implements AgentModel {
 
 		// 3. Execute via sandbox
 		ExecResult execResult = sandbox.exec(spec);
+		logger.info("Gemini CLI execution completed with exit code: {}", execResult.exitCode());
+		logger.info("Output length: {} characters", execResult.mergedLog().length());
+		logger.debug("Full Gemini CLI output: {}", execResult.mergedLog());
 
 		// 4. Check for execution errors
 		if (execResult.exitCode() != 0) {
+			logger.error("Gemini CLI execution failed with exit code {}: {}", execResult.exitCode(),
+					execResult.mergedLog());
 			throw new GeminiSDKException(
 					"Command execution failed with exit code " + execResult.exitCode() + ": " + execResult.mergedLog());
 		}
 
 		// 5. Parse via SDK
-		return geminiClient.parseResult(execResult.mergedLog(), cliOptions);
+		QueryResult result = geminiClient.parseResult(execResult.mergedLog(), cliOptions);
+		logger.info("Parsed {} messages from Gemini CLI output", result.messages().size());
+		return result;
 	}
 
 	/**
@@ -231,15 +250,20 @@ public class GeminiAgentModel implements AgentModel {
 	private String formatTaskPrompt(AgentTaskRequest request) {
 		StringBuilder prompt = new StringBuilder();
 
-		// More explicit instructions for Gemini CLI
+		// More explicit instructions for Gemini CLI with file operation focus
 		prompt.append("You are working in directory: ").append(request.workingDirectory().toString()).append("\n\n");
 
 		prompt.append("Task: ").append(request.goal()).append("\n\n");
 
 		prompt.append("Instructions:\n");
-		prompt.append("1. Analyze the files in the working directory\n");
-		prompt.append("2. Complete the requested task by making necessary changes\n");
-		prompt.append("3. Ensure the changes fix the problem\n\n");
+		prompt.append("1. Analyze the current directory and its contents\n");
+		prompt.append("2. Complete the requested task by creating, modifying, or deleting files as needed\n");
+		prompt.append("3. When creating files, ensure they have the exact content specified\n");
+		prompt.append("4. Use yolo mode to make all necessary file changes automatically\n");
+		prompt.append("5. Verify the task is completed successfully\n\n");
+
+		prompt.append(
+				"Important: If the task involves creating a file, make sure to actually create it with the exact content requested.\n\n");
 
 		return prompt.toString();
 	}
