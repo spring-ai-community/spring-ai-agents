@@ -259,7 +259,7 @@ public class GeminiAgentModel implements AgentModel {
 		prompt.append("1. Analyze the current directory and its contents\n");
 		prompt.append("2. Complete the requested task by creating, modifying, or deleting files as needed\n");
 		prompt.append("3. When creating files, ensure they have the exact content specified\n");
-		prompt.append("4. Use yolo mode to make all necessary file changes automatically\n");
+		prompt.append("4. Make all necessary file changes automatically\n");
 		prompt.append("5. Verify the task is completed successfully\n\n");
 
 		prompt.append(
