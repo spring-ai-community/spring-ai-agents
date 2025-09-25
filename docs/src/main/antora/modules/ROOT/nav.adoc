@@ -1,5 +1,6 @@
 * xref:index.adoc[Overview]
 * xref:getting-started.adoc[Getting Started]
+* xref:jbang-runner.adoc[JBang Agent Runner]
 * xref:api/agentclient.adoc[AgentClient API]
 ** xref:api/agentclient-vs-chatclient.adoc[AgentClient vs ChatClient]
 ** xref:api/claude-code-sdk.adoc[Claude Code SDK]

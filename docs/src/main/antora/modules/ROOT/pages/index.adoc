@@ -64,6 +64,7 @@ A concrete example of this pattern is the "stupid 'LLM in a loop executing bash 
 == Key Features
 
 * **ChatClient-style API** - Same fluent patterns Spring developers already know
+* **JBang Agent Runner** - Lightweight command-line execution for CI/CD and benchmarking
 * **Multiple agent providers** - Claude Code, Gemini CLI, SWE Agent support (more to come!)
 * **Fluent API design** - Clean, intuitive interface following Spring patterns
 * **Spring Boot ready** - Auto-configuration and dependency injection support
@@ -103,6 +104,7 @@ Get started using Spring AI Agents by following our xref:getting-started.adoc[Ge
 
 == Documentation
 
+* xref:jbang-runner.adoc[JBang Agent Runner] - Lightweight command-line execution for CI/CD and benchmarking
 * xref:api/agentclient.adoc[AgentClient API] - Learn the core API for running autonomous tasks
 * xref:api/agentclient-vs-chatclient.adoc[AgentClient vs ChatClient] - See how AgentClient follows ChatClient patterns
 * xref:api/claude-code-sdk.adoc[Claude Code SDK] - Java integration with Claude Code CLI
