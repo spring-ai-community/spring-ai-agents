@@ -1,0 +1,266 @@
+= JBang Agent Runner
+:page-title: JBang Agent Runner
+:toc: left
+:tabsize: 2
+:sectnums:
+
+The JBang Agent Runner provides a lightweight, composable way to execute Spring AI Agents directly from the command line using https://jbang.dev[JBang]. This approach is ideal for CI/CD pipelines, one-off tasks, and benchmark programs.
+
+== Overview
+
+The JBang Agent Runner uses a clean three-component architecture:
+
+* **AgentSpec**: Immutable agent behavior definition (prompts, input schema, defaults)
+* **RunSpec**: Complete run configuration (agent selection + sandbox environment + task parameters + tweak)
+* **LauncherSpec**: Resolved execution context (AgentSpec + RunSpec + working directory)
+
+This separation enables benchmark programs to generate arrays of `RunSpec` objects with different agent/sandbox/parameter combinations, while `AgentSpec` objects are cached and reused for performance.
+
+== Quick Start
+
+=== Installation
+
+JBang will automatically resolve dependencies when you run the agent launcher:
+
+[source,bash]
+----
+jbang https://github.com/spring-ai-community/spring-ai-agents/blob/main/agents.java \
+  --agent hello-world \
+  --path greeting.txt \
+  --content "Hello from JBang Agent Runner!"
+----
+
+=== Local Usage
+
+Clone the repository and run agents locally:
+
+[source,bash]
+----
+git clone https://github.com/spring-ai-community/spring-ai-agents.git
+cd spring-ai-agents
+
+# Build all modules first
+./mvnw clean install -DskipTests
+
+# Run hello-world agent
+jbang agents.java --agent hello-world --path test.txt --content "Hello World!"
+
+# Run coverage agent with tweak
+jbang agents.java \
+  --agent coverage \
+  --target_coverage 90 \
+  --module core \
+  --tweak "Focus on edge cases and error conditions"
+----
+
+== Architecture
+
+=== AgentSpec
+
+Defines the agent's behavior and is loaded from YAML files in `/agents/<id>.yaml`:
+
+[source,yaml]
+----
+id: coverage
+version: 0.1
+inputs:
+  target_coverage:
+    type: integer
+    default: 80
+  module:
+    type: string
+    default: "."
+  focus:
+    type: string
+    default: "unit"
+prompt:
+  system: "You are an expert Java testing agent..."
+  userTemplate: |
+    Increase line coverage in {module} to at least {target_coverage}%.
+    Focus on {focus} tests.
+    {if(tweak)}
+
+    Operator guidance: {tweak}
+    {endif}
+----
+
+=== RunSpec
+
+Contains the complete run configuration:
+
+[source,java]
+----
+public record RunSpec(
+    String agent,                    // Which agent to run
+    Map<String, Object> inputs,      // Runtime input values
+    String tweak,                    // Optional behavior adjustment
+    String workingDirectory,         // Sandbox working directory
+    Map<String, Object> env          // Environment settings
+)
+----
+
+=== LauncherSpec
+
+The resolved execution context passed to the agent:
+
+[source,java]
+----
+public record LauncherSpec(
+    AgentSpec agentSpec,            // Resolved agent definition
+    Map<String, Object> inputs,     // Merged inputs (defaults + runtime)
+    String tweak,                   // Optional tweak
+    Path cwd,                       // Working directory
+    Map<String, Object> env         // Environment variables
+)
+----
+
+== Configuration
+
+=== CLI Arguments
+
+[source,bash]
+----
+jbang agents.java [options]
+
+Options:
+  --agent <name>     Agent to run (hello-world, coverage)
+  --tweak <hint>     Operator hint for agent behavior
+  --sandbox <type>   Sandbox type (local, docker)
+  --workdir <path>   Working directory for sandbox
+  --<key> <value>    Agent input parameter
+----
+
+=== Configuration File
+
+Create a `run.yaml` file in your working directory:
+
+[source,yaml]
+----
+agent: coverage
+inputs:
+  target_coverage: 85
+  module: "core"
+  focus: "integration tests"
+tweak: "Focus on error handling and edge cases"
+workingDirectory: "/tmp/test-workspace"
+env:
+  sandbox: "local"
+----
+
+=== Precedence Rules
+
+Configuration merging follows this precedence (most specific wins):
+
+1. **AgentSpec defaults** (from YAML)
+2. **run.yaml** configuration
+3. **CLI flags** (highest priority)
+
+== Built-in Agents
+
+=== Hello World Agent
+
+Creates files with specified content.
+
+[source,bash]
+----
+jbang agents.java \
+  --agent hello-world \
+  --path greeting.txt \
+  --content "Hello from JBang!"
+----
+
+**Inputs:**
+* `path` (string, required): File path to create
+* `content` (string, default: "HelloWorld"): File content
+
+=== Coverage Agent
+
+Generates prompts for test coverage improvement.
+
+[source,bash]
+----
+jbang agents.java \
+  --agent coverage \
+  --target_coverage 90 \
+  --module core \
+  --focus "unit tests" \
+  --tweak "Focus on boundary conditions"
+----
+
+**Inputs:**
+* `target_coverage` (integer, default: 80): Target coverage percentage
+* `module` (string, default: "."): Module to focus on
+* `focus` (string, default: "unit"): Type of tests to focus on
+
+== Template Rendering
+
+The JBang Agent Runner uses Spring AI's StringTemplate engine with `{variable}` syntax:
+
+[source]
+----
+Increase coverage in {module} to {target_coverage}%.
+{if(tweak)}
+Operator guidance: {tweak}
+{endif}
+----
+
+Variables are resolved from:
+* Agent inputs (merged with defaults)
+* Runtime `tweak` parameter (if provided)
+
+== Comprehensive Logging
+
+The runner includes detailed info-level logging for debugging:
+
+[source,bash]
+----
+# Enable logging to see execution details
+jbang agents.java --agent coverage --target_coverage 90 --module core
+----
+
+Log output shows:
+* Configuration loading and merging
+* AgentSpec resolution
+* Input validation
+* Template rendering
+* Agent execution progress
+
+== Benchmark Program Integration
+
+The architecture is optimized for benchmark programs:
+
+[source,java]
+----
+// Generate multiple run configurations
+List<RunSpec> runs = List.of(
+    new RunSpec("coverage", Map.of("target_coverage", 80), null, "/tmp/test1", Map.of()),
+    new RunSpec("coverage", Map.of("target_coverage", 90), "focus on edge cases", "/tmp/test2", Map.of()),
+    new RunSpec("hello-world", Map.of("path", "test.txt", "content", "Hello"), null, "/tmp/test3", Map.of())
+);
+
+// Execute all runs (AgentSpecs are cached and reused)
+for (RunSpec runSpec : runs) {
+    LauncherSpec launcher = LocalConfigLoader.resolve(runSpec);
+    Result result = AgentRunner.execute(launcher);
+    System.out.println("Result: " + result.message());
+}
+----
+
+== Error Handling
+
+The runner provides structured error codes:
+
+* `0`: Success
+* `1`: Execution failure (agent failed)
+* `2`: Usage error (missing inputs, unknown agent)
+
+Scripts and CI systems can differentiate between user errors and agent failures.
+
+== Next Steps
+
+* Wire coverage agent to real `AgentModel` from `spring-ai-agent-model`
+* Add Docker sandbox support for improved isolation
+* Extend with additional agent types (pr-review, dependency-upgrade)
+* Add multi-agent collaborative workflows
+
+The JBang Agent Runner provides a foundation for embedding autonomous agents throughout the development workflow.
