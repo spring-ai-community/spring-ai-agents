@@ -1,0 +1,9 @@
+id: hello-world
+version: 0.1
+inputs:
+  path:
+    type: string
+    required: true
+  content:
+    type: string
+    default: "HelloWorld"

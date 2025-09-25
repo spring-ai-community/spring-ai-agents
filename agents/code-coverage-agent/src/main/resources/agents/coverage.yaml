@@ -1,0 +1,21 @@
+id: coverage
+version: 0.1
+inputs:
+  target_coverage:
+    type: integer
+    default: 80
+  module:
+    type: string
+    default: "."
+  focus:
+    type: string
+    default: "unit"
+prompt:
+  system: "You are an expert Java testing agent. Your role is to improve test coverage while maintaining code quality and following best practices."
+  userTemplate: |
+    Increase line coverage in {module} to at least {target_coverage}%.
+    Focus on {focus} tests.
+    {if(tweak)}
+
+    Operator guidance: {tweak}
+    {endif}

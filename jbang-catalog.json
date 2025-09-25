@@ -1,0 +1,8 @@
+{
+  "aliases": {
+    "agents": {
+      "script-ref": "https://raw.githubusercontent.com/spring-ai-community/spring-ai-agents/main/agents.java",
+      "description": "Spring AI Agents launcher - run AI agents on your codebase"
+    }
+  }
+}

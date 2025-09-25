@@ -48,6 +48,9 @@
         <module>agent-models/spring-ai-swe-agent</module>
         <module>spring-ai-agent-client</module>
         <module>docs</module>
+        <module>spring-ai-agents-core</module>
+        <module>agents/hello-world-agent</module>
+        <module>agents/code-coverage-agent</module>
         <module>samples/hello-world</module>
         <!--
         <module>agent-models/spring-ai-swebench-agent</module>
@@ -226,6 +229,11 @@
                 <artifactId>spring-ai-test</artifactId>
                 <version>${spring-ai.version}</version>
                 <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-template-st</artifactId>
+                <version>${spring-ai.version}</version>
             </dependency>
 
             <!-- Agent SDK dependencies -->
