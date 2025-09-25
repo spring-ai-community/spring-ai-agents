@@ -90,6 +90,9 @@ test-results/
 samples/pr-review-demo/pr-*-assessment.md
 samples/pr-review-demo/pr-*-analysis.md
 
+# Plans directory - contains implementation notes and learnings
+plans/
+
 # Application logs
 logs/
 spring.log
