@@ -43,6 +43,12 @@
             <artifactId>slf4j-api</artifactId>
         </dependency>
 
+        <!-- Spring Boot logging for JBang usage -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-logging</artifactId>
+        </dependency>
+
         <!-- Test dependencies -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
