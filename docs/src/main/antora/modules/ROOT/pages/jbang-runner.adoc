@@ -4,7 +4,7 @@
 :tabsize: 2
 :sectnums:
 
-The JBang Agent Runner provides a lightweight, composable way to execute Spring AI Agents directly from the command line using https://jbang.dev[JBang]. This approach is ideal for CI/CD pipelines, one-off tasks, and benchmark programs.
+The JBang Agent Runner is the primary entry point for developers to try Spring AI Agents. It provides a lightweight, composable way to execute autonomous agents directly from the command line using https://jbang.dev[JBang]. Whether you're exploring agents locally with LocalSandbox, integrating into CI/CD pipelines, or running benchmark programs, the JBang runner makes it easy to get started.
 
 == Overview
 
@@ -18,6 +18,8 @@ This separation enables benchmark programs to generate arrays of `RunSpec` objec
 
 == Quick Start
 
+The JBang Agent Runner is the easiest way for developers to try Spring AI Agents locally. No complex setup required - just run agents directly on your machine with LocalSandbox.
+
 === Installation
 
 JBang will automatically resolve dependencies when you run the agent launcher:
@@ -30,9 +32,9 @@ jbang https://github.com/spring-ai-community/spring-ai-agents/blob/main/agents.j
   --content "Hello from JBang Agent Runner!"
 ----
 
-=== Local Usage
+=== Local Development
 
-Clone the repository and run agents locally:
+Clone the repository and run agents locally with LocalSandbox (the default sandbox type):
 
 [source,bash]
 ----
@@ -52,6 +54,57 @@ jbang agents.java \
   --module core \
   --tweak "Focus on edge cases and error conditions"
 ----
+
+=== Local Development with LocalSandbox
+
+By default, agents run in LocalSandbox, which executes directly on your local machine. This is perfect for:
+
+* **Trying agents for the first time** - No Docker or complex setup required
+* **Local development workflows** - Agents can access your local files and environment
+* **Rapid prototyping** - Immediate feedback without containerization overhead
+* **Learning and experimentation** - See exactly what agents are doing on your system
+
+[source,bash]
+----
+# Run in current directory (LocalSandbox default)
+jbang agents.java --agent hello-world --path local-test.txt --content "Local development!"
+
+# Specify custom working directory
+jbang agents.java --agent coverage --workdir /path/to/project --target_coverage 85
+
+# Use LocalSandbox explicitly
+jbang agents.java --sandbox local --agent hello-world --path test.txt
+----
+
+IMPORTANT: LocalSandbox executes commands directly on your host system with no isolation. Only use with trusted agents and inputs.
+
+NOTE: The JBang Agent Runner defaults to LocalSandbox for developer convenience and local experimentation. The Spring AI Agents library defaults to Docker sandbox for production safety. You can override the sandbox type with `--sandbox docker` when using JBang.
+
+=== Development to Production Progression
+
+The JBang Agent Runner is designed for the typical developer workflow:
+
+1. **Local Experimentation** (JBang + LocalSandbox)
+   ```bash
+   # Try agents locally with immediate feedback
+   jbang agents.java --agent coverage --target_coverage 80
+   ```
+
+2. **Enhanced Local Testing** (JBang + Docker)
+   ```bash
+   # Test with isolation before production
+   jbang agents.java --sandbox docker --agent coverage --target_coverage 80
+   ```
+
+3. **Production Integration** (Spring AI Agents library + Docker)
+   ```java
+   // Use in Spring Boot applications with Docker sandbox by default
+   AgentClient.builder()
+       .defaultOptions(ClaudeCodeAgentOptions.builder().build())
+       .build()
+       .prompt("Increase test coverage to 80%")
+       .call();
+   ```
 
 == Architecture
 
@@ -125,7 +178,7 @@ jbang agents.java [options]
 Options:
   --agent <name>     Agent to run (hello-world, coverage)
   --tweak <hint>     Operator hint for agent behavior
-  --sandbox <type>   Sandbox type (local, docker)
+  --sandbox <type>   Sandbox type (local, docker) [default: local]
   --workdir <path>   Working directory for sandbox
   --<key> <value>    Agent input parameter
 ----
