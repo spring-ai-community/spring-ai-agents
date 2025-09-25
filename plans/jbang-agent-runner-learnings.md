@@ -10,15 +10,21 @@
 - No dependency on Spring AI model interfaces for the CLI
 - Independent evolution of launcher vs model abstractions
 
-### 2. AgentSpec vs RunSpec Separation
-**Discovery**: Initial design had tweak values in AgentSpec, which would make AgentSpec mutable per-run.
+### 2. Three-Component Architecture Design
+**Discovery**: Need clear separation between agent behavior, execution environment, and resolved execution context for benchmark program compatibility.
 
-**Decision**:
-- **AgentSpec**: Immutable recipe (inputs definitions, prompt templates with `{{tweak}}` placeholder)
-- **RunSpec**: Per-run configuration (actual tweak values, runtime inputs, environment)
-- **LauncherSpec**: Combined object for execution
+**Final Decision** (Updated 2024-09-24):
+- **AgentSpec**: Immutable agent behavior definition (prompt templates, input schema, defaults)
+- **RunSpec**: Complete run configuration (agent selection + sandbox environment + task parameters + tweak)
+- **LauncherSpec**: Resolved execution context (AgentSpec + RunSpec + working directory)
 
-**Benefit**: AgentSpec can be cached and reused, RunSpec contains only runtime values.
+**Key Insight**: RunSpec contains BOTH sandbox concerns (working directory, isolation, environment) AND task parameters (inputs, tweak). This enables benchmark programs to generate arrays of RunSpecs with different agent/sandbox/parameter combinations.
+
+**Benefit**:
+- AgentSpec cached and reused across benchmark runs
+- RunSpec captures all variable execution parameters
+- Clean separation: behavior vs configuration vs resolved context
+- Easy benchmark program integration
 
 ### 3. Precedence Rules
 **Discovery**: Need clear, predictable precedence for configuration merging.
@@ -195,7 +201,25 @@ For JBang distribution:
 - Direct dependency resolution via JBang instead of complex classpath scanning
 - **Switched from Mustache to Spring AI's StringTemplate** - Better ecosystem alignment with {variable} syntax
 
+### ✅ Architecture Refinement (2024-09-24)
+
+**Achievement**: Refined three-component architecture based on benchmark program requirements and separation of concerns analysis.
+
+**Updated Design**:
+- **AgentSpec**: Pure agent behavior (prompts, input schema, defaults) - immutable, cacheable
+- **RunSpec**: Complete run configuration including:
+  - Agent selection (string ID)
+  - Sandbox environment (working directory, isolation, env vars)
+  - Task parameters (runtime inputs, tweak)
+- **LauncherSpec**: Resolved execution context (AgentSpec + RunSpec + resolved paths)
+
+**Key Architectural Insight**:
+RunSpec unifies both sandbox concerns AND task parameters, making it the single configuration object that benchmark programs can generate arrays of. This eliminates the need for separate TaskConfig while maintaining clean separation of concerns.
+
+**Implementation Status**: Ready to implement refactored architecture with comprehensive logging support.
+
 **Ready for Next Steps**:
+- Implement refined three-component architecture
 - Wire coverage agent to real AgentModel from spring-ai-agent-model
 - Add sandbox integration using existing Sandbox interface
 - Extend with additional agent types (pr-review, dependency-upgrade)

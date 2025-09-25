@@ -143,8 +143,9 @@ public final class LocalSandbox implements Sandbox {
 			return new ExecResult(e.getExitValue(), e.getResult().outputUTF8(), duration);
 		}
 		catch (java.util.concurrent.TimeoutException e) {
-			throw new org.springaicommunity.agents.model.sandbox.TimeoutException(
+			org.springaicommunity.agents.model.sandbox.TimeoutException timeoutException = new org.springaicommunity.agents.model.sandbox.TimeoutException(
 					"Command timed out after " + customizedSpec.timeout(), customizedSpec.timeout());
+			throw new SandboxException("Command timed out", timeoutException);
 		}
 		catch (Exception e) {
 			throw new SandboxException("Failed to execute command", e);

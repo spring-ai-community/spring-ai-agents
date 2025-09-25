@@ -16,6 +16,8 @@
 
 package org.springaicommunity.agents.core;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.IOException;
@@ -33,9 +35,11 @@ import java.util.*;
  */
 public final class LocalConfigLoader {
 
+	private static final Logger log = LoggerFactory.getLogger(LocalConfigLoader.class);
+
 	private static final Set<String> TWEAK_FLAGS = Set.of("--tweak");
 
-	private static final Set<String> ENVIRONMENT_FLAGS = Set.of("--sandbox", "--isolated", "--workdir");
+	private static final Set<String> ENVIRONMENT_FLAGS = Set.of("--sandbox", "--workdir");
 
 	/**
 	 * Load and merge configuration from run.yaml and CLI arguments.
@@ -44,28 +48,54 @@ public final class LocalConfigLoader {
 	 * @throws IllegalArgumentException if configuration is invalid
 	 */
 	public static LauncherSpec load(String[] argv) {
+		log.info("Loading launcher configuration from CLI args: {}", Arrays.toString(argv));
 		Path cwd = Paths.get(System.getProperty("user.dir")).toAbsolutePath();
+		log.info("Current working directory: {}", cwd);
 
 		// 1. Load run.yaml if present
+		log.info("Loading run.yaml configuration");
 		RunSpec runSpec = loadRunSpec(cwd.resolve("run.yaml"));
 
 		// 2. Parse CLI arguments
+		log.info("Parsing CLI arguments");
 		RunSpec cliSpec = parseCliArgs(argv);
 
 		// 3. Merge run specs (CLI overrides file)
+		log.info("Merging configurations: file + CLI");
 		RunSpec merged = mergeRunSpecs(runSpec, cliSpec);
 
 		if (merged.agent() == null) {
+			log.error("No agent specified in configuration");
 			printUsage();
 			throw new IllegalArgumentException("No agent specified. Use --agent <name> or set agent in run.yaml");
 		}
 
-		// 4. Build final LauncherSpec
-		Map<String, Object> inputs = merged.inputs() != null ? new LinkedHashMap<>(merged.inputs())
-				: new LinkedHashMap<>();
-		Map<String, Object> env = merged.env() != null ? new LinkedHashMap<>(merged.env()) : new LinkedHashMap<>();
+		// 4. Load AgentSpec
+		log.info("Loading AgentSpec for: {}", merged.agent());
+		AgentSpec agentSpec = AgentRunner.loadAgentSpec(merged.agent());
+		if (agentSpec == null) {
+			log.error("Unknown agent: {}", merged.agent());
+			throw new IllegalArgumentException("Unknown agent: " + merged.agent());
+		}
 
-		return new LauncherSpec(merged.agent(), inputs, merged.tweak(), cwd, env);
+		// 5. Merge inputs with AgentSpec defaults
+		log.info("Merging inputs with AgentSpec defaults");
+		Map<String, Object> finalInputs = AgentRunner.mergeWithDefaults(merged.inputs(), agentSpec);
+
+		// 6. Resolve working directory
+		Path workingDir = cwd;
+		if (merged.workingDirectory() != null) {
+			workingDir = Paths.get(merged.workingDirectory()).toAbsolutePath();
+			log.info("Using custom working directory: {}", workingDir);
+		}
+
+		// 7. Build final LauncherSpec
+		Map<String, Object> env = merged.env() != null ? new LinkedHashMap<>(merged.env()) : new LinkedHashMap<>();
+		LauncherSpec launcher = new LauncherSpec(agentSpec, finalInputs, merged.tweak(), workingDir, env);
+		log.info("Created LauncherSpec: agent={}, inputs={}, tweak={}", agentSpec.id(), finalInputs.keySet(),
+				merged.tweak());
+
+		return launcher;
 	}
 
 	/**
@@ -75,26 +105,34 @@ public final class LocalConfigLoader {
 	 */
 	static RunSpec loadRunSpec(Path yamlPath) {
 		if (!Files.exists(yamlPath)) {
-			return new RunSpec(null, Map.of(), null, Map.of());
+			log.info("No run.yaml found at: {}", yamlPath);
+			return new RunSpec(null, Map.of(), null, null, Map.of());
 		}
 
 		try {
 			String content = Files.readString(yamlPath);
+			log.info("Loaded run.yaml content: {} chars", content.length());
 			Yaml yaml = new Yaml();
 			Map<String, Object> data = yaml.load(content);
 
 			if (data == null) {
-				return new RunSpec(null, Map.of(), null, Map.of());
+				log.info("Empty run.yaml file");
+				return new RunSpec(null, Map.of(), null, null, Map.of());
 			}
 
 			String agent = getString(data, "agent");
 			Map<String, Object> inputs = getMap(data, "inputs");
 			String tweak = getString(data, "tweak");
+			String workingDirectory = getString(data, "workingDirectory");
 			Map<String, Object> env = getMap(data, "env");
 
-			return new RunSpec(agent, inputs, tweak, env);
+			log.info("Parsed run.yaml: agent={}, inputs={}, tweak={}, workingDirectory={}, env={}", agent,
+					inputs.keySet(), tweak, workingDirectory, env.keySet());
+
+			return new RunSpec(agent, inputs, tweak, workingDirectory, env);
 		}
 		catch (IOException e) {
+			log.error("Failed to read run.yaml: {}", yamlPath, e);
 			throw new RuntimeException("Failed to read " + yamlPath, e);
 		}
 	}
@@ -107,6 +145,7 @@ public final class LocalConfigLoader {
 	static RunSpec parseCliArgs(String[] argv) {
 		String agent = null;
 		String tweak = null;
+		String workingDirectory = null;
 		Map<String, Object> inputs = new LinkedHashMap<>();
 		Map<String, Object> env = new LinkedHashMap<>();
 
@@ -115,28 +154,34 @@ public final class LocalConfigLoader {
 
 			if ("--agent".equals(arg) && i + 1 < argv.length) {
 				agent = argv[++i];
+				log.info("CLI agent: {}", agent);
 			}
 			else if (TWEAK_FLAGS.contains(arg) && i + 1 < argv.length) {
 				tweak = argv[++i];
-			}
-			else if ("--sandbox".equals(arg) && i + 1 < argv.length) {
-				env.put("sandbox", argv[++i]);
-			}
-			else if ("--isolated".equals(arg)) {
-				env.put("isolated", "true");
+				log.info("CLI tweak: {}", tweak);
 			}
 			else if ("--workdir".equals(arg) && i + 1 < argv.length) {
-				env.put("workdir", argv[++i]);
+				workingDirectory = argv[++i];
+				log.info("CLI working directory: {}", workingDirectory);
+			}
+			else if ("--sandbox".equals(arg) && i + 1 < argv.length) {
+				String sandboxType = argv[++i];
+				env.put("sandbox", sandboxType);
+				log.info("CLI sandbox type: {}", sandboxType);
 			}
 			else if (arg.startsWith("--")) {
 				// Generic input parameter
 				String key = arg.substring(2).replace('-', '_');
 				String value = (i + 1 < argv.length && !argv[i + 1].startsWith("--")) ? argv[++i] : "true";
 				inputs.put(key, value);
+				log.info("CLI input: {}={}", key, value);
 			}
 		}
 
-		return new RunSpec(agent, inputs, tweak, env);
+		log.info("Parsed CLI args: agent={}, inputs={}, tweak={}, workingDirectory={}, env={}", agent, inputs.keySet(),
+				tweak, workingDirectory, env.keySet());
+
+		return new RunSpec(agent, inputs, tweak, workingDirectory, env);
 	}
 
 	/**
@@ -148,6 +193,8 @@ public final class LocalConfigLoader {
 	static RunSpec mergeRunSpecs(RunSpec base, RunSpec override) {
 		String agent = override.agent() != null ? override.agent() : base.agent();
 		String tweak = override.tweak() != null ? override.tweak() : base.tweak();
+		String workingDirectory = override.workingDirectory() != null ? override.workingDirectory()
+				: base.workingDirectory();
 
 		Map<String, Object> inputs = new LinkedHashMap<>();
 		if (base.inputs() != null) {
@@ -165,7 +212,10 @@ public final class LocalConfigLoader {
 			env.putAll(override.env());
 		}
 
-		return new RunSpec(agent, inputs, tweak, env);
+		log.info("Merged RunSpecs: agent={}, inputs={}, tweak={}, workingDirectory={}, env={}", agent, inputs.keySet(),
+				tweak, workingDirectory, env.keySet());
+
+		return new RunSpec(agent, inputs, tweak, workingDirectory, env);
 	}
 
 	/**
@@ -178,7 +228,7 @@ public final class LocalConfigLoader {
 		System.err.println("  --agent <name>     Agent to run (hello-world, coverage)");
 		System.err.println("  --tweak <hint>     Operator hint for agent behavior");
 		System.err.println("  --sandbox <type>   Sandbox type (local, docker)");
-		System.err.println("  --isolated         Run in isolated mode");
+		System.err.println("  --workdir <path>   Working directory for sandbox");
 		System.err.println("  --<key> <value>    Agent input parameter");
 		System.err.println("");
 		System.err.println("");

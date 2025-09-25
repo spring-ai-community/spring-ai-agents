@@ -23,7 +23,7 @@ import java.util.Map;
  * Combined specification for agent execution. Contains merged configuration from
  * AgentSpec defaults, run.yaml, and CLI arguments.
  *
- * @param agent agent identifier
+ * @param agentSpec resolved agent specification with defaults and prompt templates
  * @param inputs merged input values (defaults + run.yaml + CLI)
  * @param tweak operator hint for agent behavior
  * @param cwd working directory for execution
@@ -31,5 +31,6 @@ import java.util.Map;
  * @author Mark Pollack
  * @since 1.1.0
  */
-public record LauncherSpec(String agent, Map<String, Object> inputs, String tweak, Path cwd, Map<String, Object> env) {
+public record LauncherSpec(AgentSpec agentSpec, Map<String, Object> inputs, String tweak, Path cwd,
+		Map<String, Object> env) {
 }
