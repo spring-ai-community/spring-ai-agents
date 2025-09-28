@@ -148,14 +148,14 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          ./mvnw --batch-mode clean failsafe:integration-test failsafe:verify -Pfailsafe -pl provider-sdks/claude-code-sdk,agent-models/spring-ai-claude-code
+          ./mvnw --batch-mode clean failsafe:integration-test failsafe:verify -Pfailsafe -pl provider-sdks/claude-code-sdk,agent-models/spring-ai-claude-code -am
 
       - name: Run Gemini Integration Tests
         if: matrix.test-type == 'gemini-integration'
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          ./mvnw --batch-mode clean failsafe:integration-test failsafe:verify -Pfailsafe -pl provider-sdks/gemini-cli-sdk,agent-models/spring-ai-gemini
+          ./mvnw --batch-mode clean failsafe:integration-test failsafe:verify -Pfailsafe -pl provider-sdks/gemini-cli-sdk,agent-models/spring-ai-gemini -am
 
       - name: Run Core Integration Tests
         if: matrix.test-type == 'core-integration'
@@ -163,7 +163,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          ./mvnw --batch-mode clean failsafe:integration-test failsafe:verify -Pfailsafe -pl spring-ai-agent-client,agents
+          ./mvnw --batch-mode clean failsafe:integration-test failsafe:verify -Pfailsafe -pl spring-ai-agent-client,agents -am
 
   build-docs:
     name: Build Documentation
