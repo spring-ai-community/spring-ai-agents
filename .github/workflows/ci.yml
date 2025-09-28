@@ -153,7 +153,7 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: ./mvnw --batch-mode --quiet clean test
+        run: ./mvnw --batch-mode --quiet clean verify -Pfailsafe
 
       - name: Generate Java docs
         if: github.ref == 'refs/heads/main'
@@ -172,4 +172,4 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           echo "Publishing snapshot artifacts to Maven Central..."
-          ./mvnw --batch-mode --update-snapshots deploy
+          ./mvnw --batch-mode --update-snapshots install deploy
