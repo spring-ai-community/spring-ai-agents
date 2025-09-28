@@ -20,6 +20,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Formatting validation runs during the `validate` phase
 - Use Spring's Java code formatting conventions
 
+### Git Commit Guidelines
+- **NEVER add Claude Code attribution** in commit messages
+
+- Keep commit messages clean and professional without AI attribution
+
 ### JBang Agent Launcher
 - `jbang jbang/launcher.java hello-world path=test.txt` - Run agents without build process
 - `jbang jbang/launcher.java coverage target_coverage=90` - Run coverage agent
