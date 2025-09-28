@@ -211,3 +211,10 @@ All exceptions are runtime exceptions:
 - Use clear, descriptive commit messages that explain the change
 - Follow conventional commit format when appropriate (feat:, fix:, docs:, etc.)
 - Focus on what the change accomplishes, not who created it
+
+### Test Policy
+- **NEVER disable Claude Code or Gemini CLI tests to fix CI issues**
+- These tests are critical for ensuring proper integration with external CLI tools
+- If tests fail due to missing CLI tools, fix the environment setup (install CLIs, add API keys)
+- Integration tests validate real-world usage and must remain enabled
+- Disabling these tests masks real problems and breaks the development workflow

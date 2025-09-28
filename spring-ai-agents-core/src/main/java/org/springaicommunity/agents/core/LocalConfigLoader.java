@@ -45,7 +45,7 @@ public final class LocalConfigLoader {
 
 	/**
 	 * CLI always supplies inputs; optional runspec provides cwd/env only.
-	 * @param argv command line arguments: <agentId> key=value key2=value2 ...
+	 * @param argv command line arguments: &lt;agentId&gt; key=value key2=value2 ...
 	 * @return LauncherSpec ready for execution
 	 */
 	public static LauncherSpec load(String[] argv) {
