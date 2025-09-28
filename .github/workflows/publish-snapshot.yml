@@ -44,18 +44,22 @@ jobs:
       - name: Verify CLI installations
         run: |
           echo "=== Verifying CLI installations ==="
-          # Check Claude CLI
-          if [ -L "/usr/local/bin/claude" ] && [ -f "/usr/local/bin/claude" ]; then
-            echo "✅ Claude CLI verified: $(/usr/local/bin/claude --version 2>&1)"
+          # Check Claude CLI (check multiple locations)
+          if command -v claude >/dev/null 2>&1; then
+            echo "✅ Claude CLI verified: $(claude --version 2>&1)"
           else
-            echo "❌ Claude CLI not found"
+            echo "❌ Claude CLI not found in PATH"
+            echo "PATH: $PATH"
+            ls -la /usr/local/bin/ | grep claude || echo "No claude in /usr/local/bin/"
             exit 1
           fi
-          # Check Gemini CLI
-          if [ -L "/usr/local/bin/gemini" ] && [ -f "/usr/local/bin/gemini" ]; then
-            echo "✅ Gemini CLI verified: $(/usr/local/bin/gemini --version 2>&1)"
+          # Check Gemini CLI (check multiple locations)
+          if command -v gemini >/dev/null 2>&1; then
+            echo "✅ Gemini CLI verified: $(gemini --version 2>&1)"
           else
-            echo "❌ Gemini CLI not found"
+            echo "❌ Gemini CLI not found in PATH"
+            echo "PATH: $PATH"
+            ls -la /usr/local/bin/ | grep gemini || echo "No gemini in /usr/local/bin/"
             exit 1
           fi
 
