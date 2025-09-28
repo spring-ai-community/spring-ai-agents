@@ -49,7 +49,7 @@ class QuerySmokeTest extends ClaudeCliTestBase {
 	@Test
 	void testQueryWithOptions() throws Exception {
 		CLIOptions options = CLIOptions.builder()
-			.timeout(Duration.ofSeconds(30))
+			.timeout(Duration.ofMinutes(2))
 			.systemPrompt("You are a helpful math tutor.")
 			.build();
 
@@ -71,6 +71,42 @@ class QuerySmokeTest extends ClaudeCliTestBase {
 		// Test metadata analysis
 		assertThat(result.metadata().model()).isNotNull();
 		assertThat(result.metadata().getDuration()).isNotNull();
+	}
+
+	@Test
+	void testClaudeCliSanityCheck() throws Exception {
+		// Direct zt-exec test to reproduce manual bash test and debug timeouts
+		String claudePath = getClaudeCliPath();
+
+		// Test the exact command that was timing out in CI
+		org.zeroturnaround.exec.ProcessExecutor executor = new org.zeroturnaround.exec.ProcessExecutor()
+			.command(claudePath, "--print", "--output-format", "json", "--append-system-prompt",
+					"You are a helpful math tutor.", "--permission-mode", "bypassPermissions", "--", "What is 2+2?")
+			.timeout(2, java.util.concurrent.TimeUnit.MINUTES) // AgentClient adds
+																// overhead, need 2m
+			.readOutput(true);
+
+		// Add API key if available
+		String apiKey = System.getenv("ANTHROPIC_API_KEY");
+		if (apiKey != null && !apiKey.trim().isEmpty()) {
+			executor.environment("ANTHROPIC_API_KEY", apiKey);
+			executor.environment("CLAUDE_CODE_ENTRYPOINT", "sdk-java");
+		}
+
+		long startTime = System.currentTimeMillis();
+		org.zeroturnaround.exec.ProcessResult result = executor.execute();
+		long duration = System.currentTimeMillis() - startTime;
+
+		// Verify the command completed successfully
+		assertThat(result.getExitValue()).isEqualTo(0);
+		assertThat(result.outputUTF8()).isNotEmpty();
+
+		// Log timing information for debugging
+		System.out.printf("Claude CLI sanity check completed in %d ms%n", duration);
+		System.out.printf("Output length: %d characters%n", result.outputUTF8().length());
+
+		// Verify we got JSON output (should contain "result" field)
+		assertThat(result.outputUTF8()).contains("\"result\"");
 	}
 
 }
