@@ -149,7 +149,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          ./mvnw --batch-mode clean verify -Pfailsafe -Dtest=NonExistent -DfailIfNoTests=false
+          ./mvnw --batch-mode clean install -Pfailsafe -Dtest=NonExistent -DfailIfNoTests=false
 
       - name: Run Gemini Integration Tests
         if: matrix.test-type == 'gemini-integration'
@@ -157,7 +157,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          ./mvnw --batch-mode clean verify -Pfailsafe -Dtest=NonExistent -DfailIfNoTests=false
+          ./mvnw --batch-mode clean install -Pfailsafe -Dtest=NonExistent -DfailIfNoTests=false
 
       - name: Run Core Integration Tests
         if: matrix.test-type == 'core-integration'
@@ -165,7 +165,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          ./mvnw --batch-mode clean verify -Pfailsafe -Dtest=NonExistent -DfailIfNoTests=false
+          ./mvnw --batch-mode clean install -Pfailsafe -Dtest=NonExistent -DfailIfNoTests=false
 
   build-docs:
     name: Build Documentation
