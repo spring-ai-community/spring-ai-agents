@@ -26,10 +26,10 @@ JBang will automatically resolve dependencies when you run the agent launcher:
 
 [source,bash]
 ----
-jbang https://github.com/spring-ai-community/spring-ai-agents/blob/main/agents.java \
-  --agent hello-world \
-  --path greeting.txt \
-  --content "Hello from JBang Agent Runner!"
+jbang https://github.com/spring-ai-community/spring-ai-agents/blob/main/jbang/launcher.java \
+  hello-world \
+  path=greeting.txt \
+  content="Hello from JBang Agent Runner!"
 ----
 
 === Local Development
@@ -45,13 +45,13 @@ cd spring-ai-agents
 ./mvnw clean install -DskipTests
 
 # Run hello-world agent
-jbang agents.java --agent hello-world --path test.txt --content "Hello World!"
+jbang jbang/launcher.java hello-world path=test.txt content="Hello World!"
 
 # Run coverage agent with tweak
-jbang agents.java \
-  --agent coverage \
-  --target_coverage 90 \
-  --module core
+jbang jbang/launcher.java \
+  coverage \
+  target_coverage=90 \
+  module=core
 ----
 
 === Local Development with LocalSandbox
@@ -66,13 +66,13 @@ By default, agents run in LocalSandbox, which executes directly on your local ma
 [source,bash]
 ----
 # Run in current directory (LocalSandbox default)
-jbang agents.java --agent hello-world --path local-test.txt --content "Local development!"
+jbang jbang/launcher.java hello-world path=local-test.txt content="Local development!"
 
 # Specify custom working directory
-jbang agents.java --agent coverage --workdir /path/to/project --target_coverage 85
+jbang jbang/launcher.java coverage workdir=/path/to/project target_coverage=85
 
 # Use LocalSandbox explicitly
-jbang agents.java --sandbox local --agent hello-world --path test.txt
+jbang jbang/launcher.java hello-world sandbox=local path=test.txt
 ----
 
 IMPORTANT: LocalSandbox executes commands directly on your host system with no isolation. Only use with trusted agents and inputs.
@@ -86,13 +86,13 @@ The JBang Agent Runner is designed for the typical developer workflow:
 1. **Local Experimentation** (JBang + LocalSandbox)
    ```bash
    # Try agents locally with immediate feedback
-   jbang agents.java --agent coverage --target_coverage 80
+   jbang jbang/launcher.java coverage target_coverage=80
    ```
 
 2. **Enhanced Local Testing** (JBang + Docker)
    ```bash
    # Test with isolation before production
-   jbang agents.java --sandbox docker --agent coverage --target_coverage 80
+   jbang jbang/launcher.java coverage sandbox=docker target_coverage=80
    ```
 
 3. **Production Integration** (Spring AI Agents library + Docker)
@@ -161,13 +161,13 @@ public record LauncherSpec(
 
 [source,bash]
 ----
-jbang agents.java [options]
+jbang jbang/launcher.java <agentId> key=value [key2=value2 ...]
 
-Options:
-  --agent <name>     Agent to run (hello-world, coverage)
-  --sandbox <type>   Sandbox type (local, docker) [default: local]
-  --workdir <path>   Working directory for sandbox
-  --<key> <value>    Agent input parameter
+Format:
+  <agentId>          Agent to run (hello-world, coverage)
+  sandbox=<type>     Sandbox type (local, docker) [default: local]
+  workdir=<path>     Working directory for sandbox
+  <key>=<value>      Agent input parameters
 ----
 
 === Configuration File
@@ -202,10 +202,10 @@ Creates files with specified content.
 
 [source,bash]
 ----
-jbang agents.java \
-  --agent hello-world \
-  --path greeting.txt \
-  --content "Hello from JBang!"
+jbang jbang/launcher.java \
+  hello-world \
+  path=greeting.txt \
+  content="Hello from JBang!"
 ----
 
 **Inputs:**
@@ -218,11 +218,11 @@ Generates prompts for test coverage improvement.
 
 [source,bash]
 ----
-jbang agents.java \
-  --agent coverage \
-  --target_coverage 90 \
-  --module core \
-  --focus "unit tests"
+jbang jbang/launcher.java \
+  coverage \
+  target_coverage=90 \
+  module=core \
+  focus="unit tests"
 ----
 
 **Inputs:**
@@ -243,7 +243,7 @@ The runner includes detailed info-level logging for debugging:
 [source,bash]
 ----
 # Enable logging to see execution details
-jbang agents.java --agent coverage --target_coverage 90 --module core
+jbang jbang/launcher.java coverage target_coverage=90 module=core
 ----
 
 Log output shows:

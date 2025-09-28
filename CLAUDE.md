@@ -21,8 +21,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Use Spring's Java code formatting conventions
 
 ### JBang Agent Launcher
-- `jbang jbang/launcher.java --agent hello-world --path test.txt` - Run agents without build process
-- `jbang jbang/launcher.java --agent coverage --target_coverage 90` - Run coverage agent
+- `jbang jbang/launcher.java hello-world path=test.txt` - Run agents without build process
+- `jbang jbang/launcher.java coverage target_coverage=90` - Run coverage agent
 - Uses configuration precedence: Agent defaults → run.yaml → CLI arguments
 - See `jbang/README.md` for complete usage guide
 - Integration tests: `./mvnw test -pl agents/hello-world-agent -Dtest=HelloWorldAgentIT`

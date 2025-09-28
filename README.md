@@ -22,6 +22,22 @@ Transform autonomous CLI agents into pluggable Spring components:
 
 ## Quick Start
 
+### Try with JBang (No Setup Required)
+
+```bash
+# Using JBang catalog (recommended)
+jbang agents@spring-ai-community/spring-ai-agents \
+  hello-world \
+  path=greeting.txt \
+  content="Hello Spring AI Agents!"
+
+# Using direct URL
+jbang https://github.com/spring-ai-community/spring-ai-agents/blob/main/jbang/launcher.java \
+  hello-world \
+  path=greeting.txt \
+  content="Hello Spring AI Agents!"
+```
+
 ### Maven Dependencies
 
 ```xml
