@@ -155,6 +155,16 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: ./mvnw --batch-mode --quiet clean verify -Pfailsafe
 
+      - name: Upload test reports
+        if: always()  # Upload reports even on failure
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            **/target/surefire-reports/*.xml
+            **/target/failsafe-reports/*.xml
+          retention-days: 7
+
       - name: Generate Java docs
         if: github.ref == 'refs/heads/main'
         run: ./mvnw --batch-mode --quiet javadoc:aggregate
