@@ -27,6 +27,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Formatting validation runs during the `validate` phase
 - Use Spring's Java code formatting conventions
 
+### MANDATORY: Java Formatting Before Commits
+- **ALWAYS run `./mvnw spring-javaformat:apply` before any commit**
+- CI will fail if formatting violations are found
+- Never commit unformatted code - this breaks the build for everyone
+- Formatting violations are unacceptable and must be prevented
+
 ### Git Commit Guidelines
 - **NEVER add Claude Code attribution** in commit messages
 

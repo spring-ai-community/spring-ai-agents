@@ -39,7 +39,8 @@ class QuerySmokeTest extends ClaudeCliTestBase {
 	@Test
 	void testBasicQuery() throws Exception {
 		CLIOptions options = CLIOptions.builder()
-			.timeout(Duration.ofMinutes(3))  // AgentClient overhead requires longer timeout
+			.timeout(Duration.ofMinutes(3)) // AgentClient overhead requires longer
+											// timeout
 			.build();
 
 		QueryResult result = Query.execute("What is 1+1?", options);
@@ -53,7 +54,8 @@ class QuerySmokeTest extends ClaudeCliTestBase {
 	@Test
 	void testQueryWithOptions() throws Exception {
 		CLIOptions options = CLIOptions.builder()
-			.timeout(Duration.ofMinutes(3))  // AgentClient overhead requires longer timeout
+			.timeout(Duration.ofMinutes(3)) // AgentClient overhead requires longer
+											// timeout
 			.systemPrompt("You are a helpful math tutor.")
 			.build();
 
@@ -67,7 +69,8 @@ class QuerySmokeTest extends ClaudeCliTestBase {
 	@Test
 	void testQueryResultAnalysis() throws Exception {
 		CLIOptions options = CLIOptions.builder()
-			.timeout(Duration.ofMinutes(3))  // AgentClient overhead requires even longer timeout
+			.timeout(Duration.ofMinutes(3)) // AgentClient overhead requires even longer
+											// timeout
 			.build();
 
 		QueryResult result = Query.execute("Hello, world!", options);
