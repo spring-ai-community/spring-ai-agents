@@ -6,7 +6,57 @@ on:
       - 'v*'  # Matches tags like v0.1.0
 
 jobs:
+  validate-commits:
+    runs-on: ubuntu-latest
+    name: Validate Commit Messages
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate commit messages in tag
+        run: |
+          echo "Checking commit messages for AI attribution in tagged release..."
+
+          # Get the commit that the tag points to
+          TAG_COMMIT=$(git rev-list -n 1 ${{ github.ref }})
+          echo "Checking tagged commit: $TAG_COMMIT"
+          COMMIT_MSG=$(git log --format=%B -n 1 $TAG_COMMIT)
+
+          FOUND_ATTRIBUTION=false
+
+          # Check for Claude attribution patterns
+          if echo "$COMMIT_MSG" | grep -q "🤖.*Claude Code"; then
+            echo "❌ ERROR: Tagged commit $TAG_COMMIT contains Claude Code attribution"
+            echo "Found: $(echo "$COMMIT_MSG" | grep "🤖.*Claude Code")"
+            FOUND_ATTRIBUTION=true
+          fi
+
+          if echo "$COMMIT_MSG" | grep -q "Co-Authored-By.*Claude"; then
+            echo "❌ ERROR: Tagged commit $TAG_COMMIT contains Claude co-authoring"
+            echo "Found: $(echo "$COMMIT_MSG" | grep "Co-Authored-By.*Claude")"
+            FOUND_ATTRIBUTION=true
+          fi
+
+          if [ "$FOUND_ATTRIBUTION" = true ]; then
+            echo ""
+            echo "🚫 BLOCKING RELEASE PUBLICATION"
+            echo "Cannot publish releases with AI attribution in commit messages."
+            echo ""
+            echo "💡 To fix this:"
+            echo "1. Delete the tag: git tag -d ${{ github.ref_name }}"
+            echo "2. Fix the commit message using git rebase"
+            echo "3. Re-create and push the tag"
+            echo ""
+            echo "See CLAUDE.md for commit message guidelines."
+            exit 1
+          else
+            echo "✅ Tagged commit message is clean - proceeding with release publication"
+          fi
+
   publish:
+    needs: validate-commits
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

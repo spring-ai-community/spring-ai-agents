@@ -5,7 +5,57 @@ on:
     branches: [ "main" ]
 
 jobs:
+  validate-commits:
+    runs-on: ubuntu-latest
+    name: Validate Commit Messages
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate commit messages
+        run: |
+          echo "Checking commit messages for AI attribution..."
+
+          # Check the last commit that was pushed
+          COMMIT=$(git rev-parse HEAD)
+          echo "Checking commit: $COMMIT"
+          COMMIT_MSG=$(git log --format=%B -n 1 $COMMIT)
+
+          FOUND_ATTRIBUTION=false
+
+          # Check for Claude attribution patterns
+          if echo "$COMMIT_MSG" | grep -q "🤖.*Claude Code"; then
+            echo "❌ ERROR: Commit $COMMIT contains Claude Code attribution"
+            echo "Found: $(echo "$COMMIT_MSG" | grep "🤖.*Claude Code")"
+            FOUND_ATTRIBUTION=true
+          fi
+
+          if echo "$COMMIT_MSG" | grep -q "Co-Authored-By.*Claude"; then
+            echo "❌ ERROR: Commit $COMMIT contains Claude co-authoring"
+            echo "Found: $(echo "$COMMIT_MSG" | grep "Co-Authored-By.*Claude")"
+            FOUND_ATTRIBUTION=true
+          fi
+
+          if [ "$FOUND_ATTRIBUTION" = true ]; then
+            echo ""
+            echo "🚫 BLOCKING SNAPSHOT PUBLICATION"
+            echo "Cannot publish snapshots with AI attribution in commit messages."
+            echo ""
+            echo "💡 To fix this:"
+            echo "1. Use 'git rebase -i' to edit the problematic commit"
+            echo "2. Remove the Claude attribution lines from commit message"
+            echo "3. Force push the corrected commit"
+            echo ""
+            echo "See CLAUDE.md for commit message guidelines."
+            exit 1
+          else
+            echo "✅ Commit message is clean - proceeding with snapshot publication"
+          fi
+
   publish:
+    needs: validate-commits
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
