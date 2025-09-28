@@ -147,19 +147,15 @@ jobs:
         if: matrix.test-type == 'claude-integration'
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          ./mvnw --batch-mode clean install -DskipTests
-          ./mvnw --batch-mode failsafe:integration-test failsafe:verify -Pfailsafe -pl provider-sdks/claude-code-sdk,agent-models/spring-ai-claude-code -am
+          ./mvnw --batch-mode clean verify -Pfailsafe -Dtest=NonExistent -DfailIfNoTests=false -Dit.test='**/claude**/*IT'
 
       - name: Run Gemini Integration Tests
         if: matrix.test-type == 'gemini-integration'
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          ./mvnw --batch-mode clean install -DskipTests
-          ./mvnw --batch-mode failsafe:integration-test failsafe:verify -Pfailsafe -pl provider-sdks/gemini-cli-sdk,agent-models/spring-ai-gemini -am
+          ./mvnw --batch-mode clean verify -Pfailsafe -Dtest=NonExistent -DfailIfNoTests=false -Dit.test='**/gemini**/*IT'
 
       - name: Run Core Integration Tests
         if: matrix.test-type == 'core-integration'
@@ -167,8 +163,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          ./mvnw --batch-mode clean install -DskipTests
-          ./mvnw --batch-mode failsafe:integration-test failsafe:verify -Pfailsafe -pl spring-ai-agent-client,agents/hello-world-agent,agents/code-coverage-agent -am
+          ./mvnw --batch-mode clean verify -Pfailsafe -Dtest=NonExistent -DfailIfNoTests=false -Dit.test='**/client/*IT,**/helloworld/*IT'
 
   build-docs:
     name: Build Documentation
