@@ -25,12 +25,10 @@ import java.util.Map;
  *
  * @param agent which agent to run (matches AgentSpec.id)
  * @param inputs runtime input values for the task
- * @param tweak optional operator hint for agent behavior adjustment
  * @param workingDirectory sandbox working directory (null for current directory)
  * @param env execution environment variables and sandbox settings
  * @author Mark Pollack
  * @since 1.1.0
  */
-public record RunSpec(String agent, Map<String, Object> inputs, String tweak, String workingDirectory,
-		Map<String, Object> env) {
+public record RunSpec(String agent, Map<String, Object> inputs, String workingDirectory, Map<String, Object> env) {
 }

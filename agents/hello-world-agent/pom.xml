@@ -18,7 +18,23 @@
     <description>Simple file creation agent for Spring AI Agents JBang launcher</description>
 
     <dependencies>
-        <!-- No Java dependencies needed - agent spec is pure YAML -->
+        <dependency>
+            <groupId>org.springaicommunity.agents</groupId>
+            <artifactId>spring-ai-agents-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Test dependencies -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.zeroturnaround</groupId>
+            <artifactId>zt-exec</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

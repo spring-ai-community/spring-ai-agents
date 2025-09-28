@@ -37,8 +37,6 @@ public final class LocalConfigLoader {
 
 	private static final Logger log = LoggerFactory.getLogger(LocalConfigLoader.class);
 
-	private static final Set<String> TWEAK_FLAGS = Set.of("--tweak");
-
 	private static final Set<String> ENVIRONMENT_FLAGS = Set.of("--sandbox", "--workdir");
 
 	/**
@@ -72,7 +70,7 @@ public final class LocalConfigLoader {
 
 		// 4. Load AgentSpec
 		log.info("Loading AgentSpec for: {}", merged.agent());
-		AgentSpec agentSpec = AgentRunner.loadAgentSpec(merged.agent());
+		AgentSpec agentSpec = Launcher.loadAgentSpec(merged.agent());
 		if (agentSpec == null) {
 			log.error("Unknown agent: {}", merged.agent());
 			throw new IllegalArgumentException("Unknown agent: " + merged.agent());
@@ -80,7 +78,7 @@ public final class LocalConfigLoader {
 
 		// 5. Merge inputs with AgentSpec defaults
 		log.info("Merging inputs with AgentSpec defaults");
-		Map<String, Object> finalInputs = AgentRunner.mergeWithDefaults(merged.inputs(), agentSpec);
+		Map<String, Object> finalInputs = Launcher.mergeWithDefaults(merged.inputs(), agentSpec);
 
 		// 6. Resolve working directory
 		Path workingDir = cwd;
@@ -91,9 +89,8 @@ public final class LocalConfigLoader {
 
 		// 7. Build final LauncherSpec
 		Map<String, Object> env = merged.env() != null ? new LinkedHashMap<>(merged.env()) : new LinkedHashMap<>();
-		LauncherSpec launcher = new LauncherSpec(agentSpec, finalInputs, merged.tweak(), workingDir, env);
-		log.info("Created LauncherSpec: agent={}, inputs={}, tweak={}", agentSpec.id(), finalInputs.keySet(),
-				merged.tweak());
+		LauncherSpec launcher = new LauncherSpec(agentSpec, finalInputs, workingDir, env);
+		log.info("Created LauncherSpec: agent={}, inputs={}", agentSpec.id(), finalInputs.keySet());
 
 		return launcher;
 	}
@@ -106,7 +103,7 @@ public final class LocalConfigLoader {
 	static RunSpec loadRunSpec(Path yamlPath) {
 		if (!Files.exists(yamlPath)) {
 			log.info("No run.yaml found at: {}", yamlPath);
-			return new RunSpec(null, Map.of(), null, null, Map.of());
+			return new RunSpec(null, Map.of(), null, Map.of());
 		}
 
 		try {
@@ -117,19 +114,18 @@ public final class LocalConfigLoader {
 
 			if (data == null) {
 				log.info("Empty run.yaml file");
-				return new RunSpec(null, Map.of(), null, null, Map.of());
+				return new RunSpec(null, Map.of(), null, Map.of());
 			}
 
 			String agent = getString(data, "agent");
 			Map<String, Object> inputs = getMap(data, "inputs");
-			String tweak = getString(data, "tweak");
 			String workingDirectory = getString(data, "workingDirectory");
 			Map<String, Object> env = getMap(data, "env");
 
-			log.info("Parsed run.yaml: agent={}, inputs={}, tweak={}, workingDirectory={}, env={}", agent,
-					inputs.keySet(), tweak, workingDirectory, env.keySet());
+			log.info("Parsed run.yaml: agent={}, inputs={}, workingDirectory={}, env={}", agent, inputs.keySet(),
+					workingDirectory, env.keySet());
 
-			return new RunSpec(agent, inputs, tweak, workingDirectory, env);
+			return new RunSpec(agent, inputs, workingDirectory, env);
 		}
 		catch (IOException e) {
 			log.error("Failed to read run.yaml: {}", yamlPath, e);
@@ -144,7 +140,6 @@ public final class LocalConfigLoader {
 	 */
 	static RunSpec parseCliArgs(String[] argv) {
 		String agent = null;
-		String tweak = null;
 		String workingDirectory = null;
 		Map<String, Object> inputs = new LinkedHashMap<>();
 		Map<String, Object> env = new LinkedHashMap<>();
@@ -155,10 +150,6 @@ public final class LocalConfigLoader {
 			if ("--agent".equals(arg) && i + 1 < argv.length) {
 				agent = argv[++i];
 				log.info("CLI agent: {}", agent);
-			}
-			else if (TWEAK_FLAGS.contains(arg) && i + 1 < argv.length) {
-				tweak = argv[++i];
-				log.info("CLI tweak: {}", tweak);
 			}
 			else if ("--workdir".equals(arg) && i + 1 < argv.length) {
 				workingDirectory = argv[++i];
@@ -178,10 +169,10 @@ public final class LocalConfigLoader {
 			}
 		}
 
-		log.info("Parsed CLI args: agent={}, inputs={}, tweak={}, workingDirectory={}, env={}", agent, inputs.keySet(),
-				tweak, workingDirectory, env.keySet());
+		log.info("Parsed CLI args: agent={}, inputs={}, workingDirectory={}, env={}", agent, inputs.keySet(),
+				workingDirectory, env.keySet());
 
-		return new RunSpec(agent, inputs, tweak, workingDirectory, env);
+		return new RunSpec(agent, inputs, workingDirectory, env);
 	}
 
 	/**
@@ -192,7 +183,6 @@ public final class LocalConfigLoader {
 	 */
 	static RunSpec mergeRunSpecs(RunSpec base, RunSpec override) {
 		String agent = override.agent() != null ? override.agent() : base.agent();
-		String tweak = override.tweak() != null ? override.tweak() : base.tweak();
 		String workingDirectory = override.workingDirectory() != null ? override.workingDirectory()
 				: base.workingDirectory();
 
@@ -212,10 +202,10 @@ public final class LocalConfigLoader {
 			env.putAll(override.env());
 		}
 
-		log.info("Merged RunSpecs: agent={}, inputs={}, tweak={}, workingDirectory={}, env={}", agent, inputs.keySet(),
-				tweak, workingDirectory, env.keySet());
+		log.info("Merged RunSpecs: agent={}, inputs={}, workingDirectory={}, env={}", agent, inputs.keySet(),
+				workingDirectory, env.keySet());
 
-		return new RunSpec(agent, inputs, tweak, workingDirectory, env);
+		return new RunSpec(agent, inputs, workingDirectory, env);
 	}
 
 	/**
@@ -226,7 +216,6 @@ public final class LocalConfigLoader {
 		System.err.println("");
 		System.err.println("Options:");
 		System.err.println("  --agent <name>     Agent to run (hello-world, coverage)");
-		System.err.println("  --tweak <hint>     Operator hint for agent behavior");
 		System.err.println("  --sandbox <type>   Sandbox type (local, docker)");
 		System.err.println("  --workdir <path>   Working directory for sandbox");
 		System.err.println("  --<key> <value>    Agent input parameter");
@@ -234,13 +223,12 @@ public final class LocalConfigLoader {
 		System.err.println("");
 		System.err.println("Examples:");
 		System.err.println("  jbang agents.java --agent hello-world --path test.txt");
-		System.err.println("  jbang agents.java --agent coverage --tweak \"focus on edge cases\"");
+		System.err.println("  jbang agents.java --agent coverage --target_coverage 90");
 		System.err.println("");
 		System.err.println("Configuration file (run.yaml):");
 		System.err.println("  agent: coverage");
 		System.err.println("  inputs:");
 		System.err.println("    target_coverage: 85");
-		System.err.println("  tweak: \"Only modify existing tests\"");
 	}
 
 	// Helper methods

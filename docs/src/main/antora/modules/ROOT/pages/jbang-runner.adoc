@@ -51,8 +51,7 @@ jbang agents.java --agent hello-world --path test.txt --content "Hello World!"
 jbang agents.java \
   --agent coverage \
   --target_coverage 90 \
-  --module core \
-  --tweak "Focus on edge cases and error conditions"
+  --module core
 ----
 
 === Local Development with LocalSandbox
@@ -126,15 +125,6 @@ inputs:
   focus:
     type: string
     default: "unit"
-prompt:
-  system: "You are an expert Java testing agent..."
-  userTemplate: |
-    Increase line coverage in {module} to at least {target_coverage}%.
-    Focus on {focus} tests.
-    {if(tweak)}
-
-    Operator guidance: {tweak}
-    {endif}
 ----
 
 === RunSpec
@@ -146,7 +136,6 @@ Contains the complete run configuration:
 public record RunSpec(
     String agent,                    // Which agent to run
     Map<String, Object> inputs,      // Runtime input values
-    String tweak,                    // Optional behavior adjustment
     String workingDirectory,         // Sandbox working directory
     Map<String, Object> env          // Environment settings
 )
@@ -161,7 +150,6 @@ The resolved execution context passed to the agent:
 public record LauncherSpec(
     AgentSpec agentSpec,            // Resolved agent definition
     Map<String, Object> inputs,     // Merged inputs (defaults + runtime)
-    String tweak,                   // Optional tweak
     Path cwd,                       // Working directory
     Map<String, Object> env         // Environment variables
 )
@@ -177,7 +165,6 @@ jbang agents.java [options]
 
 Options:
   --agent <name>     Agent to run (hello-world, coverage)
-  --tweak <hint>     Operator hint for agent behavior
   --sandbox <type>   Sandbox type (local, docker) [default: local]
   --workdir <path>   Working directory for sandbox
   --<key> <value>    Agent input parameter
@@ -194,7 +181,6 @@ inputs:
   target_coverage: 85
   module: "core"
   focus: "integration tests"
-tweak: "Focus on error handling and edge cases"
 workingDirectory: "/tmp/test-workspace"
 env:
   sandbox: "local"
@@ -236,8 +222,7 @@ jbang agents.java \
   --agent coverage \
   --target_coverage 90 \
   --module core \
-  --focus "unit tests" \
-  --tweak "Focus on boundary conditions"
+  --focus "unit tests"
 ----
 
 **Inputs:**
@@ -247,19 +232,9 @@ jbang agents.java \
 
 == Template Rendering
 
-The JBang Agent Runner uses Spring AI's StringTemplate engine with `{variable}` syntax:
+Agents are implemented as black boxes that take typed inputs and produce outputs. They encapsulate their internal logic and prompts as implementation details.
 
-[source]
-----
-Increase coverage in {module} to {target_coverage}%.
-{if(tweak)}
-Operator guidance: {tweak}
-{endif}
-----
-
-Variables are resolved from:
-* Agent inputs (merged with defaults)
-* Runtime `tweak` parameter (if provided)
+Variables are resolved from agent inputs (merged with defaults).
 
 == Comprehensive Logging
 
@@ -286,9 +261,9 @@ The architecture is optimized for benchmark programs:
 ----
 // Generate multiple run configurations
 List<RunSpec> runs = List.of(
-    new RunSpec("coverage", Map.of("target_coverage", 80), null, "/tmp/test1", Map.of()),
-    new RunSpec("coverage", Map.of("target_coverage", 90), "focus on edge cases", "/tmp/test2", Map.of()),
-    new RunSpec("hello-world", Map.of("path", "test.txt", "content", "Hello"), null, "/tmp/test3", Map.of())
+    new RunSpec("coverage", Map.of("target_coverage", 80), "/tmp/test1", Map.of()),
+    new RunSpec("coverage", Map.of("target_coverage", 90), "/tmp/test2", Map.of()),
+    new RunSpec("hello-world", Map.of("path", "test.txt", "content", "Hello"), "/tmp/test3", Map.of())
 );
 
 // Execute all runs (AgentSpecs are cached and reused)

@@ -10,12 +10,3 @@ inputs:
   focus:
     type: string
     default: "unit"
-prompt:
-  system: "You are an expert Java testing agent. Your role is to improve test coverage while maintaining code quality and following best practices."
-  userTemplate: |
-    Increase line coverage in {module} to at least {target_coverage}%.
-    Focus on {focus} tests.
-    {if(tweak)}
-
-    Operator guidance: {tweak}
-    {endif}

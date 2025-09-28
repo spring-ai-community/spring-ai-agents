@@ -19,17 +19,16 @@ package org.springaicommunity.agents.core;
 import java.util.Map;
 
 /**
- * Immutable specification defining what an agent does. Contains input definitions, prompt
- * templates, and metadata. Does not contain runtime values like tweak hints.
+ * Immutable specification defining what an agent does. Contains input definitions only.
+ * Prompts are hardcoded in agent implementations as black boxes.
  *
  * @param id unique agent identifier (e.g., "hello-world", "coverage")
  * @param version agent version
  * @param inputs input definitions with types and defaults
- * @param prompt prompt specification with templates
  * @author Mark Pollack
  * @since 1.1.0
  */
-public record AgentSpec(String id, String version, Map<String, InputDef> inputs, PromptSpec prompt) {
+public record AgentSpec(String id, String version, Map<String, InputDef> inputs) {
 
 	/**
 	 * Input definition with type information and defaults.
@@ -39,15 +38,6 @@ public record AgentSpec(String id, String version, Map<String, InputDef> inputs,
 	 * @param required whether input is required
 	 */
 	public record InputDef(String type, Object defaultValue, boolean required) {
-	}
-
-	/**
-	 * Prompt specification with system and user templates.
-	 *
-	 * @param system system prompt
-	 * @param userTemplate user prompt template supporting {{variables}} and {{tweak}}
-	 */
-	public record PromptSpec(String system, String userTemplate) {
 	}
 
 }

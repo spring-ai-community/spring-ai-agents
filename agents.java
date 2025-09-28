@@ -9,7 +9,7 @@ import org.springaicommunity.agents.core.*;
 public class agents {
     public static void main(String[] argv) throws Exception {
         LauncherSpec spec = LocalConfigLoader.load(argv);
-        Result r = AgentRunner.execute(spec);
+        Result r = Launcher.execute(spec);
         if (!r.success()) System.exit(1);
         System.out.println(r.message());
     }
