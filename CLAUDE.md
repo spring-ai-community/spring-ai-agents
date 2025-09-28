@@ -223,3 +223,11 @@ All exceptions are runtime exceptions:
 - If tests fail due to missing CLI tools, fix the environment setup (install CLIs, add API keys)
 - Integration tests validate real-world usage and must remain enabled
 - Disabling these tests masks real problems and breaks the development workflow
+
+### CI/CD Success Criteria
+- **CI optimization work is ONLY complete when all previously passing tests are passing again**
+- **Leaving CI failing is NEVER acceptable** - any optimization that breaks existing functionality is incomplete
+- Performance improvements are meaningless if they come at the cost of test failures
+- The goal is to improve CI speed AND maintain 100% test reliability
+- If optimization work introduces failures, the work must continue until failures are resolved
+- "Separate issue" or "can be addressed later" are not acceptable conclusions for failing CI

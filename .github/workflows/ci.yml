@@ -148,6 +148,7 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
+          echo "ANTHROPIC_API_KEY length: ${#ANTHROPIC_API_KEY}"
           ./mvnw --batch-mode clean verify -Pfailsafe
 
       - name: Run Gemini Integration Tests
