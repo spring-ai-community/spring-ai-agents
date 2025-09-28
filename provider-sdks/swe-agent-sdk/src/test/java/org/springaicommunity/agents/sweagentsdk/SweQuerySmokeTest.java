@@ -19,6 +19,7 @@ package org.springaicommunity.agents.sweagentsdk;
 import org.springaicommunity.agents.sweagentsdk.transport.SweCliApi;
 import org.springaicommunity.agents.sweagentsdk.types.SweAgentOptions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.Logger;
@@ -68,6 +69,7 @@ class SweQuerySmokeTest extends BaseSweAgentIT {
 	}
 
 	@Test
+	@Disabled("SWE Agent CLI prerequisites not available in CI")
 	void testBasicQuery() throws Exception {
 		// Ensure CLI is available before proceeding
 		if (sweCliApi == null) {
@@ -100,6 +102,7 @@ class SweQuerySmokeTest extends BaseSweAgentIT {
 	}
 
 	@Test
+	@Disabled("SWE Agent CLI prerequisites not available in CI")
 	void testQueryWithOptions() throws Exception {
 		// Ensure CLI is available before proceeding
 		if (sweCliApi == null) {
@@ -136,6 +139,7 @@ class SweQuerySmokeTest extends BaseSweAgentIT {
 	}
 
 	@Test
+	@Disabled("SWE Agent CLI prerequisites not available in CI")
 	void testQueryResultAnalysis() throws Exception {
 		// Ensure CLI is available before proceeding
 		if (sweCliApi == null) {
