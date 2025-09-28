@@ -33,45 +33,73 @@ jobs:
         with:
           fetch-depth: 0  # Need full history for commit validation
 
-      - name: Validate commit messages (for main branch pushes)
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      - name: Validate commit messages
         run: |
           echo "Checking commit messages for AI attribution..."
 
-          # Check the last commit that was pushed
-          COMMIT=$(git rev-parse HEAD)
-          echo "Checking commit: $COMMIT"
-          COMMIT_MSG=$(git log --format=%B -n 1 $COMMIT)
-
           FOUND_ATTRIBUTION=false
 
-          # Check for Claude attribution patterns
-          if echo "$COMMIT_MSG" | grep -q "🤖.*Claude Code"; then
-            echo "❌ ERROR: Commit $COMMIT contains Claude Code attribution"
-            echo "Found: $(echo "$COMMIT_MSG" | grep "🤖.*Claude Code")"
-            FOUND_ATTRIBUTION=true
-          fi
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # For PRs, check commits in the PR
+            echo "Checking commits in PR from ${{ github.event.pull_request.base.sha }} to ${{ github.event.pull_request.head.sha }}"
+            COMMITS=$(git rev-list ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
 
-          if echo "$COMMIT_MSG" | grep -q "Co-Authored-By.*Claude"; then
-            echo "❌ ERROR: Commit $COMMIT contains Claude co-authoring"
-            echo "Found: $(echo "$COMMIT_MSG" | grep "Co-Authored-By.*Claude")"
-            FOUND_ATTRIBUTION=true
+            for commit in $COMMITS; do
+              echo "Checking commit: $commit"
+              COMMIT_MSG=$(git log --format=%B -n 1 $commit)
+
+              # Check for Claude attribution patterns
+              if echo "$COMMIT_MSG" | grep -q "🤖.*Claude Code"; then
+                echo "❌ ERROR: Commit $commit contains Claude Code attribution"
+                echo "Found: $(echo "$COMMIT_MSG" | grep "🤖.*Claude Code")"
+                FOUND_ATTRIBUTION=true
+              fi
+
+              if echo "$COMMIT_MSG" | grep -q "Co-Authored-By.*Claude"; then
+                echo "❌ ERROR: Commit $commit contains Claude co-authoring"
+                echo "Found: $(echo "$COMMIT_MSG" | grep "Co-Authored-By.*Claude")"
+                FOUND_ATTRIBUTION=true
+              fi
+            done
+          else
+            # For pushes to main, check the last commit
+            COMMIT=$(git rev-parse HEAD)
+            echo "Checking pushed commit: $COMMIT"
+            COMMIT_MSG=$(git log --format=%B -n 1 $COMMIT)
+
+            # Check for Claude attribution patterns
+            if echo "$COMMIT_MSG" | grep -q "🤖.*Claude Code"; then
+              echo "❌ ERROR: Commit $COMMIT contains Claude Code attribution"
+              echo "Found: $(echo "$COMMIT_MSG" | grep "🤖.*Claude Code")"
+              FOUND_ATTRIBUTION=true
+            fi
+
+            if echo "$COMMIT_MSG" | grep -q "Co-Authored-By.*Claude"; then
+              echo "❌ ERROR: Commit $COMMIT contains Claude co-authoring"
+              echo "Found: $(echo "$COMMIT_MSG" | grep "Co-Authored-By.*Claude")"
+              FOUND_ATTRIBUTION=true
+            fi
           fi
 
           if [ "$FOUND_ATTRIBUTION" = true ]; then
             echo ""
-            echo "🚫 BLOCKING SNAPSHOT PUBLICATION"
-            echo "Cannot publish snapshots with AI attribution in commit messages."
+            if [ "${{ github.event_name }}" = "pull_request" ]; then
+              echo "🚫 BLOCKING PR MERGE"
+              echo "Cannot merge PR with AI attribution in commit messages."
+            else
+              echo "🚫 BLOCKING SNAPSHOT PUBLICATION"
+              echo "Cannot publish snapshots with AI attribution in commit messages."
+            fi
             echo ""
             echo "💡 To fix this:"
-            echo "1. Use 'git rebase -i' to edit the problematic commit"
-            echo "2. Remove the Claude attribution lines from commit message"
-            echo "3. Force push the corrected commit"
+            echo "1. Use 'git rebase -i' to edit the problematic commit(s)"
+            echo "2. Remove the Claude attribution lines from commit messages"
+            echo "3. Force push the corrected commits"
             echo ""
             echo "See CLAUDE.md for commit message guidelines."
             exit 1
           else
-            echo "✅ Commit message is clean - proceeding with build and publish"
+            echo "✅ All commit messages are clean - proceeding"
           fi
 
       - name: Set up JDK 17
