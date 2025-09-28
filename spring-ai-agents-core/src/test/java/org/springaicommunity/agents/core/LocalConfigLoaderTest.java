@@ -65,7 +65,7 @@ class LocalConfigLoaderTest {
 		// Create minimal hello-world.yaml for agent spec
 		createHelloWorldAgentSpec();
 
-		LauncherSpec spec = LocalConfigLoader.load(new String[] { "hello-world", "key=" });
+		LauncherSpec spec = LocalConfigLoader.load(new String[] { "hello-world", "key=" }, tempDir);
 		assertEquals("", spec.inputs().get("key"));
 	}
 
@@ -74,7 +74,7 @@ class LocalConfigLoaderTest {
 		createHelloWorldAgentSpec();
 
 		LauncherSpec spec = LocalConfigLoader
-			.load(new String[] { "hello-world", "key=first", "key=second", "key=last" });
+			.load(new String[] { "hello-world", "key=first", "key=second", "key=last" }, tempDir);
 		assertEquals("last", spec.inputs().get("key"));
 	}
 
@@ -82,12 +82,12 @@ class LocalConfigLoaderTest {
 	void testValueWithEquals() throws Exception {
 		createHelloWorldAgentSpec();
 
-		LauncherSpec spec = LocalConfigLoader.load(new String[] { "hello-world", "url=http://example.com?a=b=c" });
+		LauncherSpec spec = LocalConfigLoader.load(new String[] { "hello-world", "url=http://example.com?a=b=c" },
+				tempDir);
 		assertEquals("http://example.com?a=b=c", spec.inputs().get("url"));
 	}
 
 	@Test
-	@Disabled("Test requires filesystem isolation - needs test environment setup")
 	void testRunspecWithBlankWorkingDirectory() throws Exception {
 		createHelloWorldAgentSpec();
 
@@ -97,21 +97,12 @@ class LocalConfigLoaderTest {
 		Path runspec = agentsDir.resolve("run.yaml");
 		Files.writeString(runspec, "workingDirectory: \"\"\nenv:\n  test: value\n");
 
-		// Change working directory to tempDir for test
-		String originalDir = System.getProperty("user.dir");
-		System.setProperty("user.dir", tempDir.toString());
-		try {
-			LauncherSpec spec = LocalConfigLoader.load(new String[] { "hello-world" });
-			assertEquals(Path.of("."), spec.cwd()); // Should use default
-			assertEquals("value", spec.env().get("test"));
-		}
-		finally {
-			System.setProperty("user.dir", originalDir);
-		}
+		LauncherSpec spec = LocalConfigLoader.load(new String[] { "hello-world" }, tempDir);
+		assertEquals(tempDir, spec.cwd()); // Should use baseDir as default
+		assertEquals("value", spec.env().get("test"));
 	}
 
 	@Test
-	@Disabled("Test requires filesystem isolation - needs test environment setup")
 	void testRunspecWithNonMapRoot() throws Exception {
 		createHelloWorldAgentSpec();
 
@@ -121,24 +112,15 @@ class LocalConfigLoaderTest {
 		Path runspec = agentsDir.resolve("run.yaml");
 		Files.writeString(runspec, "- not a mapping\n- invalid structure\n");
 
-		// Change working directory to tempDir for test
-		String originalDir = System.getProperty("user.dir");
-		System.setProperty("user.dir", tempDir.toString());
-		try {
-			IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
-				LocalConfigLoader.load(new String[] { "hello-world" });
-			});
-			assertTrue(ex.getMessage().contains("YAML root must be a mapping"));
-		}
-		finally {
-			System.setProperty("user.dir", originalDir);
-		}
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+			LocalConfigLoader.load(new String[] { "hello-world" }, tempDir);
+		});
+		assertTrue(ex.getMessage().contains("YAML root must be a mapping"));
 	}
 
 	private void createHelloWorldAgentSpec() throws Exception {
-		// Create .agents directory and hello-world.yaml in current working directory
-		Path currentDir = Path.of(System.getProperty("user.dir"));
-		Path agentsDir = currentDir.resolve(".agents");
+		// Create .agents directory and hello-world.yaml in tempDir
+		Path agentsDir = tempDir.resolve(".agents");
 		Files.createDirectories(agentsDir);
 		Path agentSpec = agentsDir.resolve("hello-world.yaml");
 		Files.writeString(agentSpec, """

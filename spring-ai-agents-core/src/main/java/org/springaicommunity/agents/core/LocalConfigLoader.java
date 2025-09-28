@@ -49,6 +49,16 @@ public final class LocalConfigLoader {
 	 * @return LauncherSpec ready for execution
 	 */
 	public static LauncherSpec load(String[] argv) {
+		return load(argv, Path.of("."));
+	}
+
+	/**
+	 * Package-private method for testing with custom base directory.
+	 * @param argv command line arguments
+	 * @param baseDir base directory for resolving relative paths
+	 * @return LauncherSpec ready for execution
+	 */
+	static LauncherSpec load(String[] argv, Path baseDir) {
 		Objects.requireNonNull(argv, "argv");
 		if (argv.length == 0) {
 			throw new IllegalArgumentException("Usage: launcher <agentId> key=value [key2=value2 ...]");
@@ -80,10 +90,10 @@ public final class LocalConfigLoader {
 		}
 
 		// 4) optional runspec for cwd/env
-		Path cwd = Path.of(".");
+		Path cwd = baseDir;
 		Map<String, Object> env = Map.of();
 
-		Path runspec = resolveRunSpecPath();
+		Path runspec = resolveRunSpecPath(baseDir);
 		if (runspec != null) {
 			RunSpec runSpecData = loadRunSpec(runspec);
 			String wd = runSpecData.workingDirectory();
@@ -102,9 +112,10 @@ public final class LocalConfigLoader {
 
 	/**
 	 * Resolve runspec file path using priority order.
+	 * @param baseDir base directory for resolving relative paths
 	 * @return Path to runspec file or null if none found
 	 */
-	private static Path resolveRunSpecPath() {
+	private static Path resolveRunSpecPath(Path baseDir) {
 		String override = System.getenv(ENV_RUNSPEC);
 		if (override != null && !override.isBlank()) {
 			Path p = Path.of(override);
@@ -115,17 +126,17 @@ public final class LocalConfigLoader {
 		}
 
 		// Check .agents/ directory first (preferred)
-		Path agentsRunYaml = Path.of(".agents", "run.yaml");
+		Path agentsRunYaml = baseDir.resolve(".agents").resolve("run.yaml");
 		if (Files.exists(agentsRunYaml)) {
 			return agentsRunYaml;
 		}
 
 		// Fallback to root level (backward compatibility)
-		Path runYaml = Path.of("run.yaml");
+		Path runYaml = baseDir.resolve("run.yaml");
 		if (Files.exists(runYaml)) {
 			return runYaml;
 		}
-		Path runspecYaml = Path.of("runspec.yaml");
+		Path runspecYaml = baseDir.resolve("runspec.yaml");
 		if (Files.exists(runspecYaml)) {
 			return runspecYaml;
 		}
