@@ -1,25 +1,8 @@
-name: CI/CD build (Matrix - DISABLED)
+name: Matrix Integration Tests (DISABLED)
 
 # DISABLED: Matrix CI archived for future optimization
 # Use ci.yml (linear CI) instead
-on:
-  # schedule:
-  #   # Daily builds at reasonable intervals
-  #   - cron: '0 9 * * 1-5'    # 9:00 AM UTC weekdays
-  #   - cron: '0 21 * * 1-5'   # 9:00 PM UTC weekdays
-  # push:
-  #   branches: [ main ]
-  #   paths-ignore:
-  #     - '.github/**'
-  #     - 'docs/**'
-  #     - '*.md'
-  # pull_request:
-  #   branches: [ main ]
-  #   paths-ignore:
-  #     - '.github/**'
-  #     - 'docs/**'
-  #     - '*.md'
-  # workflow_dispatch:
+on: []
 
 jobs:
   validate:

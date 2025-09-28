@@ -1,4 +1,4 @@
-name: CI/CD build
+name: CI/CD with Integration Tests
 
 on:
   schedule:

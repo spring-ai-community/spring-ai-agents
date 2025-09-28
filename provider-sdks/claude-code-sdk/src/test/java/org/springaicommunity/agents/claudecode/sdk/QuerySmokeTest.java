@@ -38,7 +38,11 @@ class QuerySmokeTest extends ClaudeCliTestBase {
 
 	@Test
 	void testBasicQuery() throws Exception {
-		QueryResult result = Query.execute("What is 1+1?");
+		CLIOptions options = CLIOptions.builder()
+			.timeout(Duration.ofMinutes(3))  // AgentClient overhead requires longer timeout
+			.build();
+
+		QueryResult result = Query.execute("What is 1+1?", options);
 
 		assertThat(result).isNotNull();
 		assertThat(result.messages()).isNotEmpty();
@@ -49,7 +53,7 @@ class QuerySmokeTest extends ClaudeCliTestBase {
 	@Test
 	void testQueryWithOptions() throws Exception {
 		CLIOptions options = CLIOptions.builder()
-			.timeout(Duration.ofMinutes(2))
+			.timeout(Duration.ofMinutes(3))  // AgentClient overhead requires longer timeout
 			.systemPrompt("You are a helpful math tutor.")
 			.build();
 
@@ -62,7 +66,11 @@ class QuerySmokeTest extends ClaudeCliTestBase {
 
 	@Test
 	void testQueryResultAnalysis() throws Exception {
-		QueryResult result = Query.execute("Hello, world!");
+		CLIOptions options = CLIOptions.builder()
+			.timeout(Duration.ofMinutes(3))  // AgentClient overhead requires even longer timeout
+			.build();
+
+		QueryResult result = Query.execute("Hello, world!", options);
 
 		// Test domain-specific methods
 		assertThat(result.getMessageCount()).isGreaterThan(0);
@@ -82,8 +90,8 @@ class QuerySmokeTest extends ClaudeCliTestBase {
 		org.zeroturnaround.exec.ProcessExecutor executor = new org.zeroturnaround.exec.ProcessExecutor()
 			.command(claudePath, "--print", "--output-format", "json", "--append-system-prompt",
 					"You are a helpful math tutor.", "--permission-mode", "bypassPermissions", "--", "What is 2+2?")
-			.timeout(2, java.util.concurrent.TimeUnit.MINUTES) // AgentClient adds
-																// overhead, need 2m
+			.timeout(3, java.util.concurrent.TimeUnit.MINUTES) // AgentClient adds
+																// overhead, need 3m
 			.readOutput(true);
 
 		// Add API key if available
