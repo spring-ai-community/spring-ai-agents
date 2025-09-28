@@ -1,5 +1,7 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
 //JAVA 21
+//REPOS central=https://repo1.maven.org/maven2/
+//REPOS central-snapshots=https://central.sonatype.com/repository/maven-snapshots/
 //DEPS org.springaicommunity.agents:spring-ai-agents-core:0.1.0-SNAPSHOT
 //DEPS org.springaicommunity.agents:hello-world-agent:0.1.0-SNAPSHOT
 //DEPS org.springaicommunity.agents:code-coverage-agent:0.1.0-SNAPSHOT
