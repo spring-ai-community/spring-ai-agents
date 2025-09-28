@@ -138,7 +138,7 @@ jobs:
 
       - name: Run Unit Tests
         if: matrix.test-type == 'unit'
-        run: ./mvnw --batch-mode --quiet clean test -pl \!provider-sdks/claude-code-sdk,\!provider-sdks/gemini-cli-sdk,\!provider-sdks/swe-agent-sdk
+        run: ./mvnw --batch-mode --quiet clean test
 
       - name: Run Claude Integration Tests
         if: matrix.test-type == 'claude-integration'
