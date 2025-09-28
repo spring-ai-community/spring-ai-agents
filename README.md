@@ -1,5 +1,7 @@
 # Spring AI Agents
 
+> **⚠️ Important Notice for Fork Owners**: We cleaned up git history on Sept 28, 2025. If you have a fork, please see [Issue #2](https://github.com/spring-ai-community/spring-ai-agents/issues/2) for update instructions.
+
 ## 📊 SpringOne 2025 Presentation
 This project was featured in a talk at SpringOne 2025 by Mark Pollack. View the presentation: [springone-2025-presentation.html](springone-2025-presentation.html)
 
