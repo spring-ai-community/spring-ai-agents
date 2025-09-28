@@ -1,0 +1,64 @@
+name: Commit Message Validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+
+jobs:
+  validate-commits:
+    runs-on: ubuntu-latest
+    name: Validate Commit Messages
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate commit messages
+        run: |
+          echo "Checking commit messages for AI attribution..."
+
+          # Get commits to check
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # For PRs, check commits in the PR
+            COMMITS=$(git rev-list ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
+          else
+            # For pushes to main, check the last commit
+            COMMITS=$(git rev-parse HEAD)
+          fi
+
+          FOUND_ATTRIBUTION=false
+
+          for commit in $COMMITS; do
+            echo "Checking commit: $commit"
+            COMMIT_MSG=$(git log --format=%B -n 1 $commit)
+
+            # Check for Claude attribution patterns
+            if echo "$COMMIT_MSG" | grep -q "🤖.*Claude Code"; then
+              echo "❌ ERROR: Commit $commit contains Claude Code attribution"
+              echo "Found: $(echo "$COMMIT_MSG" | grep "🤖.*Claude Code")"
+              FOUND_ATTRIBUTION=true
+            fi
+
+            if echo "$COMMIT_MSG" | grep -q "Co-Authored-By.*Claude"; then
+              echo "❌ ERROR: Commit $commit contains Claude co-authoring"
+              echo "Found: $(echo "$COMMIT_MSG" | grep "Co-Authored-By.*Claude")"
+              FOUND_ATTRIBUTION=true
+            fi
+          done
+
+          if [ "$FOUND_ATTRIBUTION" = true ]; then
+            echo ""
+            echo "💡 To fix this:"
+            echo "1. Use 'git rebase -i' to edit the problematic commits"
+            echo "2. Remove the Claude attribution lines from commit messages"
+            echo "3. Force push the corrected commits"
+            echo ""
+            echo "See CLAUDE.md for commit message guidelines."
+            exit 1
+          else
+            echo "✅ All commit messages are clean - no AI attribution found"
+          fi
