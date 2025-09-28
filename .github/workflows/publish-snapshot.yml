@@ -29,16 +29,13 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Generate Java docs
-        run: mvn -Pjavadoc -B javadoc:aggregate
-
       - name: Build with Maven and deploy to Sonatype snapshot repository
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.SIGNING_PASSPHRASE }}
         run: |
-          mvn -Pjavadoc -Prelease --batch-mode --update-snapshots deploy
+          mvn -Prelease --batch-mode --update-snapshots deploy
 
       - name: Capture project version
         run: echo PROJECT_VERSION=$(mvn help:evaluate -Dexpression=project.version --quiet -DforceStdout) >> $GITHUB_ENV
