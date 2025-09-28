@@ -78,13 +78,13 @@ public class Launcher {
 		// Dynamically load agent implementation if available
 		if ("hello-world".equals(agentId)) {
 			try {
-				Class<?> agentClass = Class.forName("org.springaicommunity.agents.helloworld.HelloWorldAgent");
+				Class<?> agentClass = Class.forName("org.springaicommunity.agents.helloworld.HelloWorldAgentRunner");
 				AgentRunner agent = (AgentRunner) agentClass.getDeclaredConstructor().newInstance();
 				agents.put("hello-world", agent);
-				log.info("Loaded HelloWorldAgent dynamically");
+				log.info("Loaded HelloWorldAgentRunner dynamically");
 			}
 			catch (Exception e) {
-				log.warn("Failed to load HelloWorldAgent: {}", e.getMessage());
+				log.warn("Failed to load HelloWorldAgentRunner: {}", e.getMessage());
 			}
 		}
 
@@ -143,31 +143,7 @@ public class Launcher {
 	 * @return agent specification or null if not found
 	 */
 	public static AgentSpec loadAgentSpec(String agentId) {
-		String resourcePath = "/agents/" + agentId + ".yaml";
-		log.info("Attempting to load agent spec from: {}", resourcePath);
-
-		try (InputStream is = Launcher.class.getResourceAsStream(resourcePath)) {
-			if (is == null) {
-				log.warn("Agent spec not found: {}", resourcePath);
-				return null;
-			}
-
-			Yaml yaml = new Yaml();
-			Map<String, Object> data = yaml.load(is);
-			log.info("Loaded YAML data for agent: {}", agentId);
-
-			String id = getString(data, "id");
-			String version = getString(data, "version");
-			Map<String, AgentSpec.InputDef> inputs = parseInputDefs(getMap(data, "inputs"));
-
-			log.info("Parsed agent spec: id={}, version={}, inputs={}", id, version,
-					inputs != null ? inputs.keySet() : null);
-			return new AgentSpec(id, version, inputs);
-		}
-		catch (IOException e) {
-			log.error("Failed to load agent spec from: {}", resourcePath, e);
-			throw new RuntimeException("Failed to load agent spec: " + resourcePath, e);
-		}
+		return AgentSpecLoader.loadAgentSpec(agentId);
 	}
 
 	/**
@@ -189,16 +165,46 @@ public class Launcher {
 			});
 		}
 
-		// Override with runtime values
+		// Override with runtime values, applying type coercion
 		if (runtimeInputs != null) {
 			runtimeInputs.forEach((key, value) -> {
-				result.put(key, value);
-				log.info("Override input {}: {}", key, value);
+				Object coercedValue = coerceType(value, agentSpec, key);
+				result.put(key, coercedValue);
+				log.info("Override input {}: {}", key, coercedValue);
 			});
 		}
 
 		log.info("Merged inputs: {}", result.keySet());
 		return result;
+	}
+
+	/**
+	 * Basic type coercion for input values.
+	 * @param value raw input value
+	 * @param agentSpec agent specification
+	 * @param key input key
+	 * @return coerced value
+	 */
+	private static Object coerceType(Object value, AgentSpec agentSpec, String key) {
+		if (value == null || !(value instanceof String)) {
+			return value;
+		}
+
+		String stringValue = (String) value;
+
+		// Simple coercion for common types
+		if ("true".equalsIgnoreCase(stringValue) || "false".equalsIgnoreCase(stringValue)) {
+			return Boolean.parseBoolean(stringValue);
+		}
+
+		try {
+			return Integer.parseInt(stringValue);
+		}
+		catch (NumberFormatException e) {
+			// Not an integer, return as string
+		}
+
+		return stringValue;
 	}
 
 	/**
@@ -244,36 +250,6 @@ public class Launcher {
 		String result = renderer.apply(template, context);
 		log.info("Template rendered successfully, result length: {}", result.length());
 		return result;
-	}
-
-	// Parsing helper methods
-	private static Map<String, AgentSpec.InputDef> parseInputDefs(Map<String, Object> inputsMap) {
-		if (inputsMap == null) {
-			return Map.of();
-		}
-
-		Map<String, AgentSpec.InputDef> result = new LinkedHashMap<>();
-		inputsMap.forEach((key, value) -> {
-			if (value instanceof Map<?, ?> defMap) {
-				String type = getString(defMap, "type");
-				Object defaultValue = defMap.get("default");
-				boolean required = Boolean.parseBoolean(getString(defMap, "required"));
-				result.put(key, new AgentSpec.InputDef(type, defaultValue, required));
-			}
-		});
-		return result;
-	}
-
-	@SuppressWarnings("unchecked")
-	private static Map<String, Object> getMap(Map<String, Object> map, String key) {
-		Object value = map.get(key);
-		return (value instanceof Map) ? (Map<String, Object>) value : Map.of();
-	}
-
-	@SuppressWarnings("unchecked")
-	private static String getString(Map<?, ?> map, String key) {
-		Object value = map.get(key);
-		return value != null ? value.toString() : null;
 	}
 
 }

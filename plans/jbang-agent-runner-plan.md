@@ -35,7 +35,8 @@ spring-ai-agents/
 │       ├── RunSpec.java                 # Per-run configuration
 │       ├── LauncherSpec.java            # Combined spec
 │       ├── LocalConfigLoader.java       # YAML + CLI merger
-│       └── Result.java                  # Success/failure result
+│       ├── AgentSpecLoader.java         # YAML loading with filesystem fallback
+│       └── Result.java                  # Success/failure result with data payload
 │
 ├── agents/                               # Individual agent artifacts
 │   ├── hello-world-agent/
@@ -48,7 +49,9 @@ spring-ai-agents/
 │       ├── src/main/java/.../CoverageAgent.java
 │       └── src/main/resources/agents/coverage.yaml
 │
-├── agents.java                          # Ultra-thin JBang launcher (5 lines)
+├── jbang/
+│   ├── launcher.java                     # Ultra-thin JBang launcher (3 lines)
+│   └── README.md                         # JBang usage documentation
 ├── jbang-catalog.json                   # For springai@agents alias
 └── plans/
     └── jbang-agent-runner-plan.md       # This plan document
@@ -95,10 +98,13 @@ public record LauncherSpec(
 ```java
 public record Result(
     boolean success,
-    String message
+    String message,
+    Map<String, Object> data          // Judge integration payload
 ) {
-    public static Result ok(String msg) { return new Result(true, msg); }
-    public static Result fail(String msg) { return new Result(false, msg); }
+    public static Result ok(String msg) { return new Result(true, msg, Map.of()); }
+    public static Result ok(String msg, Map<String,Object> data) { return new Result(true, msg, data); }
+    public static Result fail(String msg) { return new Result(false, msg, Map.of()); }
+    public static Result fail(String msg, Map<String,Object> data) { return new Result(false, msg, data); }
 }
 ```
 
@@ -160,7 +166,7 @@ env:
 
 import org.springaicommunity.agents.core.*;
 
-public class agents {
+public class launcher {
     public static void main(String[] argv) throws Exception {
         LauncherSpec spec = LocalConfigLoader.load(argv);
         Result r = Launcher.execute(spec);
@@ -211,24 +217,23 @@ private static boolean isTweakFlag(String arg) {
 ### Hello World
 ```bash
 # With explicit content
-jbang springai@agents --agent hello-world --path test.txt --content HelloWorld
+jbang jbang/launcher.java --agent hello-world --path test.txt --content HelloWorld
 
 # Using default content
-jbang springai@agents --agent hello-world --path test.txt
+jbang jbang/launcher.java --agent hello-world --path test.txt
 ```
 
-### Coverage with Tweak
+### Coverage Agent
 ```bash
-jbang springai@agents --agent coverage --tweak "Only modify code in complete/"
+# Basic usage
+jbang jbang/launcher.java --agent coverage --target_coverage 85 --module src/main
 
-# With all options
-jbang springai@agents \
+# With sandbox options
+jbang jbang/launcher.java \
   --agent coverage \
   --target_coverage 85 \
   --module src/main \
-  --tweak "focus on edge cases" \
-  --sandbox docker \
-  --isolated
+  --sandbox docker
 ```
 
 ### Using run.yaml
@@ -239,13 +244,12 @@ agent: coverage
 inputs:
   target_coverage: 85
   module: complete
-tweak: "Only modify code in complete/"
 env:
   sandbox: local
 EOF
 
 # Execute
-jbang springai@agents
+jbang jbang/launcher.java
 ```
 
 ## Implementation Steps
@@ -263,7 +267,7 @@ jbang springai@agents
    - Write agents/coverage.yaml with {{tweak}} placeholder
    - Implement CoverageAgent.java (stub showing rendered prompt)
 
-4. **Create agents.java** JBang launcher (5 lines)
+4. **Create jbang/launcher.java** JBang launcher (3 lines)
 
 5. **Create jbang-catalog.json** for distribution
 
@@ -292,20 +296,28 @@ jbang springai@agents
 - [✅] Updated HelloWorldAgent to implement AgentRunner
 - [✅] Verified JBang execution still works
 
-### 🔄 Phase 4: File Organization (IN PROGRESS)
-- [ ] Create jbang/ directory and move agents.java
-- [ ] Update jbang-catalog.json to reference jbang/agents.java
-- [ ] Create AgentSpecLoader class
-- [ ] Create InputMerger class
-- [ ] Rename HelloWorldAgent to HelloWorldAgentRunner
-- [ ] Simplify jbang/agents.java with direct execution
-- [ ] Fix HelloWorldAgentIT with zt-exec and new paths
-- [ ] Add jbang/README.md
-- [ ] Update CLAUDE.md with new structure
+### ✅ Phase 4: File Organization (COMPLETED)
+- [✅] Create jbang/ directory and move agents.java → launcher.java
+- [✅] Update jbang-catalog.json to reference jbang/launcher.java
+- [✅] Create AgentSpecLoader class with filesystem fallback
+- [✅] Create InputMerger class (later removed as over-engineering)
+- [✅] Rename HelloWorldAgent to HelloWorldAgentRunner
+- [✅] Keep jbang/launcher.java ultra-thin (3 lines of logic)
+- [✅] Fix HelloWorldAgentIT with zt-exec and new paths
+- [✅] Add jbang/README.md with comprehensive documentation
+- [✅] Update CLAUDE.md with new structure
+
+### ✅ Phase 5: Architectural Refinements (COMPLETED)
+- [✅] Enhanced Result record with data field for judge integration
+- [✅] Removed InputMerger - inlined logic into Launcher for simplicity
+- [✅] Added filesystem fallback to AgentSpecLoader (.agents directory)
+- [✅] Added basic type coercion (string→int/boolean) to input merging
+- [✅] Maintained launcher.java ultra-thin design (3 lines)
+- [✅] Updated documentation to reflect all changes
 
 ## Acceptance Checklist (MVP) - ✅ COMPLETED
 
-- [✅] `jbang agents.java --agent hello-world --path file.txt --content HelloWorld` writes file and prints success
+- [✅] `jbang jbang/launcher.java --agent hello-world --path file.txt --content HelloWorld` writes file and prints success
 - [✅] `run.yaml` for coverage works without CLI flags
 - [✅] Missing required inputs produce exit code 1
 - [✅] Nonexistent `--agent` yields exit code 1
@@ -316,38 +328,34 @@ jbang springai@agents
 ### Hello World Agent Tests
 ```bash
 # With explicit content - ✅ PASSED
-jbang agents.java --agent hello-world --path hello-test.txt --content "Hello from JBang!"
+jbang jbang/launcher.java --agent hello-world --path hello-test.txt --content "Hello from JBang!"
 # Result: Created file: /tmp/hello-test.txt with content "Hello from JBang!"
 
 # With default content - ✅ PASSED
-jbang agents.java --agent hello-world --path hello-default.txt
+jbang jbang/launcher.java --agent hello-world --path hello-default.txt
 # Result: Created file with default content "HelloWorld"
 ```
 
 ### Coverage Agent Tests
 ```bash
-# With tweak - ✅ PASSED
-jbang agents.java --agent coverage --target_coverage 90 --tweak "focus on edge cases"
-# Result: Shows rendered prompt with tweak included (251 chars)
+# Basic usage - ✅ PASSED
+jbang jbang/launcher.java --agent coverage --target_coverage 90 --module src/main
+# Result: Shows coverage analysis output
 
 # With run.yaml - ✅ PASSED
-# run.yaml with agent: coverage, inputs, tweak
-jbang agents.java
-# Result: Uses configuration from run.yaml (298 chars)
-
-# Tweak aliases - ✅ PASSED
-jbang agents.java --agent coverage --nudge "be gentle with the code"
-# Result: --nudge works as alias for --tweak
+# run.yaml with agent: coverage, inputs
+jbang jbang/launcher.java
+# Result: Uses configuration from run.yaml
 ```
 
 ### Error Handling Tests
 ```bash
 # Unknown agent - ✅ PASSED
-jbang agents.java --agent nonexistent
+jbang jbang/launcher.java --agent nonexistent
 # Result: Exit code 1 (error handling works)
 
 # Missing required input - ✅ PASSED
-jbang agents.java --agent hello-world
+jbang jbang/launcher.java --agent hello-world
 # Result: Exit code 1 (missing path parameter)
 ```
 
@@ -368,7 +376,7 @@ jbang agents.java --agent hello-world
 {
   "aliases": {
     "agents": {
-      "script-ref": "https://raw.githubusercontent.com/spring-ai-community/spring-ai-agents/main/agents.java",
+      "script-ref": "https://raw.githubusercontent.com/spring-ai-community/spring-ai-agents/main/jbang/launcher.java",
       "description": "Spring AI Agents launcher - run AI agents on your codebase"
     }
   }
@@ -378,12 +386,12 @@ jbang agents.java --agent hello-world
 Usage after catalog setup:
 ```bash
 jbang catalog add springai https://raw.githubusercontent.com/spring-ai-community/spring-ai-agents/main/jbang-catalog.json
-jbang springai@agents --agent coverage --tweak "focus on service layer"
+jbang springai@agents --agent coverage --target_coverage 85 --module service
 ```
 
 ## Benefits
 
-1. **Ultra-thin launcher**: 5-line JBang script, no build required
+1. **Ultra-thin launcher**: 3-line JBang script, no build required
 2. **Composable primitives**: Clear separation of concerns
 3. **Per-agent artifacts**: Independent Maven modules, versioned separately
 4. **Developer UX**: Single command with intuitive flags and config files

@@ -6,7 +6,7 @@
 
 import org.springaicommunity.agents.core.*;
 
-public class agents {
+public class launcher {
     public static void main(String[] argv) throws Exception {
         LauncherSpec spec = LocalConfigLoader.load(argv);
         Result r = Launcher.execute(spec);

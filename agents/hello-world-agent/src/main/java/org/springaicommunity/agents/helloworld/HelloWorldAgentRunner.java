@@ -33,9 +33,9 @@ import java.nio.file.Path;
  * @author Mark Pollack
  * @since 1.1.0
  */
-public class HelloWorldAgent implements AgentRunner {
+public class HelloWorldAgentRunner implements AgentRunner {
 
-	private static final Logger log = LoggerFactory.getLogger(HelloWorldAgent.class);
+	private static final Logger log = LoggerFactory.getLogger(HelloWorldAgentRunner.class);
 
 	@Override
 	public Result run(LauncherSpec spec) {

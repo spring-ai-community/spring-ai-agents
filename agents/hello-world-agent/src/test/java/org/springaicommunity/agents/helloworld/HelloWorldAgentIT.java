@@ -41,22 +41,36 @@ public class HelloWorldAgentIT {
 	Path tempDir;
 
 	/**
-	 * Find the agents.java file in the project root.
+	 * Get the launcher.java file path in the jbang directory.
 	 */
-	private Path findAgentsJavaFile() {
-		// Start from current directory and walk up to find agents.java
+	private Path getLauncherJavaFile() {
+		// Find project root by walking up directories looking for jbang/launcher.java
 		Path current = Path.of(System.getProperty("user.dir"));
-		for (int i = 0; i < 5; i++) { // Look up to 5 levels up
-			Path agentsJava = current.resolve("agents.java");
-			if (Files.exists(agentsJava)) {
-				return agentsJava;
+		for (int i = 0; i < 5; i++) {
+			Path launcherJava = current.resolve("jbang/launcher.java");
+			if (Files.exists(launcherJava)) {
+				// Found project root with jbang/launcher.java
+				return launcherJava;
 			}
 			current = current.getParent();
 			if (current == null) {
 				break;
 			}
 		}
-		throw new RuntimeException("Could not find agents.java file in project root");
+		throw new RuntimeException("Could not find jbang/launcher.java in project root");
+	}
+
+	/**
+	 * Get the JBang executable path.
+	 */
+	private String getJBangExecutable() {
+		String jbangHome = System.getenv("JBANG_HOME");
+		System.out.println("jbang home " + jbangHome);
+		if (jbangHome != null) {
+			return jbangHome + "/bin/jbang";
+		}
+		// Fallback to PATH lookup
+		return "jbang";
 	}
 
 	@Test
@@ -66,13 +80,13 @@ public class HelloWorldAgentIT {
 		String fileName = "integration-test.txt";
 		Path expectedFile = tempDir.resolve(fileName);
 
-		// Find the agents.java file - it should be in the project root
-		Path agentsJavaPath = findAgentsJavaFile();
+		// Get the launcher.java file in jbang directory
+		Path launcherJavaPath = getLauncherJavaFile();
 
 		// Act - Execute JBang agents.java with hello-world agent using zt-exec
 		ProcessResult result = new ProcessExecutor()
-			.command("jbang", agentsJavaPath.toString(), "--agent", "hello-world", "--path", fileName, "--content",
-					testContent, "--workdir", tempDir.toString())
+			.command(getJBangExecutable(), launcherJavaPath.toString(), "--agent", "hello-world", "--path", fileName,
+					"--content", testContent, "--workdir", tempDir.toString())
 			.directory(tempDir.toFile())
 			.timeout(30, TimeUnit.SECONDS)
 			.readOutput(true)
@@ -100,13 +114,13 @@ public class HelloWorldAgentIT {
 		String fileName = "default-content-test.txt";
 		Path expectedFile = tempDir.resolve(fileName);
 
-		// Find the agents.java file - it should be in the project root
-		Path agentsJavaPath = findAgentsJavaFile();
+		// Get the launcher.java file in jbang directory
+		Path launcherJavaPath = getLauncherJavaFile();
 
 		// Act - Execute JBang agents.java with hello-world agent (using default content)
 		ProcessResult result = new ProcessExecutor()
-			.command("jbang", agentsJavaPath.toString(), "--agent", "hello-world", "--path", fileName, "--workdir",
-					tempDir.toString())
+			.command(getJBangExecutable(), launcherJavaPath.toString(), "--agent", "hello-world", "--path", fileName,
+					"--workdir", tempDir.toString())
 			.directory(tempDir.toFile())
 			.timeout(30, TimeUnit.SECONDS)
 			.readOutput(true)
@@ -130,14 +144,14 @@ public class HelloWorldAgentIT {
 
 	@Test
 	void testJBangAgentsLauncherMissingRequiredInput() throws Exception {
-		// Find the agents.java file - it should be in the project root
-		Path agentsJavaPath = findAgentsJavaFile();
+		// Get the launcher.java file in jbang directory
+		Path launcherJavaPath = getLauncherJavaFile();
 
 		// Act - Execute JBang agents.java with hello-world agent but missing required
 		// 'path' input
 		ProcessResult result = new ProcessExecutor()
-			.command("jbang", agentsJavaPath.toString(), "--agent", "hello-world", "--content", "test content",
-					"--workdir", tempDir.toString())
+			.command(getJBangExecutable(), launcherJavaPath.toString(), "--agent", "hello-world", "--content",
+					"test content", "--workdir", tempDir.toString())
 			.directory(tempDir.toFile())
 			.timeout(30, TimeUnit.SECONDS)
 			.readOutput(true)
@@ -149,12 +163,13 @@ public class HelloWorldAgentIT {
 
 	@Test
 	void testJBangAgentsLauncherUnknownAgent() throws Exception {
-		// Find the agents.java file - it should be in the project root
-		Path agentsJavaPath = findAgentsJavaFile();
+		// Get the launcher.java file in jbang directory
+		Path launcherJavaPath = getLauncherJavaFile();
 
 		// Act - Execute JBang agents.java with unknown agent
 		ProcessResult result = new ProcessExecutor()
-			.command("jbang", agentsJavaPath.toString(), "--agent", "unknown-agent", "--workdir", tempDir.toString())
+			.command(getJBangExecutable(), launcherJavaPath.toString(), "--agent", "unknown-agent", "--workdir",
+					tempDir.toString())
 			.directory(tempDir.toFile())
 			.timeout(30, TimeUnit.SECONDS)
 			.readOutput(true)

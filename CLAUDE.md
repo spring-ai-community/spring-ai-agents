@@ -20,6 +20,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Formatting validation runs during the `validate` phase
 - Use Spring's Java code formatting conventions
 
+### JBang Agent Launcher
+- `jbang jbang/launcher.java --agent hello-world --path test.txt` - Run agents without build process
+- `jbang jbang/launcher.java --agent coverage --target_coverage 90` - Run coverage agent
+- Uses configuration precedence: Agent defaults → run.yaml → CLI arguments
+- See `jbang/README.md` for complete usage guide
+- Integration tests: `./mvnw test -pl agents/hello-world-agent -Dtest=HelloWorldAgentIT`
+
 ### Sample Applications
 - `cd samples/hello-world && mvn spring-boot:run` - Run the Hello World sample
 - Authentication: Uses Claude CLI session authentication (recommended) or ANTHROPIC_API_KEY
@@ -50,12 +57,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Builder pattern for configuration
 - Supports goal-based task execution with working directory context
 
+**JBang Agent Infrastructure** (`spring-ai-agents-core/`, `jbang/`, `agents/`)
+- `jbang/launcher.java` - Ultra-thin JBang script for agent execution
+- `AgentRunner` - Functional interface for black-box agent implementations
+- `Launcher` - Agent discovery, loading, and execution orchestration
+- `AgentSpecLoader` - YAML agent specification loading and parsing
+- `InputMerger` - Input precedence and default value merging
+- `LocalConfigLoader` - Configuration loading from CLI, YAML, and defaults
+- Individual agent modules in `agents/` directory (e.g., `hello-world-agent/`)
+
 ### Key Design Patterns
 
 **Two-Layer Architecture**
 - `AgentClient` provides high-level fluent API
 - `AgentModel` provides low-level model interface
 - Follows Spring AI's established ChatClient/ChatModel pattern
+
+**JBang Agent Pattern**
+- `AgentRunner` functional interface for black-box agent execution (inputs → outputs)
+- `Launcher` class for agent discovery and orchestration
+- Configuration precedence: Agent defaults → run.yaml → CLI arguments
+- Ultra-thin launcher script for zero-build development experience
 
 **CLI Integration Pattern**
 - All provider SDKs wrap external CLI tools (claude, gemini, swe-agent)
@@ -120,6 +142,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `org.springaicommunity.agents.gemini.*` - Gemini implementation
 - `org.springaicommunity.agents.sweagent.*` - SWE-bench implementation
 - `org.springaicommunity.agents.*.sdk.*` - Provider SDK implementations
+- `org.springaicommunity.agents.core.*` - JBang agent infrastructure
+- `org.springaicommunity.agents.helloworld.*` - Example agent implementations
+
+## JBang Directory Structure
+```
+spring-ai-agents/
+├── jbang/
+│   ├── launcher.java         # Ultra-thin JBang launcher script
+│   └── README.md            # JBang usage documentation
+├── jbang-catalog.json       # JBang catalog for distribution
+├── spring-ai-agents-core/   # Core agent infrastructure
+│   └── src/main/java/.../core/
+│       ├── AgentRunner.java      # Functional interface
+│       ├── Launcher.java         # Orchestration
+│       ├── AgentSpecLoader.java  # YAML loading
+│       ├── InputMerger.java      # Input merging
+│       └── LocalConfigLoader.java # Config loading
+└── agents/                  # Individual agent modules
+    ├── hello-world-agent/
+    │   ├── src/main/java/.../HelloWorldAgentRunner.java
+    │   └── src/main/resources/agents/hello-world.yaml
+    └── code-coverage-agent/
+        └── src/main/resources/agents/coverage.yaml
+```
 
 ## Troubleshooting
 
