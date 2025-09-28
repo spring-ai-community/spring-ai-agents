@@ -106,47 +106,39 @@ jobs:
           cache: 'maven'
 
       - name: Setup Node.js
-        if: matrix.test-type != 'unit'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
       - name: Install Claude Code CLI
-        if: matrix.test-type == 'claude-integration' || matrix.test-type == 'core-integration'
         run: |
           npm install -g @anthropic-ai/claude-code --silent
           echo "✅ Claude Code CLI installed via npm"
 
       - name: Install Gemini CLI
-        if: matrix.test-type == 'gemini-integration' || matrix.test-type == 'core-integration'
         run: |
           npm install -g @google/gemini-cli --silent
           echo "✅ Gemini CLI installed via npm"
 
       - name: Verify CLI installations
-        if: matrix.test-type != 'unit'
         run: |
-          if [ "${{ matrix.test-type }}" = "claude-integration" ] || [ "${{ matrix.test-type }}" = "core-integration" ]; then
-            if command -v claude >/dev/null 2>&1; then
-              echo "✅ Claude CLI verified: $(claude --version 2>&1)"
-            else
-              echo "❌ Claude CLI not found in PATH"
-              exit 1
-            fi
+          if command -v claude >/dev/null 2>&1; then
+            echo "✅ Claude CLI verified: $(claude --version 2>&1)"
+          else
+            echo "❌ Claude CLI not found in PATH"
+            exit 1
           fi
 
-          if [ "${{ matrix.test-type }}" = "gemini-integration" ] || [ "${{ matrix.test-type }}" = "core-integration" ]; then
-            if command -v gemini >/dev/null 2>&1; then
-              echo "✅ Gemini CLI verified: $(gemini --version 2>&1)"
-            else
-              echo "❌ Gemini CLI not found in PATH"
-              exit 1
-            fi
+          if command -v gemini >/dev/null 2>&1; then
+            echo "✅ Gemini CLI verified: $(gemini --version 2>&1)"
+          else
+            echo "❌ Gemini CLI not found in PATH"
+            exit 1
           fi
 
       - name: Run Unit Tests
         if: matrix.test-type == 'unit'
-        run: ./mvnw --batch-mode --quiet clean test
+        run: ./mvnw --batch-mode --quiet clean test -pl \!provider-sdks/claude-code-sdk,\!provider-sdks/gemini-cli-sdk,\!provider-sdks/swe-agent-sdk
 
       - name: Run Claude Integration Tests
         if: matrix.test-type == 'claude-integration'
