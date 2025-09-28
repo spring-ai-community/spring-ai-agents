@@ -13,7 +13,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Integration Tests
 - `./mvnw clean verify -Pfailsafe` - Run integration tests with failsafe profile
+- `./mvnw clean install -Pfailsafe` - **Use for CI/multi-module builds** - installs artifacts to local repository ensuring dependencies are available for later modules
 - Integration tests follow the `*IT.java` naming convention
+
+### Important: Maven Lifecycle Phases for CI
+- **Use `install` not `verify`** when running integration tests in CI or multi-module environments
+- The `verify` phase runs integration tests but doesn't install artifacts to local repository
+- The `install` phase ensures artifacts are available for dependency resolution in later reactor modules
+- This prevents "Could not find artifact" errors when modules depend on each other
 
 ### Code Quality
 - Code formatting is enforced via `spring-javaformat-maven-plugin`
