@@ -16,232 +16,171 @@
 
 package org.springaicommunity.agents.core;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 
-import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.regex.Pattern;
 
 /**
- * Loads and merges agent configuration from run.yaml and CLI arguments. Implements
- * precedence: AgentSpec defaults → run.yaml → CLI flags.
+ * CLI-only configuration loader. Parses agent ID and inputs from command line arguments,
+ * with optional runspec.yaml for environment settings.
  *
  * @author Mark Pollack
  * @since 1.1.0
  */
 public final class LocalConfigLoader {
 
-	private static final Logger log = LoggerFactory.getLogger(LocalConfigLoader.class);
+	private static final Pattern AGENT_ID = Pattern.compile("^[a-z0-9][a-z0-9-]{0,63}$");
 
-	private static final Set<String> ENVIRONMENT_FLAGS = Set.of("--sandbox", "--workdir");
+	private static final String ENV_RUNSPEC = "SPRING_AI_RUNSPEC";
+
+	private LocalConfigLoader() {
+	}
 
 	/**
-	 * Load and merge configuration from run.yaml and CLI arguments.
-	 * @param argv command line arguments
-	 * @return merged LauncherSpec
-	 * @throws IllegalArgumentException if configuration is invalid
+	 * CLI always supplies inputs; optional runspec provides cwd/env only.
+	 * @param argv command line arguments: <agentId> key=value key2=value2 ...
+	 * @return LauncherSpec ready for execution
 	 */
 	public static LauncherSpec load(String[] argv) {
-		log.info("Loading launcher configuration from CLI args: {}", Arrays.toString(argv));
-		Path cwd = Paths.get(System.getProperty("user.dir")).toAbsolutePath();
-		log.info("Current working directory: {}", cwd);
-
-		// 1. Load run.yaml if present
-		log.info("Loading run.yaml configuration");
-		RunSpec runSpec = loadRunSpec(cwd.resolve("run.yaml"));
-
-		// 2. Parse CLI arguments
-		log.info("Parsing CLI arguments");
-		RunSpec cliSpec = parseCliArgs(argv);
-
-		// 3. Merge run specs (CLI overrides file)
-		log.info("Merging configurations: file + CLI");
-		RunSpec merged = mergeRunSpecs(runSpec, cliSpec);
-
-		if (merged.agent() == null) {
-			log.error("No agent specified in configuration");
-			printUsage();
-			throw new IllegalArgumentException("No agent specified. Use --agent <name> or set agent in run.yaml");
+		Objects.requireNonNull(argv, "argv");
+		if (argv.length == 0) {
+			throw new IllegalArgumentException("Usage: launcher <agentId> key=value [key2=value2 ...]");
 		}
 
-		// 4. Load AgentSpec
-		log.info("Loading AgentSpec for: {}", merged.agent());
-		AgentSpec agentSpec = Launcher.loadAgentSpec(merged.agent());
+		// 1) agent id
+		String agentId = argv[0];
+		if (!AGENT_ID.matcher(agentId).matches()) {
+			throw new IllegalArgumentException("Invalid agent id: " + agentId);
+		}
+
+		// 2) inputs from key=value (strings; split on first '='; last wins)
+		Map<String, Object> inputs = new LinkedHashMap<>();
+		for (int i = 1; i < argv.length; i++) {
+			String token = argv[i];
+			int eq = token.indexOf('=');
+			if (eq <= 0) {
+				throw new IllegalArgumentException("Expected key=value token, got: " + token);
+			}
+			String key = token.substring(0, eq);
+			String val = token.substring(eq + 1); // may be empty or contain '='
+			inputs.put(key, val);
+		}
+
+		// 3) load AgentSpec (classpath/.agents per existing loader)
+		AgentSpec agentSpec = Launcher.loadAgentSpec(agentId);
 		if (agentSpec == null) {
-			log.error("Unknown agent: {}", merged.agent());
-			throw new IllegalArgumentException("Unknown agent: " + merged.agent());
+			throw new IllegalArgumentException("Unknown agent: " + agentId + ". Check agent availability.");
 		}
 
-		// 5. Merge inputs with AgentSpec defaults
-		log.info("Merging inputs with AgentSpec defaults");
-		Map<String, Object> finalInputs = Launcher.mergeWithDefaults(merged.inputs(), agentSpec);
+		// 4) optional runspec for cwd/env
+		Path cwd = Path.of(".");
+		Map<String, Object> env = Map.of();
 
-		// 6. Resolve working directory
-		Path workingDir = cwd;
-		if (merged.workingDirectory() != null) {
-			workingDir = Paths.get(merged.workingDirectory()).toAbsolutePath();
-			log.info("Using custom working directory: {}", workingDir);
+		Path runspec = resolveRunSpecPath();
+		if (runspec != null) {
+			RunSpec runSpecData = loadRunSpec(runspec);
+			String wd = runSpecData.workingDirectory();
+			if (wd != null && !wd.isBlank()) {
+				cwd = Path.of(wd);
+			}
+
+			Map<String, Object> envData = runSpecData.env();
+			if (envData != null) {
+				env = new LinkedHashMap<>(envData);
+			}
 		}
 
-		// 7. Build final LauncherSpec
-		Map<String, Object> env = merged.env() != null ? new LinkedHashMap<>(merged.env()) : new LinkedHashMap<>();
-		LauncherSpec launcher = new LauncherSpec(agentSpec, finalInputs, workingDir, env);
-		log.info("Created LauncherSpec: agent={}, inputs={}", agentSpec.id(), finalInputs.keySet());
+		return new LauncherSpec(agentSpec, inputs, cwd, env);
+	}
 
-		return launcher;
+	/**
+	 * Resolve runspec file path using priority order.
+	 * @return Path to runspec file or null if none found
+	 */
+	private static Path resolveRunSpecPath() {
+		String override = System.getenv(ENV_RUNSPEC);
+		if (override != null && !override.isBlank()) {
+			Path p = Path.of(override);
+			if (Files.exists(p)) {
+				return p;
+			}
+			// If env var is set but file doesn't exist, just skip it (no error)
+		}
+
+		// Check .agents/ directory first (preferred)
+		Path agentsRunYaml = Path.of(".agents", "run.yaml");
+		if (Files.exists(agentsRunYaml)) {
+			return agentsRunYaml;
+		}
+
+		// Fallback to root level (backward compatibility)
+		Path runYaml = Path.of("run.yaml");
+		if (Files.exists(runYaml)) {
+			return runYaml;
+		}
+		Path runspecYaml = Path.of("runspec.yaml");
+		if (Files.exists(runspecYaml)) {
+			return runspecYaml;
+		}
+		return null;
 	}
 
 	/**
 	 * Load RunSpec from YAML file.
-	 * @param yamlPath path to YAML file
-	 * @return RunSpec or empty spec if file doesn't exist
+	 * @param file Path to YAML file
+	 * @return RunSpec with workingDirectory and env
 	 */
-	static RunSpec loadRunSpec(Path yamlPath) {
-		if (!Files.exists(yamlPath)) {
-			log.info("No run.yaml found at: {}", yamlPath);
-			return new RunSpec(null, Map.of(), null, Map.of());
-		}
-
-		try {
-			String content = Files.readString(yamlPath);
-			log.info("Loaded run.yaml content: {} chars", content.length());
-			Yaml yaml = new Yaml();
-			Map<String, Object> data = yaml.load(content);
-
-			if (data == null) {
-				log.info("Empty run.yaml file");
-				return new RunSpec(null, Map.of(), null, Map.of());
+	private static RunSpec loadRunSpec(Path file) {
+		try (InputStream in = Files.newInputStream(file)) {
+			LoaderOptions opts = new LoaderOptions();
+			opts.setAllowDuplicateKeys(false);
+			opts.setMaxAliasesForCollections(50);
+			Object obj = new Yaml(opts).load(in);
+			if (!(obj instanceof Map<?, ?> map)) {
+				throw new IllegalArgumentException("YAML root must be a mapping: " + file);
 			}
 
-			String agent = getString(data, "agent");
-			Map<String, Object> inputs = getMap(data, "inputs");
-			String workingDirectory = getString(data, "workingDirectory");
-			Map<String, Object> env = getMap(data, "env");
+			String workingDirectory = getString(map, "workingDirectory");
+			Map<String, Object> env = getMap(map, "env");
 
-			log.info("Parsed run.yaml: agent={}, inputs={}, workingDirectory={}, env={}", agent, inputs.keySet(),
-					workingDirectory, env.keySet());
-
-			return new RunSpec(agent, inputs, workingDirectory, env);
+			return new RunSpec(null, null, workingDirectory, env);
 		}
-		catch (IOException e) {
-			log.error("Failed to read run.yaml: {}", yamlPath, e);
-			throw new RuntimeException("Failed to read " + yamlPath, e);
+		catch (Exception e) {
+			throw new IllegalArgumentException("Failed to read " + file + ": " + e.getMessage(), e);
 		}
 	}
 
 	/**
-	 * Parse CLI arguments into RunSpec.
-	 * @param argv command line arguments
-	 * @return RunSpec with CLI values
+	 * Get string value from map.
+	 * @param map source map
+	 * @param key key to lookup
+	 * @return string value or null
 	 */
-	static RunSpec parseCliArgs(String[] argv) {
-		String agent = null;
-		String workingDirectory = null;
-		Map<String, Object> inputs = new LinkedHashMap<>();
-		Map<String, Object> env = new LinkedHashMap<>();
-
-		for (int i = 0; i < argv.length; i++) {
-			String arg = argv[i];
-
-			if ("--agent".equals(arg) && i + 1 < argv.length) {
-				agent = argv[++i];
-				log.info("CLI agent: {}", agent);
-			}
-			else if ("--workdir".equals(arg) && i + 1 < argv.length) {
-				workingDirectory = argv[++i];
-				log.info("CLI working directory: {}", workingDirectory);
-			}
-			else if ("--sandbox".equals(arg) && i + 1 < argv.length) {
-				String sandboxType = argv[++i];
-				env.put("sandbox", sandboxType);
-				log.info("CLI sandbox type: {}", sandboxType);
-			}
-			else if (arg.startsWith("--")) {
-				// Generic input parameter
-				String key = arg.substring(2).replace('-', '_');
-				String value = (i + 1 < argv.length && !argv[i + 1].startsWith("--")) ? argv[++i] : "true";
-				inputs.put(key, value);
-				log.info("CLI input: {}={}", key, value);
-			}
-		}
-
-		log.info("Parsed CLI args: agent={}, inputs={}, workingDirectory={}, env={}", agent, inputs.keySet(),
-				workingDirectory, env.keySet());
-
-		return new RunSpec(agent, inputs, workingDirectory, env);
-	}
-
-	/**
-	 * Merge two RunSpecs with override taking precedence.
-	 * @param base base RunSpec
-	 * @param override overriding RunSpec
-	 * @return merged RunSpec
-	 */
-	static RunSpec mergeRunSpecs(RunSpec base, RunSpec override) {
-		String agent = override.agent() != null ? override.agent() : base.agent();
-		String workingDirectory = override.workingDirectory() != null ? override.workingDirectory()
-				: base.workingDirectory();
-
-		Map<String, Object> inputs = new LinkedHashMap<>();
-		if (base.inputs() != null) {
-			inputs.putAll(base.inputs());
-		}
-		if (override.inputs() != null) {
-			inputs.putAll(override.inputs());
-		}
-
-		Map<String, Object> env = new LinkedHashMap<>();
-		if (base.env() != null) {
-			env.putAll(base.env());
-		}
-		if (override.env() != null) {
-			env.putAll(override.env());
-		}
-
-		log.info("Merged RunSpecs: agent={}, inputs={}, workingDirectory={}, env={}", agent, inputs.keySet(),
-				workingDirectory, env.keySet());
-
-		return new RunSpec(agent, inputs, workingDirectory, env);
-	}
-
-	/**
-	 * Print usage information.
-	 */
-	static void printUsage() {
-		System.err.println("Usage: jbang agents.java [options]");
-		System.err.println("");
-		System.err.println("Options:");
-		System.err.println("  --agent <name>     Agent to run (hello-world, coverage)");
-		System.err.println("  --sandbox <type>   Sandbox type (local, docker)");
-		System.err.println("  --workdir <path>   Working directory for sandbox");
-		System.err.println("  --<key> <value>    Agent input parameter");
-		System.err.println("");
-		System.err.println("");
-		System.err.println("Examples:");
-		System.err.println("  jbang agents.java --agent hello-world --path test.txt");
-		System.err.println("  jbang agents.java --agent coverage --target_coverage 90");
-		System.err.println("");
-		System.err.println("Configuration file (run.yaml):");
-		System.err.println("  agent: coverage");
-		System.err.println("  inputs:");
-		System.err.println("    target_coverage: 85");
-	}
-
-	// Helper methods
-	private static String getString(Map<String, Object> map, String key) {
+	private static String getString(Map<?, ?> map, String key) {
 		Object value = map.get(key);
 		return value != null ? value.toString() : null;
 	}
 
+	/**
+	 * Get map value from map.
+	 * @param map source map
+	 * @param key key to lookup
+	 * @return map value or empty map
+	 */
 	@SuppressWarnings("unchecked")
-	private static Map<String, Object> getMap(Map<String, Object> map, String key) {
+	private static Map<String, Object> getMap(Map<?, ?> map, String key) {
 		Object value = map.get(key);
-		if (value instanceof Map) {
-			return (Map<String, Object>) value;
+		if (value instanceof Map<?, ?> m) {
+			Map<String, Object> result = new LinkedHashMap<>();
+			m.forEach((k, v) -> result.put(String.valueOf(k), v));
+			return result;
 		}
 		return Map.of();
 	}

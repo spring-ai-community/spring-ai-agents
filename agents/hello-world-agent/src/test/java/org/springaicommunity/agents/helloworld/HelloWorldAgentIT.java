@@ -83,10 +83,10 @@ public class HelloWorldAgentIT {
 		// Get the launcher.java file in jbang directory
 		Path launcherJavaPath = getLauncherJavaFile();
 
-		// Act - Execute JBang agents.java with hello-world agent using zt-exec
+		// Act - Execute JBang launcher.java with hello-world agent using zt-exec
 		ProcessResult result = new ProcessExecutor()
-			.command(getJBangExecutable(), launcherJavaPath.toString(), "--agent", "hello-world", "--path", fileName,
-					"--content", testContent, "--workdir", tempDir.toString())
+			.command(getJBangExecutable(), launcherJavaPath.toString(), "hello-world", "path=" + fileName,
+					"content=" + testContent)
 			.directory(tempDir.toFile())
 			.timeout(30, TimeUnit.SECONDS)
 			.readOutput(true)
@@ -117,10 +117,10 @@ public class HelloWorldAgentIT {
 		// Get the launcher.java file in jbang directory
 		Path launcherJavaPath = getLauncherJavaFile();
 
-		// Act - Execute JBang agents.java with hello-world agent (using default content)
+		// Act - Execute JBang launcher.java with hello-world agent (using default
+		// content)
 		ProcessResult result = new ProcessExecutor()
-			.command(getJBangExecutable(), launcherJavaPath.toString(), "--agent", "hello-world", "--path", fileName,
-					"--workdir", tempDir.toString())
+			.command(getJBangExecutable(), launcherJavaPath.toString(), "hello-world", "path=" + fileName)
 			.directory(tempDir.toFile())
 			.timeout(30, TimeUnit.SECONDS)
 			.readOutput(true)
@@ -147,11 +147,10 @@ public class HelloWorldAgentIT {
 		// Get the launcher.java file in jbang directory
 		Path launcherJavaPath = getLauncherJavaFile();
 
-		// Act - Execute JBang agents.java with hello-world agent but missing required
+		// Act - Execute JBang launcher.java with hello-world agent but missing required
 		// 'path' input
 		ProcessResult result = new ProcessExecutor()
-			.command(getJBangExecutable(), launcherJavaPath.toString(), "--agent", "hello-world", "--content",
-					"test content", "--workdir", tempDir.toString())
+			.command(getJBangExecutable(), launcherJavaPath.toString(), "hello-world", "content=test content")
 			.directory(tempDir.toFile())
 			.timeout(30, TimeUnit.SECONDS)
 			.readOutput(true)
@@ -166,10 +165,9 @@ public class HelloWorldAgentIT {
 		// Get the launcher.java file in jbang directory
 		Path launcherJavaPath = getLauncherJavaFile();
 
-		// Act - Execute JBang agents.java with unknown agent
+		// Act - Execute JBang launcher.java with unknown agent
 		ProcessResult result = new ProcessExecutor()
-			.command(getJBangExecutable(), launcherJavaPath.toString(), "--agent", "unknown-agent", "--workdir",
-					tempDir.toString())
+			.command(getJBangExecutable(), launcherJavaPath.toString(), "unknown-agent")
 			.directory(tempDir.toFile())
 			.timeout(30, TimeUnit.SECONDS)
 			.readOutput(true)

@@ -1,0 +1,9 @@
+# Example .gitignore additions for .agents/ pattern
+
+# Local agent environment settings (per-developer)
+.agents/
+
+# Alternative: Only ignore run.yaml but keep agent specs
+# .agents/run.yaml
+# .agents/logs/
+# .agents/cache/

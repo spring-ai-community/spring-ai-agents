@@ -24,6 +24,7 @@ import org.springaicommunity.agents.core.Result;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 
 /**
  * Hello World agent implementation. Creates files with specified content. This agent
@@ -41,19 +42,21 @@ public class HelloWorldAgentRunner implements AgentRunner {
 	public Result run(LauncherSpec spec) {
 		log.info("Executing hello-world agent");
 		try {
-			String path = (String) spec.inputs().get("path");
-			String content = (String) spec.inputs().get("content");
+			// Parse and validate inputs
+			Map<String, Object> inputs = spec.inputs();
+			String path = (String) inputs.get("path");
+			String content = (String) inputs.get("content");
 
-			log.info("Hello-world inputs: path={}, content={}", path,
-					content != null ? content.length() + " chars" : null);
-
-			if (path == null) {
-				log.warn("Missing required input: path");
-				return Result.fail("Missing required input: path");
-			}
+			// Apply defaults
 			if (content == null) {
-				log.warn("Missing required input: content");
-				return Result.fail("Missing required input: content");
+				content = "HelloWorld";
+			}
+
+			log.info("Hello-world inputs: path={}, content={}", path, content.length() + " chars");
+
+			// Validate required inputs
+			if (path == null || path.isBlank()) {
+				return Result.fail("Missing required input: path");
 			}
 
 			Path targetFile = spec.cwd().resolve(path);
@@ -63,7 +66,8 @@ public class HelloWorldAgentRunner implements AgentRunner {
 			Files.writeString(targetFile, content);
 
 			log.info("Successfully created file: {}", targetFile.toAbsolutePath());
-			return Result.ok("Created file: " + targetFile.toAbsolutePath());
+			return Result.ok("Created file: " + targetFile.toAbsolutePath(),
+					Map.of("path", targetFile.toAbsolutePath().toString(), "content_length", content.length()));
 		}
 		catch (Exception e) {
 			log.error("Failed to create file", e);

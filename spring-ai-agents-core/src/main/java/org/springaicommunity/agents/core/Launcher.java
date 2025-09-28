@@ -18,13 +18,9 @@ package org.springaicommunity.agents.core;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.ai.template.TemplateRenderer;
-import org.springframework.ai.template.st.StTemplateRenderer;
-import org.yaml.snakeyaml.Yaml;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Agent launcher that loads specifications and executes agents. Handles agent discovery,
@@ -102,20 +98,11 @@ public class Launcher {
 				spec.env());
 
 		try {
-			// AgentSpec is already loaded and validated in LauncherSpec
+			// AgentSpec is already loaded in LauncherSpec
 			AgentSpec agentSpec = spec.agentSpec();
 			log.info("Using agent spec: {}", agentSpec);
 
-			// Validate required inputs (inputs already merged in LocalConfigLoader)
-			log.info("Validating required inputs");
-			Result validation = validateInputs(spec.inputs(), agentSpec);
-			if (!validation.success()) {
-				log.warn("Input validation failed: {}", validation.message());
-				return validation;
-			}
-			log.info("Input validation passed");
-
-			// Execute agent
+			// Execute agent (agent handles its own validation)
 			log.info("Executing agent: {}", agentSpec.id());
 			AgentRunner executor = agents.get(agentSpec.id());
 			if (executor == null) {
@@ -144,112 +131,6 @@ public class Launcher {
 	 */
 	public static AgentSpec loadAgentSpec(String agentId) {
 		return AgentSpecLoader.loadAgentSpec(agentId);
-	}
-
-	/**
-	 * Merge runtime inputs with agent defaults.
-	 * @param runtimeInputs runtime input values
-	 * @param agentSpec agent specification with defaults
-	 * @return merged inputs
-	 */
-	public static Map<String, Object> mergeWithDefaults(Map<String, Object> runtimeInputs, AgentSpec agentSpec) {
-		Map<String, Object> result = new LinkedHashMap<>();
-
-		// Start with agent defaults
-		if (agentSpec.inputs() != null) {
-			agentSpec.inputs().forEach((key, inputDef) -> {
-				if (inputDef.defaultValue() != null) {
-					result.put(key, inputDef.defaultValue());
-					log.info("Added default value for {}: {}", key, inputDef.defaultValue());
-				}
-			});
-		}
-
-		// Override with runtime values, applying type coercion
-		if (runtimeInputs != null) {
-			runtimeInputs.forEach((key, value) -> {
-				Object coercedValue = coerceType(value, agentSpec, key);
-				result.put(key, coercedValue);
-				log.info("Override input {}: {}", key, coercedValue);
-			});
-		}
-
-		log.info("Merged inputs: {}", result.keySet());
-		return result;
-	}
-
-	/**
-	 * Basic type coercion for input values.
-	 * @param value raw input value
-	 * @param agentSpec agent specification
-	 * @param key input key
-	 * @return coerced value
-	 */
-	private static Object coerceType(Object value, AgentSpec agentSpec, String key) {
-		if (value == null || !(value instanceof String)) {
-			return value;
-		}
-
-		String stringValue = (String) value;
-
-		// Simple coercion for common types
-		if ("true".equalsIgnoreCase(stringValue) || "false".equalsIgnoreCase(stringValue)) {
-			return Boolean.parseBoolean(stringValue);
-		}
-
-		try {
-			return Integer.parseInt(stringValue);
-		}
-		catch (NumberFormatException e) {
-			// Not an integer, return as string
-		}
-
-		return stringValue;
-	}
-
-	/**
-	 * Validate required inputs are present.
-	 * @param inputs input values
-	 * @param agentSpec agent specification
-	 * @return validation result
-	 */
-	static Result validateInputs(Map<String, Object> inputs, AgentSpec agentSpec) {
-		if (agentSpec.inputs() == null) {
-			return Result.ok("No inputs defined");
-		}
-
-		List<String> missing = new ArrayList<>();
-		agentSpec.inputs().forEach((key, inputDef) -> {
-			if (inputDef.required() && !inputs.containsKey(key)) {
-				missing.add(key);
-			}
-		});
-
-		if (!missing.isEmpty()) {
-			return Result.fail("Missing required inputs: " + String.join(", ", missing));
-		}
-
-		return Result.ok("Inputs validated");
-	}
-
-	/**
-	 * Render template with inputs using Spring AI's TemplateRenderer.
-	 * @param template StringTemplate template
-	 * @param inputs input values
-	 * @return rendered string
-	 */
-	static String renderTemplate(String template, Map<String, Object> inputs) {
-		if (template == null) {
-			log.info("Template is null, returning empty string");
-			return "";
-		}
-
-		Map<String, Object> context = new LinkedHashMap<>(inputs);
-		log.info("Rendering template with context: {}", context.keySet());
-		TemplateRenderer renderer = StTemplateRenderer.builder().build();
-		String result = renderer.apply(template, context);
-		log.info("Template rendered successfully, result length: {}", result.length());
-		return result;
 	}
 
 }

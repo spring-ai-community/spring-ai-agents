@@ -9,51 +9,60 @@ The main entry point for executing agents via JBang. Provides a simple command-l
 ### Usage
 
 ```bash
-# Basic usage
-jbang launcher.java --agent <agent-name> [options]
+# Basic usage - CLI provides inputs
+jbang launcher.java <agent-id> key=value key2=value2 ...
 
 # Hello World example
-jbang launcher.java --agent hello-world --path myfile.txt --content "Hello World!"
+jbang launcher.java hello-world path=myfile.txt content="Hello World!"
 
-# Using default values
-jbang launcher.java --agent hello-world --path myfile.txt
+# Using default content (agent provides defaults)
+jbang launcher.java hello-world path=myfile.txt
 
 # Coverage agent example
-jbang launcher.java --agent coverage --target_coverage 90 --module core
+jbang launcher.java coverage target_coverage=90 module=core
+
+# Values can contain equals signs
+jbang launcher.java hello-world path=output.txt content="url=http://example.com?a=b"
+
+# Windows/PowerShell - quote values with spaces
+jbang launcher.java hello-world path=output.txt content="Hello World with spaces"
+
+# Empty values allowed
+jbang launcher.java hello-world path=output.txt content=
 ```
 
-### Command Line Options
+### CLI Format
 
-- `--agent <name>` - Agent to run (required)
-- `--workdir <path>` - Working directory for execution
-- `--sandbox <type>` - Sandbox type (local, docker)
-- `--<key> <value>` - Agent-specific input parameters
+- First argument: Agent ID (format: `[a-z0-9][a-z0-9-]{0,63}`)
+- Remaining arguments: `key=value` pairs (split on first `=`)
+- Values are strings (agents handle type conversion)
+- **Duplicate keys**: Last value wins
+- **Empty values**: `key=` produces empty string
+- **Complex values**: `url=http://x.com?a=b=c` preserves all `=` after first
 
-### Configuration Files
+### Optional Environment Configuration
 
-You can also use a `run.yaml` file in your working directory:
+You can use `.agents/run.yaml` for environment settings only (not inputs):
 
 ```yaml
-agent: hello-world
-inputs:
-  path: "example.txt"
-  content: "Hello from YAML!"
-workingDirectory: "/tmp/workspace"
+workingDirectory: /tmp/workspace
 env:
-  sandbox: local
+  sandbox: docker
+  image: ghcr.io/spring-ai/agent:latest
 ```
 
-Then simply run:
-```bash
-jbang launcher.java
-```
+**Why .agents/ is better:**
+- **Separation**: CLI = inputs, `.agents/` = environment settings
+- **Local dev**: Add `.agents/` to `.gitignore` to keep personal settings local
+- **Scalable**: Perfect place for logs, temp files, caches later
+- **Secure**: Central location for sensitive environment values
 
-### Precedence Rules
-
-Configuration values are merged with this precedence:
-1. Agent defaults (from agent YAML spec)
-2. `run.yaml` file values
-3. Command line arguments (highest priority)
+Priority order for runspec files:
+1. `SPRING_AI_RUNSPEC` environment variable path
+2. `.agents/run.yaml` (preferred)
+3. `./run.yaml` (backward compatibility)
+4. `./runspec.yaml` (backward compatibility)
+5. None (defaults: cwd=".", env={})
 
 ### Agent Types
 
@@ -76,7 +85,7 @@ This launcher can be distributed via JBang catalog:
 jbang catalog add springai https://raw.githubusercontent.com/spring-ai-community/spring-ai-agents/main/jbang-catalog.json
 
 # Use the alias
-jbang springai@agents --agent hello-world --path test.txt
+jbang springai@agents hello-world path=test.txt content="Hello World!"
 ```
 
 ### Development
@@ -88,17 +97,21 @@ For local development, ensure the Spring AI Agents modules are installed:
 ./mvnw clean install
 
 # Then run the launcher
-jbang jbang/launcher.java --agent hello-world --path test.txt
+jbang jbang/launcher.java hello-world path=test.txt
 ```
 
 ### Architecture
 
 The launcher follows a clean architecture:
 - **launcher.java** - Ultra-thin JBang script (3 lines of logic)
-- **LocalConfigLoader** - Handles configuration loading and merging
-- **Launcher** - Agent discovery and execution orchestration with inline input merging
-- **AgentRunner** - Functional interface for agent implementations
+- **LocalConfigLoader** - CLI k=v parsing with optional runspec.yaml for environment
+- **Launcher** - Agent discovery and execution orchestration
+- **AgentRunner** - Functional interface for agent implementations with self-contained validation
 - **AgentSpecLoader** - YAML specification loading with filesystem fallback
 - **Result** - Execution result with data payload for judge integration
 
-This design provides a simple entry point while maintaining clean separation of concerns and extensibility. The Result record now includes a data field to support future judge integration patterns.
+Key principles:
+- **CLI provides inputs**: All agent parameters come from command line
+- **YAML provides environment**: Optional runspec.yaml for working directory and environment variables
+- **Agent-owned validation**: Each agent handles its own defaults, type conversion, and validation
+- **No hidden merging**: What you type is what you get
