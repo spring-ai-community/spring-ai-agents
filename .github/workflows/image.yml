@@ -4,8 +4,7 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'Dockerfile.agents-runtime'
-      - '.github/workflows/ci.yml'  # Rebuild if CI changes
+      - 'agent-models/Dockerfile.agents-runtime'
       - 'provider-sdks/**'
       - 'agent-models/**'
   schedule:
