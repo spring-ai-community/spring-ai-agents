@@ -29,11 +29,43 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Install Claude Code CLI
+        run: |
+          # Install Claude Code CLI from npm globally - npm handles the symlink automatically
+          npm install -g @anthropic-ai/claude-code --silent
+          echo "✅ Claude Code CLI installed via npm"
+
+      - name: Install Gemini CLI
+        run: |
+          # Install official Gemini CLI from npm
+          npm install -g @google/gemini-cli --silent
+          echo "✅ Gemini CLI installed via npm"
+
+      - name: Verify CLI installations
+        run: |
+          echo "=== Verifying CLI installations ==="
+          # Check Claude CLI
+          if [ -L "/usr/local/bin/claude" ] && [ -f "/usr/local/bin/claude" ]; then
+            echo "✅ Claude CLI verified: $(/usr/local/bin/claude --version 2>&1)"
+          else
+            echo "❌ Claude CLI not found"
+            exit 1
+          fi
+          # Check Gemini CLI
+          if [ -L "/usr/local/bin/gemini" ] && [ -f "/usr/local/bin/gemini" ]; then
+            echo "✅ Gemini CLI verified: $(/usr/local/bin/gemini --version 2>&1)"
+          else
+            echo "❌ Gemini CLI not found"
+            exit 1
+          fi
+
       - name: Build with Maven and deploy to Sonatype snapshot repository
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.SIGNING_PASSPHRASE }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           mvn -Prelease --batch-mode --update-snapshots deploy
 

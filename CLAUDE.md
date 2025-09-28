@@ -203,3 +203,11 @@ All exceptions are runtime exceptions:
 - `SandboxException` - Wraps all sandbox execution errors
 - `TimeoutException` - Command timeout (runtime, not checked)
 - `ClaudeSDKException` - Claude CLI errors (runtime, not checked)
+
+## Development Guidelines
+
+### Commit Messages
+- **Do NOT credit Claude Code in commit messages**
+- Use clear, descriptive commit messages that explain the change
+- Follow conventional commit format when appropriate (feat:, fix:, docs:, etc.)
+- Focus on what the change accomplishes, not who created it
