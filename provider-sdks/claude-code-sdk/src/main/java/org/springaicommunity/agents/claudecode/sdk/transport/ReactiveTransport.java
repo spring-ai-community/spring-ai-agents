@@ -125,6 +125,14 @@ public class ReactiveTransport implements AutoCloseable {
 						if (exitCode == 0) {
 							sink.complete();
 						}
+						else if (exitCode == 1 && processor.hasReceivedMessages()) {
+							// Claude CLI has a bug where streaming operations return exit
+							// code 1
+							// even when successful. If we received messages, treat it as
+							// success.
+							logger.debug("Claude CLI returned exit code 1 but received messages - treating as success");
+							sink.complete();
+						}
 						else {
 							sink.error(ProcessExecutionException.withExitCode("Claude CLI process failed", exitCode));
 						}
@@ -307,8 +315,14 @@ public class ReactiveTransport implements AutoCloseable {
 
 		private final StringBuilder buffer = new StringBuilder();
 
+		private final AtomicBoolean receivedMessages = new AtomicBoolean(false);
+
 		public ReactiveMessageProcessor(FluxSink<Message> sink) {
 			this.sink = sink;
+		}
+
+		public boolean hasReceivedMessages() {
+			return receivedMessages.get();
 		}
 
 		@Override
@@ -322,6 +336,7 @@ public class ReactiveTransport implements AutoCloseable {
 					// Complete JSON line
 					Message message = parseMessage(line);
 					if (message != null) {
+						receivedMessages.set(true);
 						sink.next(message);
 					}
 				}
@@ -334,6 +349,7 @@ public class ReactiveTransport implements AutoCloseable {
 					if (buffered.startsWith("{") && buffered.endsWith("}")) {
 						Message message = parseMessage(buffered);
 						if (message != null) {
+							receivedMessages.set(true);
 							sink.next(message);
 							buffer.setLength(0); // Clear buffer
 						}

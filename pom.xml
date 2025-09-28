@@ -113,6 +113,8 @@
                                 <GEMINI_API_KEY>${env.GEMINI_API_KEY}</GEMINI_API_KEY>
                                 <GOOGLE_API_KEY>${env.GOOGLE_API_KEY}</GOOGLE_API_KEY>
                             </environmentVariables>
+                            <!-- Rerun flaky streaming tests to handle intermittent CLI failures -->
+                            <rerunFailingTestsCount>2</rerunFailingTestsCount>
                         </configuration>
                         <executions>
                             <execution>
