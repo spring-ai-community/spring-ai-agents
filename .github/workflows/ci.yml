@@ -19,8 +19,8 @@ on:
       - '*.md'
   workflow_dispatch:
     inputs:
-      skip_integration_tests:
-        description: 'Skip integration tests (for quick Maven Central publishing)'
+      skip_all_tests:
+        description: 'Skip all tests (for quick Maven Central publishing)'
         required: false
         default: 'false'
         type: boolean
@@ -160,9 +160,9 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          if [[ "${{ github.event.inputs.skip_integration_tests }}" == "true" ]]; then
-            echo "Skipping integration tests - running unit tests only"
-            ./mvnw --batch-mode --quiet clean verify
+          if [[ "${{ github.event.inputs.skip_all_tests }}" == "true" ]]; then
+            echo "Skipping all tests - build only for quick publishing"
+            ./mvnw --batch-mode --quiet clean install -DskipTests
           else
             echo "Running full test suite including integration tests"
             ./mvnw --batch-mode --quiet clean verify -Pfailsafe
