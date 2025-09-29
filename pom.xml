@@ -455,9 +455,9 @@
                 <configuration>
                     <publishingServerId>central</publishingServerId>
                     <autoPublish>true</autoPublish>
-                    <excludes>
-                        <exclude>org.springaicommunity.agents:spring-ai-agents-docs</exclude>
-                    </excludes>
+                    <excludedArtifacts>
+                        <excludedArtifact>spring-ai-agents-docs</excludedArtifact>
+                    </excludedArtifacts>
                 </configuration>
             </plugin>
             <plugin>
