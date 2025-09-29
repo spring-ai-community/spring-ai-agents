@@ -38,18 +38,26 @@
     </developers>
 
     <modules>
-        <!-- Core modules -->
+        <!-- Base modules first -->
         <module>agent-models/spring-ai-agent-model</module>
+        <module>spring-ai-agent-client</module>
+
+        <!-- SDK modules -->
         <module>provider-sdks/claude-code-sdk</module>
         <module>provider-sdks/gemini-cli-sdk</module>
         <module>provider-sdks/swe-agent-sdk</module>
+
+        <!-- Agent models that depend on base + SDKs -->
         <module>agent-models/spring-ai-claude-code</module>
         <module>agent-models/spring-ai-gemini</module>
         <module>agent-models/spring-ai-swe-agent</module>
-        <module>spring-ai-agent-client</module>
-        <module>docs</module>
+
+        <!-- Core and agents that depend on everything -->
         <module>spring-ai-agents-core</module>
         <module>agents/hello-world-agent</module>
+
+        <!-- Documentation and samples last -->
+        <module>docs</module>
         <module>samples/hello-world</module>
 
         <!-- Exclude problematic modules -->
