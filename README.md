@@ -10,7 +10,7 @@ This project was featured in a talk at SpringOne 2025 by Mark Pollack. View the 
 
 **Maven Snapshot Artifacts Coming Soon**
 
-📖 **[Documentation](https://spring-ai-community.github.io/spring-ai-agents/)** | [Getting Started](https://spring-ai-community.github.io/spring-ai-agents/getting-started.html) | [API Reference](https://spring-ai-community.github.io/spring-ai-agents/api/agentclient.html)
+📖 **[Documentation](https://spring-ai-community.github.io/spring-ai-agents/)** | [Getting Started](https://spring-ai-community.github.io/spring-ai-agents/getting-started.html) | [API Reference](https://spring-ai-community.github.io/spring-ai-agents/api/agentclient.html) | [Spring AI Bench](https://github.com/spring-ai-community/spring-ai-bench)
 
 > **Note**: This project is currently in development. The repository structure and APIs are subject to change.
 
