@@ -56,7 +56,12 @@ class DomainObjectIT extends ClaudeCliTestBase {
 		logger.info("Testing Cost calculations with real Claude CLI response");
 
 		// Execute a simple query that should have measurable cost
-		QueryResult result = Query.execute("What is 2+2? Please explain your reasoning.");
+		CLIOptions options = CLIOptions.builder()
+			.timeout(Duration.ofMinutes(3)) // AgentClient overhead requires longer
+											// timeout
+			.build();
+
+		QueryResult result = Query.execute("What is 2+2? Please explain your reasoning.", options);
 
 		assertThat(result).isNotNull();
 		assertThat(result.isSuccessful()).isTrue();
@@ -161,7 +166,12 @@ class DomainObjectIT extends ClaudeCliTestBase {
 
 		long startTime = System.currentTimeMillis();
 
-		QueryResult result = Query.execute("Write a haiku about programming");
+		CLIOptions options = CLIOptions.builder()
+			.timeout(Duration.ofMinutes(3)) // AgentClient overhead requires longer
+											// timeout
+			.build();
+
+		QueryResult result = Query.execute("Write a haiku about programming", options);
 
 		long endTime = System.currentTimeMillis();
 		long measuredDuration = endTime - startTime;
@@ -214,7 +224,12 @@ class DomainObjectIT extends ClaudeCliTestBase {
 	void testQueryResultConvenienceMethodsWithRealData() throws Exception {
 		logger.info("Testing QueryResult convenience methods with real Claude CLI response");
 
-		QueryResult result = Query.execute("Hello! Please say hello back and tell me your name.");
+		CLIOptions options = CLIOptions.builder()
+			.timeout(Duration.ofMinutes(3)) // AgentClient overhead requires longer
+											// timeout
+			.build();
+
+		QueryResult result = Query.execute("Hello! Please say hello back and tell me your name.", options);
 
 		assertThat(result).isNotNull();
 		assertThat(result.isSuccessful()).isTrue();
@@ -299,7 +314,12 @@ class DomainObjectIT extends ClaudeCliTestBase {
 		}
 
 		// Test with minimal prompt
-		QueryResult minimalResult = Query.execute("Hi");
+		CLIOptions minimalOptions = CLIOptions.builder()
+			.timeout(Duration.ofMinutes(3)) // AgentClient overhead requires longer
+											// timeout
+			.build();
+
+		QueryResult minimalResult = Query.execute("Hi", minimalOptions);
 		assertThat(minimalResult).isNotNull();
 		assertThat(minimalResult.metadata().usage().inputTokens()).isGreaterThan(0);
 		assertThat(minimalResult.metadata().usage().outputTokens()).isGreaterThan(0);
