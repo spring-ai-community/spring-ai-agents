@@ -6,4 +6,7 @@
 ** xref:api/claude-code-sdk.adoc[Claude Code SDK]
 ** xref:api/gemini-cli-sdk.adoc[Gemini CLI SDK]
 * xref:samples.adoc[Sample Agents]
+* Future Concepts
+** xref:future/judge-concept.adoc[Judge Concept]
+** xref:future/context-engineering.adoc[Context Engineering]
 * xref:contribution-guidelines.adoc[Contribution Guidelines]

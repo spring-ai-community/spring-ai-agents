@@ -118,3 +118,12 @@ We welcome contributions to Spring AI Agents! Please see our xref:contribution-g
 == The Vision
 
 Spring AI Agents brings autonomous code reasoning and tool use into mainstream Java enterprise development. By following Spring AI's proven patterns and conventions, we make autonomous agents accessible to every Spring developer while maintaining the full power that makes autonomous agents revolutionary for software development tasks.
+
+== Future Concepts
+
+Spring AI Agents is evolving to include advanced capabilities:
+
+* **xref:future/judge-concept.adoc[Judge Concept]** - Comprehensive result validation using both deterministic checks (test coverage, build success) and AI-powered assessment (code quality, architecture impact)
+* **xref:future/context-engineering.adoc[Context Engineering]** - Intelligent context assembly using tools like vendir to provide agents with rich project understanding and external reference materials
+
+These concepts represent the next evolution of autonomous agent capabilities, enabling more sophisticated and reliable AI-powered development workflows.

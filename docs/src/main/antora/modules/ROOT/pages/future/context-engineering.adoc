@@ -1,0 +1,325 @@
+= Context Engineering
+:page-title: Context Engineering
+:toc: left
+:tabsize: 2
+:sectnums:
+
+Context engineering provides AI agents with rich, structured project context to improve reasoning and decision-making.
+
+== Overview
+
+One of the biggest challenges in autonomous agent development is providing agents with sufficient context about the project they're working on. Traditional approaches either provide too little context (leading to poor decisions) or too much context (overwhelming the agent's attention).
+
+**Context engineering** solves this by intelligently gathering, structuring, and presenting relevant project context to agents in a way that enhances their understanding without overwhelming their processing capacity.
+
+== The Context Problem
+
+=== Current Limitations
+
+Today's agents often work with limited context:
+
+* **File-by-file processing** - Agents see individual files but miss broader patterns
+* **No domain knowledge** - Agents lack understanding of project conventions and architecture
+* **Missing dependencies** - External libraries and frameworks are black boxes
+* **Historical blindness** - No awareness of previous changes or evolution patterns
+
+=== The Information Paradox
+
+Agents face a fundamental tension:
+
+* **Too little context** → Poor decisions and irrelevant changes
+* **Too much context** → Information overload and decreased performance
+
+Context engineering resolves this by providing **just the right context, at the right time, in the right format**.
+
+== Context Engineering Vision
+
+=== Structured Context Assembly
+
+Context engineering uses specialized tools to build comprehensive project understanding:
+
+[source,bash]
+----
+# Example: Using vendir to bring external context into the workspace
+vendir sync --file context-plan.yaml
+
+# This assembles:
+# - API documentation from external services
+# - Framework documentation and examples
+# - Related project patterns and conventions
+# - Industry best practices and standards
+----
+
+=== Multi-Layer Context Model
+
+[source]
+----
+Project Context
+├── Core Context (always included)
+│   ├── Project structure and architecture
+│   ├── Code conventions and patterns
+│   ├── Build configuration and dependencies
+│   └── Test structure and coverage
+├── Domain Context (task-specific)
+│   ├── Related code modules and functions
+│   ├── Recent changes and evolution patterns
+│   ├── Issue history and resolution patterns
+│   └── Performance and security considerations
+└── External Context (as needed)
+    ├── Framework documentation and examples
+    ├── API specifications and schemas
+    ├── Industry patterns and best practices
+    └── Regulatory and compliance requirements
+----
+
+== Context Assembly Tools
+
+=== Vendir Integration
+
+https://carvel.dev/vendir/[Vendir] is a tool for declaratively bringing external content into your filesystem. It's perfect for context engineering:
+
+[source,yaml]
+----
+# context-plan.yaml
+apiVersion: vendir.k14s.io/v1alpha1
+kind: Config
+directories:
+- path: context/spring-docs
+  contents:
+  - path: .
+    git:
+      url: https://github.com/spring-projects/spring-framework
+      ref: main
+      includePaths:
+      - src/docs/asciidoc/web/webmvc.adoc
+      - src/docs/asciidoc/core/core-beans.adoc
+
+- path: context/patterns
+  contents:
+  - path: .
+    http:
+      url: https://martinfowler.com/articles/enterprisePatterns.html
+
+- path: context/api-specs
+  contents:
+  - path: .
+    git:
+      url: https://github.com/company/api-specifications
+      ref: v2.1.0
+----
+
+This creates a structured context environment that agents can reference during execution.
+
+=== Context-Aware Agent Execution
+
+[source,java]
+----
+AgentResult result = agentClient
+    .goal("Refactor the payment processing service")
+    .workspace(projectPath)
+    .context(ContextPlan.builder()
+        .includeProjectStructure()
+        .includeRecentChanges(Duration.ofDays(30))
+        .includeFrameworkDocs("spring-boot", "spring-security")
+        .includeApiSpecs("payment-gateway-v2")
+        .includeComplianceStandards("PCI-DSS")
+        .build())
+    .call();
+----
+
+== Context Types and Sources
+
+=== Project-Intrinsic Context
+
+Context derived from the project itself:
+
+* **Architecture diagrams** - System structure and component relationships
+* **Code patterns** - Recurring design patterns and conventions
+* **Test patterns** - Testing strategies and coverage expectations
+* **Configuration management** - Build, deployment, and environment setup
+* **Documentation** - READMEs, wikis, and inline documentation
+
+=== Domain-Specific Context
+
+Context relevant to the specific task:
+
+* **Related modules** - Code that interacts with the target area
+* **Change history** - Previous modifications and their outcomes
+* **Issue patterns** - Common problems and their solutions
+* **Performance profiles** - Bottlenecks and optimization opportunities
+
+=== External Reference Context
+
+Context from outside the project:
+
+* **Framework documentation** - Official docs for used libraries
+* **API specifications** - External service contracts and schemas
+* **Best practices** - Industry standards and recommended patterns
+* **Compliance requirements** - Security, legal, and regulatory standards
+
+== Implementation Patterns
+
+=== Context Advisors
+
+Context advisors automatically select and prepare relevant context:
+
+[source,java]
+----
+@Component
+public class SpringBootContextAdvisor implements ContextAdvisor {
+
+    @Override
+    public ContextContribution contributeContext(AgentGoal goal, ProjectWorkspace workspace) {
+        if (isSpringBootProject(workspace)) {
+            return ContextContribution.builder()
+                .addDocumentation("spring-boot-reference.html")
+                .addExamples(findRelevantExamples(goal))
+                .addPatterns(extractProjectPatterns(workspace))
+                .build();
+        }
+        return ContextContribution.empty();
+    }
+}
+----
+
+=== Context Caching and Optimization
+
+Context engineering includes intelligent caching:
+
+[source,java]
+----
+@Service
+public class ContextCacheService {
+
+    // Cache expensive context operations
+    @Cacheable("project-patterns")
+    public ProjectPatterns extractPatterns(ProjectWorkspace workspace) {
+        // Expensive analysis of project structure and patterns
+    }
+
+    // Invalidate cache when project changes
+    @CacheEvict(value = "project-patterns", condition = "#workspace.hasChangedSince(#timestamp)")
+    public void invalidatePatterns(ProjectWorkspace workspace, Instant timestamp) {
+    }
+}
+----
+
+=== Context Templating
+
+Structured context templates for different agent goals:
+
+[source]
+----
+templates/
+├── bug-fix-context.yaml          # Context for bug fixing tasks
+├── feature-implementation.yaml   # Context for new features
+├── refactoring-context.yaml      # Context for code refactoring
+├── security-review.yaml          # Context for security assessments
+└── performance-optimization.yaml # Context for performance improvements
+----
+
+== Context Engineering Workflow
+
+=== 1. Context Planning
+
+Define what context is needed for the agent goal:
+
+[source,java]
+----
+ContextPlan plan = ContextPlanner.forGoal(goal)
+    .analyzeProjectType(workspace)
+    .identifyRelevantSources()
+    .optimizeForAgentCapabilities()
+    .build();
+----
+
+=== 2. Context Assembly
+
+Gather and structure the identified context:
+
+[source,bash]
+----
+# Use vendir to assemble external context
+vendir sync --file ${plan.getVendirConfig()}
+
+# Use internal tools to extract project context
+context-extractor --project=${workspace} --output=${plan.getContextDir()}
+----
+
+=== 3. Context Optimization
+
+Prepare context for agent consumption:
+
+[source,java]
+----
+OptimizedContext context = ContextOptimizer
+    .forAgent(agentCapabilities)
+    .summarize(verboseContext)
+    .prioritize(relevanceScores)
+    .format(agentPreferences)
+    .optimize();
+----
+
+=== 4. Context-Aware Execution
+
+Execute the agent with rich context:
+
+[source,java]
+----
+AgentResult result = agentClient
+    .goal(goal)
+    .workspace(workspace)
+    .context(optimizedContext)
+    .call();
+----
+
+== Benefits
+
+=== For Agent Performance
+
+* **Better Decision Making** - Agents understand project conventions and patterns
+* **Reduced Hallucination** - Real project context reduces fabricated assumptions
+* **Improved Consistency** - Agents follow established patterns and standards
+* **Faster Learning** - Rich context accelerates agent understanding
+
+=== For Development Teams
+
+* **Predictable Results** - Context engineering leads to more consistent agent outputs
+* **Knowledge Preservation** - Project knowledge is codified and reusable
+* **Onboarding Acceleration** - New team members benefit from structured context
+* **Quality Assurance** - Context ensures agents follow team standards
+
+== Context Engineering Tools
+
+=== Planned Integrations
+
+* **Vendir** - Declarative external content management
+* **Git Analysis** - Repository history and pattern extraction
+* **Documentation Parsers** - README, Wiki, and comment extraction
+* **Dependency Analyzers** - Third-party library context
+* **Configuration Readers** - Build and deployment context
+
+=== Future Enhancements
+
+* **AI-Powered Context Selection** - Intelligent context relevance scoring
+* **Dynamic Context Updates** - Real-time context refreshing
+* **Context Compression** - Advanced summarization for large contexts
+* **Collaborative Context** - Team-shared context repositories
+
+== Integration with Judge Concept
+
+Context engineering and the judge concept work together:
+
+* **Context-Aware Judgment** - Judges use rich context to make better assessments
+* **Context Validation** - Judges verify that agent outputs respect project context
+* **Context Learning** - Judge feedback improves future context selection
+
+== Related Concepts
+
+* **Judge Concept** - Uses context for comprehensive result validation
+* **Agent Orchestration** - Coordinates multiple agents with shared context
+* **Workspace Management** - Manages the physical context assembly process
+
+---
+
+Context engineering transforms autonomous agents from isolated tools into context-aware team members that understand and respect your project's unique characteristics, conventions, and requirements.
