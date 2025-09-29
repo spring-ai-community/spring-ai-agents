@@ -38,7 +38,7 @@
     </developers>
 
     <modules>
-        <!-- Modules will be added as they are created -->
+        <!-- Core modules -->
         <module>agent-models/spring-ai-agent-model</module>
         <module>provider-sdks/claude-code-sdk</module>
         <module>provider-sdks/gemini-cli-sdk</module>
@@ -50,10 +50,11 @@
         <module>docs</module>
         <module>spring-ai-agents-core</module>
         <module>agents/hello-world-agent</module>
-        <!-- <module>agents/code-coverage-agent</module> -->
         <module>samples/hello-world</module>
+
+        <!-- Exclude problematic modules -->
+        <!-- <module>agents/code-coverage-agent</module> -->
         <!--
-        <module>agent-models/spring-ai-swebench-agent</module>
         <module>agent-models/spring-ai-swebench-agent</module>
         <module>spring-ai-spring-boot-starters/spring-ai-starter-agent</module>
         <module>samples/sample-cli</module>
