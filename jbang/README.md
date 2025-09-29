@@ -12,8 +12,12 @@ The main entry point for executing agents via JBang. Provides a simple command-l
 # Basic usage - CLI provides inputs
 jbang launcher.java <agent-id> key=value key2=value2 ...
 
-# Hello World example
+# Hello World example (static content)
 jbang launcher.java hello-world path=myfile.txt content="Hello World!"
+
+# AI-powered Hello World examples (requires API keys)
+jbang launcher.java hello-world-agent-ai path=greeting.txt content="a creative message" provider=claude
+jbang launcher.java hello-world-agent-ai path=ai-info.txt content="information about AI agents" provider=gemini
 
 # Using default content (agent provides defaults)
 jbang launcher.java hello-world path=myfile.txt
@@ -67,7 +71,8 @@ Priority order for runspec files:
 ### Agent Types
 
 Currently supported agents:
-- `hello-world` - Creates files with specified content
+- `hello-world` - Creates files with specified content (static/deterministic)
+- `hello-world-agent-ai` - **AI-powered** file creation using Claude Code or Gemini CLI
 - `coverage` - Code coverage analysis (work in progress)
 
 ### Requirements

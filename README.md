@@ -27,17 +27,24 @@ Transform autonomous CLI agents into pluggable Spring components:
 ### Try with JBang (No Setup Required)
 
 ```bash
-# Using JBang catalog (recommended)
+# Static content example
 jbang agents@spring-ai-community/spring-ai-agents \
   hello-world \
   path=greeting.txt \
   content="Hello Spring AI Agents!"
 
-# Using direct URL
-jbang https://github.com/spring-ai-community/spring-ai-agents/blob/main/jbang/launcher.java \
-  hello-world \
-  path=greeting.txt \
-  content="Hello Spring AI Agents!"
+# AI-powered examples (requires API keys)
+jbang agents@spring-ai-community/spring-ai-agents \
+  hello-world-agent-ai \
+  path=ai-greeting.txt \
+  content="a creative message about AI agents" \
+  provider=claude
+
+jbang agents@spring-ai-community/spring-ai-agents \
+  hello-world-agent-ai \
+  path=future.txt \
+  content="a vision of the future of AI" \
+  provider=gemini
 ```
 
 ### Maven Dependencies
@@ -104,8 +111,13 @@ spring-ai-agents/
 │   └── spring-ai-swebench-agent/   # SWE-bench agent
 ├── provider-sdks/                   # CLI/SDK integrations
 │   ├── claude-code-sdk/            # Claude Code CLI client
-│   └── gemini-cli-sdk/             # Gemini CLI client
+│   ├── gemini-cli-sdk/             # Gemini CLI client
+│   └── swe-agent-sdk/              # SWE-bench agent SDK
+├── agents/                          # JBang-compatible agents
+│   ├── hello-world-agent/          # Static file creation
+│   └── hello-world-agent-ai/       # AI-powered file creation
 ├── spring-ai-agent-client/          # Unified client façade
+├── spring-ai-agents-core/           # Agent launcher framework
 ├── spring-ai-spring-boot-starters/  # Auto-configuration
 └── samples/                         # Example applications
 ```
@@ -125,10 +137,14 @@ spring-ai-agents/
 | Core Abstractions | `AgentModel`, `AgentTaskRequest`, `AgentCallResult` | `org.springaicommunity.agents:spring-ai-agent-model` |
 | Claude Code SDK | CLI client with resilience features | `org.springaicommunity.agents:claude-code-sdk` |
 | Gemini CLI SDK | Gemini command-line interface client | `org.springaicommunity.agents:gemini-cli-sdk` |
+| SWE Agent SDK | SWE-bench agent SDK | `org.springaicommunity.agents:swe-agent-sdk` |
 | Claude Code Agent | Spring AI adapter for Claude Code | `org.springaicommunity.agents:spring-ai-claude-code` |
 | Gemini Agent | Spring AI adapter for Gemini CLI | `org.springaicommunity.agents:spring-ai-gemini` |
 | SWE-bench Agent | Software engineering benchmarking agent | `org.springaicommunity.agents:spring-ai-swebench-agent` |
 | Agent Client | Unified fluent API | `org.springaicommunity.agents:spring-ai-agent-client` |
+| Agents Core | Agent launcher framework | `org.springaicommunity.agents:spring-ai-agents-core` |
+| Hello World Agent | Static file creation agent | `org.springaicommunity.agents:hello-world-agent` |
+| Hello World AI Agent | **AI-powered file creation agent** | `org.springaicommunity.agents:hello-world-agent-ai` |
 | Spring Boot Starter | Auto-configuration | `org.springaicommunity.agents:spring-ai-starter-agent` |
 
 ## Features

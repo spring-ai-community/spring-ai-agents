@@ -48,6 +48,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Sample Applications
 - `cd samples/hello-world && mvn spring-boot:run` - Run the Hello World sample
 - Authentication: Uses Claude CLI session authentication (recommended) or ANTHROPIC_API_KEY
+
+### CLI Tool Locations (for this environment)
+- **Claude CLI**: `/home/mark/.nvm/versions/node/v22.15.0/bin/claude` (version 1.0.128)
+- **Gemini CLI**: `/home/mark/.nvm/versions/node/v22.15.0/bin/gemini` (version 0.5.5)
+- **JBang**: `/home/mark/.sdkman/candidates/jbang/current/bin/jbang`
+
+These paths are automatically discovered by the respective CLI discovery utilities, but documenting them here helps avoid repeated discovery overhead during development.
 - Note: Session authentication (from `claude auth login`) is preferred over API keys to avoid conflicts
 
 ## Architecture Overview

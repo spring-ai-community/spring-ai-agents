@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
@@ -11,39 +11,42 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <artifactId>spring-ai-swe-agent</artifactId>
+    <artifactId>hello-world-agent-ai</artifactId>
     <packaging>jar</packaging>
 
-    <name>Spring AI SWE Agent Model</name>
-    <description>Spring AI Agent Model implementation for SWE-bench Agent CLI</description>
+    <name>Hello World AI Agent</name>
+    <description>AI-powered file creation agent using AgentClient for Spring AI Agents JBang launcher</description>
 
     <dependencies>
-        <!-- Agent Model Core -->
+        <!-- Agent Client for invoking AI agents -->
         <dependency>
             <groupId>org.springaicommunity.agents</groupId>
-            <artifactId>spring-ai-agent-model</artifactId>
-        </dependency>
-
-        <!-- SWE Agent SDK -->
-        <dependency>
-            <groupId>org.springaicommunity.agents</groupId>
-            <artifactId>swe-agent-sdk</artifactId>
-        </dependency>
-
-        <!-- Slf4j API -->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
-
-        <!-- Testing dependencies -->
-        <dependency>
-            <groupId>org.springaicommunity.agents</groupId>
-            <artifactId>spring-ai-agent-model</artifactId>
+            <artifactId>spring-ai-agent-client</artifactId>
             <version>${project.version}</version>
-            <type>test-jar</type>
-            <scope>test</scope>
         </dependency>
+
+        <!-- Claude Code Agent -->
+        <dependency>
+            <groupId>org.springaicommunity.agents</groupId>
+            <artifactId>spring-ai-claude-code</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Gemini Agent -->
+        <dependency>
+            <groupId>org.springaicommunity.agents</groupId>
+            <artifactId>spring-ai-gemini</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Core framework -->
+        <dependency>
+            <groupId>org.springaicommunity.agents</groupId>
+            <artifactId>spring-ai-agents-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Test dependencies -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
@@ -60,4 +63,17 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>io.spring.javaformat</groupId>
+                <artifactId>spring-javaformat-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 </project>

@@ -1,0 +1,14 @@
+id: hello-world-agent-ai
+version: 0.1
+inputs:
+  path:
+    type: string
+    required: true
+  content:
+    type: string
+    required: false
+    default: "Hello World!"
+  provider:
+    type: string
+    required: false
+    default: "claude"

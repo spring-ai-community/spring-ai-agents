@@ -83,6 +83,18 @@ public class Launcher {
 				log.warn("Failed to load HelloWorldAgentRunner: {}", e.getMessage());
 			}
 		}
+		else if ("hello-world-agent-ai".equals(agentId)) {
+			try {
+				Class<?> agentClass = Class
+					.forName("org.springaicommunity.agents.helloworldai.HelloWorldAgentAIRunner");
+				AgentRunner agent = (AgentRunner) agentClass.getDeclaredConstructor().newInstance();
+				agents.put("hello-world-agent-ai", agent);
+				log.info("Loaded HelloWorldAgentAIRunner dynamically");
+			}
+			catch (Exception e) {
+				log.warn("Failed to load HelloWorldAgentAIRunner: {}", e.getMessage());
+			}
+		}
 
 		return agents;
 	}

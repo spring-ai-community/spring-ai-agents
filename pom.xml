@@ -55,6 +55,7 @@
         <!-- Core and agents that depend on everything -->
         <module>spring-ai-agents-core</module>
         <module>agents/hello-world-agent</module>
+        <module>agents/hello-world-agent-ai</module>
 
         <!-- Documentation and samples last -->
         <module>docs</module>
@@ -431,9 +432,9 @@
                     <version>${spring-javaformat-maven-plugin.version}</version>
                     <executions>
                         <execution>
-                            <phase>validate</phase>
+                            <phase>process-sources</phase>
                             <goals>
-                                <goal>validate</goal>
+                                <goal>apply</goal>
                             </goals>
                         </execution>
                     </executions>
@@ -455,9 +456,6 @@
                 <configuration>
                     <publishingServerId>central</publishingServerId>
                     <autoPublish>true</autoPublish>
-                    <excludedArtifacts>
-                        <excludedArtifact>spring-ai-agents-docs</excludedArtifact>
-                    </excludedArtifacts>
                 </configuration>
             </plugin>
             <plugin>
