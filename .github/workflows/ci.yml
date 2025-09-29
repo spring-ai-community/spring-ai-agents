@@ -162,7 +162,7 @@ jobs:
         run: |
           if [[ "${{ github.event.inputs.skip_all_tests }}" == "true" ]]; then
             echo "Skipping all tests - build only for quick publishing"
-            ./mvnw --batch-mode --quiet clean install -DskipTests
+            ./mvnw --batch-mode --quiet clean install -DskipTests -Dmaven.test.skip=true -Dfailsafe.skip=true
           else
             echo "Running full test suite including integration tests"
             ./mvnw --batch-mode --quiet clean verify -Pfailsafe
@@ -195,4 +195,9 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           echo "Publishing snapshot artifacts to Maven Central..."
-          ./mvnw --batch-mode --update-snapshots install deploy
+          if [[ "${{ github.event.inputs.skip_all_tests }}" == "true" ]]; then
+            echo "Publishing with tests skipped for speed"
+            ./mvnw --batch-mode --update-snapshots deploy -DskipTests -Dmaven.test.skip=true -Dfailsafe.skip=true
+          else
+            ./mvnw --batch-mode --update-snapshots install deploy
+          fi

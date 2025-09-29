@@ -50,7 +50,7 @@
         <module>docs</module>
         <module>spring-ai-agents-core</module>
         <module>agents/hello-world-agent</module>
-        <module>agents/code-coverage-agent</module>
+        <!-- <module>agents/code-coverage-agent</module> -->
         <module>samples/hello-world</module>
         <!--
         <module>agent-models/spring-ai-swebench-agent</module>
