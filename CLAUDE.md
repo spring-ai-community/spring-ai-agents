@@ -35,7 +35,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Git Commit Guidelines
 - **NEVER add Claude Code attribution** in commit messages
-
 - Keep commit messages clean and professional without AI attribution
 
 ### JBang Agent Launcher

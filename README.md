@@ -24,6 +24,13 @@ Transform autonomous CLI agents into pluggable Spring components:
 
 ## Quick Start
 
+> **⚠️ Local Development Notice**: To try out the latest features including hello-world-agent-ai, you need to build and install locally first:
+> ```bash
+> git clone https://github.com/spring-ai-community/spring-ai-agents.git
+> cd spring-ai-agents
+> ./mvnw clean install -DskipTests
+> ```
+
 ### Try with JBang (No Setup Required)
 
 ```bash
