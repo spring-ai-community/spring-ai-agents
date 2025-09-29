@@ -43,6 +43,7 @@
         </dependency>
 
         <!-- Testing dependencies -->
+        <!-- Temporarily commented out to avoid test-jar dependency issues during publishing
         <dependency>
             <groupId>org.springaicommunity.agents</groupId>
             <artifactId>spring-ai-agent-model</artifactId>
@@ -50,6 +51,7 @@
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
+        -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
