@@ -4,6 +4,7 @@ on:
   push:
     branches: [ main ]
     paths:
+      - 'Dockerfile.agents-runtime'
       - 'agent-models/Dockerfile.agents-runtime'
       - 'provider-sdks/**'
       - 'agent-models/**'
