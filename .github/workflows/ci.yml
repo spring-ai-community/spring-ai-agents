@@ -215,7 +215,6 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           echo "Publishing snapshot artifacts to Maven Central..."
-          # Temporarily skip tests in deploy since we already ran install
-          # Exclude docs/agents/samples - they have skipPublishing=true but plugin still validates dependencies
-          ./mvnw --batch-mode --update-snapshots deploy -DskipTests -Dmaven.test.skip=true -Dfailsafe.skip=true \
-            -pl '!docs,!agents/hello-world-agent,!agents/hello-world-agent-ai,!samples/hello-world,!samples/context-engineering'
+          # Standard maven-deploy-plugin will use distributionManagement configuration for snapshots
+          # Exclude docs/agents/samples that have maven-deploy-plugin skip=true
+          ./mvnw --batch-mode --update-snapshots deploy -DskipTests -Dmaven.test.skip=true -Dfailsafe.skip=true
