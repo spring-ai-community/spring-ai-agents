@@ -8,7 +8,7 @@ This project was featured in a talk at SpringOne 2025 by Mark Pollack. View the 
 <!-- [![Build Status](https://github.com/spring-ai-community/spring-ai-agents/workflows/CI/badge.svg)](https://github.com/spring-ai-community/spring-ai-agents/actions) -->
 <!-- [![Maven Central](https://img.shields.io/maven-central/v/org.springaicommunity.agents/spring-ai-agents-parent.svg)](https://search.maven.org/search?q=g:org.springaicommunity.agents) -->
 
-**Maven Snapshot Artifacts Coming Soon**
+**Maven Snapshot Artifacts**: Available from [Maven Central Snapshots](https://central.sonatype.com/repository/maven-snapshots/org/springaicommunity/agents/)
 
 📖 **[Documentation](https://spring-ai-community.github.io/spring-ai-agents/)** | [Getting Started](https://spring-ai-community.github.io/spring-ai-agents/getting-started.html) | [API Reference](https://spring-ai-community.github.io/spring-ai-agents/api/agentclient.html) | [Spring AI Bench](https://github.com/spring-ai-community/spring-ai-bench)
 
@@ -202,7 +202,8 @@ spring-ai-agents/
 | Agent Client | Unified fluent API | `org.springaicommunity.agents:spring-ai-agent-client` |
 | Agents Core | Agent launcher framework | `org.springaicommunity.agents:spring-ai-agents-core` |
 | Hello World Agent | Static file creation agent | `org.springaicommunity.agents:hello-world-agent` |
-| Hello World AI Agent | **AI-powered file creation agent** | `org.springaicommunity.agents:hello-world-agent-ai` |
+| Hello World AI Agent | AI-powered file creation agent | `org.springaicommunity.agents:hello-world-agent-ai` |
+| Code Coverage Agent | Test coverage improvement agent | `org.springaicommunity.agents:code-coverage-agent` |
 | Spring Boot Starter | Auto-configuration | `org.springaicommunity.agents:spring-ai-starter-agent` |
 
 ## Features
@@ -219,6 +220,7 @@ spring-ai-agents/
 
 See the [`samples/`](samples/) directory for complete examples:
 - [`hello-world/`](samples/hello-world/) - Simple Spring Boot application demonstrating AgentClient basics
+- [`context-engineering/`](samples/context-engineering/) - Advanced context engineering with VendirContextAdvisor
 
 ## Documentation
 

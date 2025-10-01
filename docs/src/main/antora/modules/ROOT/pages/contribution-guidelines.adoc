@@ -119,10 +119,10 @@ Follow these coding conventions:
 [source,java]
 ----
 // Good example
-public class ClaudeCodeAgentModel implements AgentModel<AgentRequest, AgentResponse> {
+public class ClaudeAgentModel implements AgentModel<AgentRequest, AgentResponse> {
     
-    private final ClaudeCodeClient client;
-    private final ClaudeCodeAgentOptions options;
+    private final ClaudeAgentClient client;
+    private final ClaudeAgentOptions options;
     
     /**
      * Creates a new Claude Code agent model with the specified client and options.
@@ -131,7 +131,7 @@ public class ClaudeCodeAgentModel implements AgentModel<AgentRequest, AgentRespo
      * @param options configuration options for the agent
      * @throws IllegalArgumentException if client or options are null
      */
-    public ClaudeCodeAgentModel(ClaudeCodeClient client, ClaudeCodeAgentOptions options) {
+    public ClaudeAgentModel(ClaudeAgentClient client, ClaudeAgentOptions options) {
         this.client = Objects.requireNonNull(client, "Client cannot be null");
         this.options = Objects.requireNonNull(options, "Options cannot be null");
     }
@@ -146,7 +146,7 @@ Follow our standardized test naming:
 
 * **Unit Tests**: End with `Test` (e.g., `AgentClientTest`)
 * **Smoke Tests**: Include `Smoke` in the name (e.g., `ClaudeQuerySmokeTest`)
-* **Integration Tests**: End with `IT` (e.g., `ClaudeCodeClientIT`)
+* **Integration Tests**: End with `IT` (e.g., `ClaudeAgentClientIT`)
 
 [source,java]
 ----
@@ -160,7 +160,7 @@ class AgentClientTest {
 }
 
 // Integration test example  
-class ClaudeCodeClientIT {
+class ClaudeAgentClientIT {
     
     @Test
     void shouldExecuteSimpleTaskSuccessfully() {
@@ -189,8 +189,8 @@ Write clear, descriptive commit messages:
 # Good commit message
 Add timeout configuration for Claude Code agent
 
-- Add timeout option to ClaudeCodeAgentOptions
-- Implement timeout handling in ClaudeCodeClient
+- Add timeout option to ClaudeAgentOptions
+- Implement timeout handling in ClaudeAgentClient
 - Add tests for timeout scenarios
 - Update documentation with timeout examples
 
@@ -281,7 +281,7 @@ class AgentClientTest {
 class ClaudeQuerySmokeTest {
     
     @Test
-    @EnabledIf("org.springaicommunity.agents.claudecode.sdk.integration.ClaudeCliDiscovery#isClaudeCliAvailable")
+    @EnabledIf("org.springaicommunity.agents.claude.sdk.integration.ClaudeCliDiscovery#isClaudeCliAvailable")
     void shouldExecuteSimpleQuery() {
         // Test simple agent interaction
         AgentClientResponse response = agentClient.run("Echo hello world");
@@ -307,7 +307,7 @@ Use the Given-When-Then pattern:
 @Test
 void shouldHandleTimeoutGracefully() {
     // Given
-    ClaudeCodeAgentOptions options = ClaudeCodeAgentOptions.builder()
+    ClaudeAgentOptions options = ClaudeAgentOptions.builder()
         .timeout(Duration.ofMillis(100))  // Very short timeout
         .build();
     AgentClient client = createClientWithOptions(options);
@@ -331,8 +331,8 @@ Create reusable test utilities:
 ----
 public class TestDataBuilder {
     
-    public static ClaudeCodeAgentOptions defaultOptions() {
-        return ClaudeCodeAgentOptions.builder()
+    public static ClaudeAgentOptions defaultOptions() {
+        return ClaudeAgentOptions.builder()
             .model("claude-sonnet-4-0")
             .yolo(false)
             .timeout(Duration.ofMinutes(2))

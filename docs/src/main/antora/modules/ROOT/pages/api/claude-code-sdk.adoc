@@ -65,7 +65,7 @@ Add the following dependencies to your `pom.xml`:
     <!-- Claude Code integration -->
     <dependency>
         <groupId>org.springaicommunity.agents</groupId>
-        <artifactId>spring-ai-claude-code</artifactId>
+        <artifactId>spring-ai-claude-agent</artifactId>
         <version>0.1.0-SNAPSHOT</version>
     </dependency>
 </dependencies>
@@ -79,27 +79,27 @@ Add the following dependencies to your `pom.xml`:
 ----
 import org.springaicommunity.agents.client.AgentClient;
 import org.springaicommunity.agents.client.AgentClientResponse;
-import org.springaicommunity.agents.claudecode.ClaudeCodeAgentModel;
-import org.springaicommunity.agents.claudecode.ClaudeCodeAgentOptions;
-import org.springaicommunity.agents.claudecode.sdk.ClaudeCodeClient;
+import org.springaicommunity.agents.claude.ClaudeAgentModel;
+import org.springaicommunity.agents.claude.ClaudeAgentOptions;
+import org.springaicommunity.agents.claude.sdk.ClaudeAgentClient;
 
 import java.nio.file.Paths;
 
 public class ClaudeCodeExample {
     public static void main(String[] args) {
         // 1. Create the Claude Code client
-        ClaudeCodeClient claudeClient = ClaudeCodeClient.create(
+        ClaudeAgentClient claudeClient = ClaudeAgentClient.create(
             Paths.get(System.getProperty("user.dir"))
         );
         
         // 2. Configure agent options
-        ClaudeCodeAgentOptions options = ClaudeCodeAgentOptions.builder()
+        ClaudeAgentOptions options = ClaudeAgentOptions.builder()
             .model("claude-sonnet-4-20250514")
             .yolo(true)
             .build();
             
         // 3. Create the agent model
-        ClaudeCodeAgentModel agentModel = new ClaudeCodeAgentModel(claudeClient, options);
+        ClaudeAgentModel agentModel = new ClaudeAgentModel(claudeClient, options);
         
         // 4. Create AgentClient
         AgentClient agentClient = AgentClient.create(agentModel);
@@ -117,33 +117,33 @@ public class ClaudeCodeExample {
 
 == Configuration
 
-=== ClaudeCodeClient
+=== ClaudeAgentClient
 
-The `ClaudeCodeClient` manages communication with the Claude CLI:
+The `ClaudeAgentClient` manages communication with the Claude CLI:
 
 [source,java]
 ----
 // Create with default working directory
-ClaudeCodeClient client = ClaudeCodeClient.create();
+ClaudeAgentClient client = ClaudeAgentClient.create();
 
 // Create with specific working directory
 Path projectPath = Paths.get("/path/to/project");
-ClaudeCodeClient client = ClaudeCodeClient.create(projectPath);
+ClaudeAgentClient client = ClaudeAgentClient.create(projectPath);
 
 // Create with custom Claude command path
-ClaudeCodeClient client = ClaudeCodeClient.create(
+ClaudeAgentClient client = ClaudeAgentClient.create(
     projectPath,
     "/custom/path/to/claude"
 );
 ----
 
-=== ClaudeCodeAgentOptions
+=== ClaudeAgentOptions
 
 Configure Claude-specific behavior:
 
 [source,java]
 ----
-ClaudeCodeAgentOptions options = ClaudeCodeAgentOptions.builder()
+ClaudeAgentOptions options = ClaudeAgentOptions.builder()
     // Model selection
     .model("claude-sonnet-4-0")  // or "claude-haiku-4-0"
     
@@ -189,7 +189,7 @@ Claude Code operates within a specific directory context:
 [source,java]
 ----
 // Configure working directory via client
-ClaudeCodeClient client = ClaudeCodeClient.create(
+ClaudeAgentClient client = ClaudeAgentClient.create(
     Paths.get("/path/to/microservice")
 );
 
@@ -207,12 +207,12 @@ Control whether Claude can make changes without confirmation:
 [source,java]
 ----
 // Development mode - allow changes
-ClaudeCodeAgentOptions devOptions = ClaudeCodeAgentOptions.builder()
+ClaudeAgentOptions devOptions = ClaudeAgentOptions.builder()
     .yolo(true)
     .build();
 
 // Analysis mode - read-only
-ClaudeCodeAgentOptions analysisOptions = ClaudeCodeAgentOptions.builder()
+ClaudeAgentOptions analysisOptions = ClaudeAgentOptions.builder()
     .yolo(false)
     .build();
 ----
@@ -224,12 +224,12 @@ Set appropriate timeouts for different goal complexities:
 [source,java]
 ----
 // Quick tasks
-ClaudeCodeAgentOptions quickOptions = ClaudeCodeAgentOptions.builder()
+ClaudeAgentOptions quickOptions = ClaudeAgentOptions.builder()
     .timeout(Duration.ofMinutes(2))
     .build();
 
 // Complex refactoring
-ClaudeCodeAgentOptions complexOptions = ClaudeCodeAgentOptions.builder()
+ClaudeAgentOptions complexOptions = ClaudeAgentOptions.builder()
     .timeout(Duration.ofMinutes(30))
     .build();
 ----
@@ -326,22 +326,22 @@ public class ClaudeCodeConfiguration {
     
     @Bean
     @ConditionalOnMissingBean
-    public ClaudeCodeClient claudeCodeClient(@Value("${spring.ai.agent.claude.working-directory:#{systemProperties['user.dir']}}") String workingDir) {
-        return ClaudeCodeClient.create(Paths.get(workingDir));
+    public ClaudeAgentClient claudeCodeClient(@Value("${spring.ai.agent.claude.working-directory:#{systemProperties['user.dir']}}") String workingDir) {
+        return ClaudeAgentClient.create(Paths.get(workingDir));
     }
     
     @Bean
     @ConditionalOnMissingBean
-    public ClaudeCodeAgentModel claudeCodeAgentModel(
-            ClaudeCodeClient client,
-            ClaudeCodeAgentOptions options) {
-        return new ClaudeCodeAgentModel(client, options);
+    public ClaudeAgentModel claudeCodeAgentModel(
+            ClaudeAgentClient client,
+            ClaudeAgentOptions options) {
+        return new ClaudeAgentModel(client, options);
     }
     
     @Bean
     @ConditionalOnMissingBean
-    public ClaudeCodeAgentOptions claudeCodeAgentOptions(ClaudeCodeProperties properties) {
-        return ClaudeCodeAgentOptions.builder()
+    public ClaudeAgentOptions claudeCodeAgentOptions(ClaudeCodeProperties properties) {
+        return ClaudeAgentOptions.builder()
             .model(properties.getModel())
             .yolo(properties.isYolo())
             .timeout(properties.getTimeout())
@@ -351,7 +351,7 @@ public class ClaudeCodeConfiguration {
     }
     
     @Bean
-    public AgentClient agentClient(ClaudeCodeAgentModel agentModel) {
+    public AgentClient agentClient(ClaudeAgentModel agentModel) {
         return AgentClient.create(agentModel);
     }
 }
@@ -421,8 +421,8 @@ Always be cautious with YOLO mode in production:
 public class DevelopmentClaudeConfig {
     
     @Bean
-    public ClaudeCodeAgentOptions devClaudeOptions() {
-        return ClaudeCodeAgentOptions.builder()
+    public ClaudeAgentOptions devClaudeOptions() {
+        return ClaudeAgentOptions.builder()
             .yolo(true) // OK for development
             .build();
     }
@@ -433,8 +433,8 @@ public class DevelopmentClaudeConfig {
 public class ProductionClaudeConfig {
     
     @Bean
-    public ClaudeCodeAgentOptions prodClaudeOptions() {
-        return ClaudeCodeAgentOptions.builder()
+    public ClaudeAgentOptions prodClaudeOptions() {
+        return ClaudeAgentOptions.builder()
             .yolo(false) // Safe for production
             .build();
     }
@@ -532,7 +532,7 @@ Increase timeout for complex tasks:
 
 [source,java]
 ----
-ClaudeCodeAgentOptions options = ClaudeCodeAgentOptions.builder()
+ClaudeAgentOptions options = ClaudeAgentOptions.builder()
     .timeout(Duration.ofMinutes(30)) // Longer timeout
     .build();
 ----
@@ -543,7 +543,7 @@ Enable verbose logging to troubleshoot issues:
 
 [source,java]
 ----
-ClaudeCodeAgentOptions debugOptions = ClaudeCodeAgentOptions.builder()
+ClaudeAgentOptions debugOptions = ClaudeAgentOptions.builder()
     .verbose(true)
     .build();
 ----
@@ -554,7 +554,7 @@ Add logging configuration:
 ----
 logging:
   level:
-    org.springaicommunity.agents.claudecode: DEBUG
+    org.springaicommunity.agents.claude: DEBUG
     org.springaicommunity.agents.client: DEBUG
 ----
 

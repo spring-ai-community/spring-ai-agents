@@ -68,7 +68,7 @@ Add the following dependencies to your `pom.xml`:
     <!-- Choose your agent provider -->
     <dependency>
         <groupId>org.springaicommunity.agents</groupId>
-        <artifactId>spring-ai-claude-code</artifactId>
+        <artifactId>spring-ai-claude-agent</artifactId>
         <version>0.1.0-SNAPSHOT</version>
     </dependency>
 </dependencies>
@@ -82,7 +82,7 @@ Add the following dependencies to your `build.gradle`:
 ----
 dependencies {
     implementation 'org.springaicommunity.agents:spring-ai-agent-client:0.1.0-SNAPSHOT'
-    implementation 'org.springaicommunity.agents:spring-ai-claude-code:0.1.0-SNAPSHOT'
+    implementation 'org.springaicommunity.agents:spring-ai-claude-agent:0.1.0-SNAPSHOT'
 }
 ----
 
@@ -94,23 +94,23 @@ Here's a simple example using Spring AI Agents with Claude Code:
 ----
 import org.springaicommunity.agents.client.AgentClient;
 import org.springaicommunity.agents.client.AgentClientResponse;
-import org.springaicommunity.agents.claudecode.ClaudeCodeAgentModel;
-import org.springaicommunity.agents.claudecode.ClaudeCodeAgentOptions;
-import org.springaicommunity.agents.claudecode.sdk.ClaudeCodeClient;
+import org.springaicommunity.agents.claude.ClaudeAgentModel;
+import org.springaicommunity.agents.claude.ClaudeAgentOptions;
+import org.springaicommunity.agents.claude.sdk.ClaudeAgentClient;
 
 public class HelloAgentWorld {
     public static void main(String[] args) {
         // 1. Create the Claude Code client
-        ClaudeCodeClient claudeClient = ClaudeCodeClient.create();
-        
+        ClaudeAgentClient claudeClient = ClaudeAgentClient.create();
+
         // 2. Configure agent options
-        ClaudeCodeAgentOptions options = ClaudeCodeAgentOptions.builder()
+        ClaudeAgentOptions options = ClaudeAgentOptions.builder()
             .model("claude-sonnet-4-0")
             .yolo(true) // Allow agent to make changes
             .build();
-            
+
         // 3. Create the agent model
-        ClaudeCodeAgentModel agentModel = new ClaudeCodeAgentModel(claudeClient, options);
+        ClaudeAgentModel agentModel = new ClaudeAgentModel(claudeClient, options);
         
         // 4. Create the AgentClient
         AgentClient agentClient = AgentClient.create(agentModel);
@@ -132,9 +132,9 @@ public class HelloAgentWorld {
 
 Let's break down what happened in the example:
 
-1. **Client Creation**: We created a `ClaudeCodeClient` to communicate with the Claude CLI (uses current directory by default)
+1. **Client Creation**: We created a `ClaudeAgentClient` to communicate with the Claude CLI (uses current directory by default)
 2. **Agent Options**: We configured the agent with a model and enabled "yolo" mode (allows modifications)
-3. **Agent Model**: We wrapped the client in a `ClaudeCodeAgentModel` for Spring AI integration
+3. **Agent Model**: We wrapped the client in a `ClaudeAgentModel` for Spring AI integration
 4. **AgentClient**: We created an `AgentClient` - the main API for running tasks
 5. **Goal Execution**: We ran a goal using the simple `.run()` method
 6. **Result Access**: We got the result using `.getResult()` and checked success
@@ -147,10 +147,10 @@ For Spring Boot applications, you can use dependency injection:
 ----
 @RestController
 public class AgentController {
-    
+
     private final AgentClient agentClient;
-    
-    public AgentController(ClaudeCodeAgentModel agentModel) {
+
+    public AgentController(ClaudeAgentModel agentModel) {
         this.agentClient = AgentClient.create(agentModel);
     }
     
@@ -163,14 +163,14 @@ public class AgentController {
 
 @Configuration
 public class AgentConfiguration {
-    
+
     @Bean
-    public ClaudeCodeAgentModel claudeAgentModel() {
-        ClaudeCodeClient client = ClaudeCodeClient.create();
-        ClaudeCodeAgentOptions options = ClaudeCodeAgentOptions.builder()
+    public ClaudeAgentModel claudeAgentModel() {
+        ClaudeAgentClient client = ClaudeAgentClient.create();
+        ClaudeAgentOptions options = ClaudeAgentOptions.builder()
             .model("claude-sonnet-4-0")
             .build();
-        return new ClaudeCodeAgentModel(client, options);
+        return new ClaudeAgentModel(client, options);
     }
 }
 ----

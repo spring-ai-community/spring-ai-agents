@@ -16,23 +16,23 @@ The `AgentClient` is created using an `AgentModel` instance. Here is a simple ex
 ----
 import org.springaicommunity.agents.client.AgentClient;
 import org.springaicommunity.agents.client.AgentClientResponse;
-import org.springaicommunity.agents.claudecode.ClaudeCodeAgentModel;
-import org.springaicommunity.agents.claudecode.ClaudeCodeAgentOptions;
-import org.springaicommunity.agents.claudecode.sdk.ClaudeCodeClient;
+import org.springaicommunity.agents.claude.ClaudeAgentModel;
+import org.springaicommunity.agents.claude.ClaudeAgentOptions;
+import org.springaicommunity.agents.claude.sdk.ClaudeAgentClient;
 
 public class HelloAgentWorld {
     public static void main(String[] args) {
         // 1. Create the Claude Code client
-        ClaudeCodeClient claudeClient = ClaudeCodeClient.create();
-        
+        ClaudeAgentClient claudeClient = ClaudeAgentClient.create();
+
         // 2. Configure agent options
-        ClaudeCodeAgentOptions options = ClaudeCodeAgentOptions.builder()
+        ClaudeAgentOptions options = ClaudeAgentOptions.builder()
             .model("claude-sonnet-4-0")
             .yolo(true)
             .build();
-            
+
         // 3. Create the agent model
-        ClaudeCodeAgentModel agentModel = new ClaudeCodeAgentModel(claudeClient, options);
+        ClaudeAgentModel agentModel = new ClaudeAgentModel(claudeClient, options);
         
         // 4. Create AgentClient
         AgentClient agentClient = AgentClient.create(agentModel);
@@ -51,9 +51,9 @@ public class HelloAgentWorld {
 
 In this example:
 
-1. We create a `ClaudeCodeClient` that manages communication with the Claude CLI
+1. We create a `ClaudeAgentClient` that manages communication with the Claude CLI
 2. We configure options like the model to use and whether to allow changes (`yolo`)
-3. We wrap the client in a `ClaudeCodeAgentModel` for Spring AI integration
+3. We wrap the client in a `ClaudeAgentModel` for Spring AI integration
 4. We create an `AgentClient` using the agent model
 5. We run a simple goal using the `.run()` method
 6. We access the results and check if the goal was successful
@@ -129,7 +129,7 @@ Configure agent-specific behavior:
 
 [source,java]
 ----
-ClaudeCodeAgentOptions options = ClaudeCodeAgentOptions.builder()
+ClaudeAgentOptions options = ClaudeAgentOptions.builder()
     .model("claude-sonnet-4-0")
     .maxTokens(8192)
     .timeout(Duration.ofMinutes(10))
@@ -198,23 +198,23 @@ Configure AgentClient as a Spring bean:
 ----
 @Configuration
 public class AgentConfiguration {
-    
+
     @Bean
-    public ClaudeCodeClient claudeCodeClient() {
-        return ClaudeCodeClient.create();
+    public ClaudeAgentClient claudeAgentClient() {
+        return ClaudeAgentClient.create();
     }
-    
+
     @Bean
-    public ClaudeCodeAgentModel claudeCodeAgentModel(ClaudeCodeClient client) {
-        ClaudeCodeAgentOptions options = ClaudeCodeAgentOptions.builder()
+    public ClaudeAgentModel claudeAgentModel(ClaudeAgentClient client) {
+        ClaudeAgentOptions options = ClaudeAgentOptions.builder()
             .model("claude-sonnet-4-0")
             .yolo(false) // Safe for production
             .build();
-        return new ClaudeCodeAgentModel(client, options);
+        return new ClaudeAgentModel(client, options);
     }
-    
+
     @Bean
-    public AgentClient agentClient(ClaudeCodeAgentModel agentModel) {
+    public AgentClient agentClient(ClaudeAgentModel agentModel) {
         return AgentClient.create(agentModel);
     }
 }
