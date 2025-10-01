@@ -180,7 +180,7 @@ jobs:
             ./mvnw --batch-mode --quiet clean install -DskipTests -Dmaven.test.skip=true -Dfailsafe.skip=true
           else
             echo "Running full test suite including integration tests"
-            ./mvnw --batch-mode --quiet clean verify -Pfailsafe
+            ./mvnw --batch-mode --quiet clean install -Pfailsafe
           fi
 
       - name: Upload test reports
@@ -214,5 +214,5 @@ jobs:
             echo "Publishing with tests skipped for speed"
             ./mvnw --batch-mode --update-snapshots deploy -DskipTests -Dmaven.test.skip=true -Dfailsafe.skip=true
           else
-            ./mvnw --batch-mode --update-snapshots install deploy
+            ./mvnw --batch-mode --update-snapshots deploy
           fi
