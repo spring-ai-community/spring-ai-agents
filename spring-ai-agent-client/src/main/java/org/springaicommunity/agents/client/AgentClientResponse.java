@@ -16,36 +16,37 @@
 
 package org.springaicommunity.agents.client;
 
-import java.util.Objects;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.springaicommunity.agents.model.AgentResponse;
 import org.springaicommunity.agents.model.AgentResponseMetadata;
 
 /**
- * Client-level response wrapper, equivalent to ChatResponse in Spring AI.
+ * Client-layer response type for agent execution flows with advisor support. Provides a
+ * context map for advisors to share data and evaluation results.
  *
  * <p>
- * This provides a simplified view of the agent response at the client API level, while
- * wrapping the underlying model-layer AgentResponse.
- * </p>
+ * Follows the Spring AI ChatClientResponse pattern for consistency with the Spring AI
+ * ecosystem.
  *
+ * @param agentResponse the underlying agent model response
+ * @param context mutable context map for advisors (evaluation results, metrics, etc.)
  * @author Mark Pollack
  * @since 0.1.0
  */
-public class AgentClientResponse {
-
-	private final AgentResponse agentResponse;
+public record AgentClientResponse(AgentResponse agentResponse, Map<String, Object> context) {
 
 	/**
-	 * Create a client response wrapping the model response.
-	 * @param agentResponse the underlying model response
+	 * Convenience constructor with empty context map.
+	 * @param agentResponse the underlying agent model response
 	 */
 	public AgentClientResponse(AgentResponse agentResponse) {
-		this.agentResponse = Objects.requireNonNull(agentResponse, "AgentResponse cannot be null");
+		this(agentResponse, new HashMap<>());
 	}
 
 	/**
-	 * Primary outcome string.
+	 * Primary outcome string (backward compatibility method).
 	 * @return the primary result text
 	 */
 	public String getResult() {
@@ -53,7 +54,7 @@ public class AgentClientResponse {
 	}
 
 	/**
-	 * Access structured model-layer response.
+	 * Access structured model-layer response (backward compatibility method).
 	 * @return the underlying agent response
 	 */
 	public AgentResponse getAgentResponse() {
@@ -61,7 +62,7 @@ public class AgentClientResponse {
 	}
 
 	/**
-	 * Get the response metadata.
+	 * Get the response metadata (backward compatibility method).
 	 * @return the response metadata
 	 */
 	public AgentResponseMetadata getMetadata() {
@@ -69,31 +70,12 @@ public class AgentClientResponse {
 	}
 
 	/**
-	 * Check if the agent task was successful.
+	 * Check if the agent task was successful (backward compatibility method).
 	 * @return true if successful
 	 */
 	public boolean isSuccessful() {
 		return this.agentResponse.getResult() != null
 				&& "SUCCESS".equals(this.agentResponse.getResult().getMetadata().getFinishReason());
-	}
-
-	@Override
-	public boolean equals(Object o) {
-		if (this == o)
-			return true;
-		if (!(o instanceof AgentClientResponse that))
-			return false;
-		return Objects.equals(this.agentResponse, that.agentResponse);
-	}
-
-	@Override
-	public int hashCode() {
-		return Objects.hash(this.agentResponse);
-	}
-
-	@Override
-	public String toString() {
-		return "AgentClientResponse[" + "result='" + getResult() + '\'' + ", successful=" + isSuccessful() + ']';
 	}
 
 }

@@ -18,8 +18,11 @@ package org.springaicommunity.agents.client;
 
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
+import org.springaicommunity.agents.client.advisor.api.AgentCallAdvisor;
 import org.springaicommunity.agents.model.AgentModel;
 import org.springaicommunity.agents.model.AgentOptions;
 
@@ -35,9 +38,12 @@ public class DefaultAgentClientBuilder implements AgentClient.Builder {
 
 	private AgentOptions defaultOptions;
 
+	private List<AgentCallAdvisor> defaultAdvisors;
+
 	public DefaultAgentClientBuilder(AgentModel agentModel) {
 		this.agentModel = Objects.requireNonNull(agentModel, "AgentModel cannot be null");
 		this.defaultOptions = new DefaultAgentOptions();
+		this.defaultAdvisors = new ArrayList<>();
 	}
 
 	@Override
@@ -64,8 +70,22 @@ public class DefaultAgentClientBuilder implements AgentClient.Builder {
 	}
 
 	@Override
+	public AgentClient.Builder defaultAdvisors(List<AgentCallAdvisor> advisors) {
+		this.defaultAdvisors = advisors != null ? new ArrayList<>(advisors) : new ArrayList<>();
+		return this;
+	}
+
+	@Override
+	public AgentClient.Builder defaultAdvisor(AgentCallAdvisor advisor) {
+		if (advisor != null) {
+			this.defaultAdvisors.add(advisor);
+		}
+		return this;
+	}
+
+	@Override
 	public AgentClient build() {
-		return new DefaultAgentClient(this.agentModel, this.defaultOptions);
+		return new DefaultAgentClient(this.agentModel, this.defaultOptions, this.defaultAdvisors);
 	}
 
 }

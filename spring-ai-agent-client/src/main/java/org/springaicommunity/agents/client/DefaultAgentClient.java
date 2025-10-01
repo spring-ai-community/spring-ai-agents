@@ -17,9 +17,14 @@
 package org.springaicommunity.agents.client;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 
+import org.springaicommunity.agents.client.advisor.AgentModelCallAdvisor;
+import org.springaicommunity.agents.client.advisor.DefaultAgentCallAdvisorChain;
+import org.springaicommunity.agents.client.advisor.api.AgentCallAdvisor;
 import org.springaicommunity.agents.model.AgentModel;
 import org.springaicommunity.agents.model.AgentOptions;
 import org.springaicommunity.agents.model.AgentResponse;
@@ -37,12 +42,14 @@ public class DefaultAgentClient implements AgentClient {
 
 	private final AgentOptions defaultOptions;
 
+	private final List<AgentCallAdvisor> defaultAdvisors;
+
 	/**
 	 * Create a new DefaultAgentClient with the given agent model.
 	 * @param agentModel the underlying agent model
 	 */
 	public DefaultAgentClient(AgentModel agentModel) {
-		this(agentModel, new DefaultAgentOptions());
+		this(agentModel, new DefaultAgentOptions(), new ArrayList<>());
 	}
 
 	/**
@@ -51,8 +58,21 @@ public class DefaultAgentClient implements AgentClient {
 	 * @param defaultOptions default options for all requests
 	 */
 	public DefaultAgentClient(AgentModel agentModel, AgentOptions defaultOptions) {
+		this(agentModel, defaultOptions, new ArrayList<>());
+	}
+
+	/**
+	 * Create a new DefaultAgentClient with the given agent model, default options, and
+	 * advisors.
+	 * @param agentModel the underlying agent model
+	 * @param defaultOptions default options for all requests
+	 * @param defaultAdvisors default advisors for all requests
+	 */
+	public DefaultAgentClient(AgentModel agentModel, AgentOptions defaultOptions,
+			List<AgentCallAdvisor> defaultAdvisors) {
 		this.agentModel = Objects.requireNonNull(agentModel, "AgentModel cannot be null");
 		this.defaultOptions = defaultOptions != null ? defaultOptions : new DefaultAgentOptions();
+		this.defaultAdvisors = defaultAdvisors != null ? new ArrayList<>(defaultAdvisors) : new ArrayList<>();
 	}
 
 	@Override
@@ -83,7 +103,8 @@ public class DefaultAgentClient implements AgentClient {
 
 	@Override
 	public AgentClient.Builder mutate() {
-		return new DefaultAgentClientBuilder(this.agentModel).defaultOptions(this.defaultOptions);
+		return new DefaultAgentClientBuilder(this.agentModel).defaultOptions(this.defaultOptions)
+			.defaultAdvisors(this.defaultAdvisors);
 	}
 
 	/**
@@ -120,42 +141,46 @@ public class DefaultAgentClient implements AgentClient {
 						"Goal must be set before running. Use goal(String) or goal(Goal) first.");
 			}
 
-			// Convert Goal to AgentTaskRequest (adapter pattern)
-			AgentTaskRequest request = createTaskRequest();
+			// Determine effective working directory
+			Path effectiveWorkingDirectory = determineWorkingDirectory();
 
-			// Execute via model layer
-			AgentResponse response = DefaultAgentClient.this.agentModel.call(request);
-
-			// Wrap in client response
-			return new AgentClientResponse(response);
-		}
-
-		private AgentTaskRequest createTaskRequest() {
-			// Use working directory priority: explicit > goal > builder default > current
-			// directory
-			Path effectiveWorkingDirectory;
-			if (this.workingDirectory != null) {
-				// Explicit working directory was set on this request
-				effectiveWorkingDirectory = this.workingDirectory;
-			}
-			else if (this.goal.getWorkingDirectory() != null) {
-				// Use working directory from goal
-				effectiveWorkingDirectory = this.goal.getWorkingDirectory();
-			}
-			else if (DefaultAgentClient.this.defaultOptions.getWorkingDirectory() != null) {
-				// Use default working directory from builder
-				effectiveWorkingDirectory = Path.of(DefaultAgentClient.this.defaultOptions.getWorkingDirectory());
-			}
-			else {
-				// Fall back to current working directory
-				effectiveWorkingDirectory = Path.of(System.getProperty("user.dir"));
-			}
-
-			// Merge options: goal options override builder defaults
+			// Merge options
 			AgentOptions effectiveOptions = mergeOptions(this.goal.getOptions(),
 					DefaultAgentClient.this.defaultOptions);
 
-			return new AgentTaskRequest(this.goal.getContent(), effectiveWorkingDirectory, effectiveOptions);
+			// Create client-layer request
+			AgentClientRequest request = new AgentClientRequest(this.goal, effectiveWorkingDirectory, effectiveOptions,
+					new HashMap<>());
+
+			// Build advisor chain with terminal advisor
+			List<AgentCallAdvisor> advisors = new ArrayList<>(DefaultAgentClient.this.defaultAdvisors);
+			advisors.add(new AgentModelCallAdvisor(DefaultAgentClient.this.agentModel));
+
+			var chain = DefaultAgentCallAdvisorChain.builder().pushAll(advisors).build();
+
+			// Execute through advisor chain
+			return chain.nextCall(request);
+		}
+
+		private Path determineWorkingDirectory() {
+			// Use working directory priority: explicit > goal > builder default > current
+			// directory
+			if (this.workingDirectory != null) {
+				// Explicit working directory was set on this request
+				return this.workingDirectory;
+			}
+			else if (this.goal.getWorkingDirectory() != null) {
+				// Use working directory from goal
+				return this.goal.getWorkingDirectory();
+			}
+			else if (DefaultAgentClient.this.defaultOptions.getWorkingDirectory() != null) {
+				// Use default working directory from builder
+				return Path.of(DefaultAgentClient.this.defaultOptions.getWorkingDirectory());
+			}
+			else {
+				// Fall back to current working directory
+				return Path.of(System.getProperty("user.dir"));
+			}
 		}
 
 		private AgentOptions mergeOptions(AgentOptions goalOptions, AgentOptions defaultOptions) {

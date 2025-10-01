@@ -451,14 +451,339 @@ public class AIConfiguration {
 }
 ----
 
+== Advisor Pattern Comparison
+
+Both ChatClient and AgentClient support the same advisor pattern for intercepting and augmenting execution flows. This pattern is one of the most powerful similarities between the two APIs.
+
+=== What are Advisors?
+
+Advisors provide interception points that let you inject custom logic before and after AI model calls. They're perfect for:
+
+* Adding context (RAG data for ChatClient, workspace info for AgentClient)
+* Logging and metrics collection
+* Security validation and filtering
+* Post-processing and evaluation
+
+=== Advisor Registration
+
+Both APIs use identical builder patterns for registering advisors:
+
+[cols="1,1"]
+|===
+|ChatClient Advisors |AgentClient Advisors
+
+a|
+[source,java]
+----
+ChatClient client = ChatClient.builder(chatModel)
+    .defaultAdvisor(new MessageChatMemoryAdvisor())
+    .defaultAdvisor(new QuestionAnswerAdvisor())
+    .build();
+----
+
+a|
+[source,java]
+----
+AgentClient client = AgentClient.builder(agentModel)
+    .defaultAdvisor(new WorkspaceContextAdvisor())
+    .defaultAdvisor(new TestExecutionAdvisor())
+    .build();
+----
+
+|===
+
+=== Advisor Implementation
+
+The advisor interface follows the same around-style advice pattern in both APIs:
+
+[cols="1,1"]
+|===
+|ChatClient Advisor |AgentClient Advisor
+
+a|
+[source,java]
+----
+public class LoggingAdvisor
+    implements CallAroundAdvisor {
+
+    @Override
+    public ChatResponse aroundCall(
+        ChatRequest request,
+        CallAroundAdvisorChain chain) {
+
+        // Before model call
+        log.info("Prompt: {}",
+            request.getPrompt());
+
+        // Execute
+        ChatResponse response =
+            chain.nextCall(request);
+
+        // After model call
+        log.info("Response: {}",
+            response.getResult());
+
+        return response;
+    }
+}
+----
+
+a|
+[source,java]
+----
+public class LoggingAdvisor
+    implements AgentCallAdvisor {
+
+    @Override
+    public AgentClientResponse adviseCall(
+        AgentClientRequest request,
+        AgentCallAdvisorChain chain) {
+
+        // Before agent execution
+        log.info("Goal: {}",
+            request.goal());
+
+        // Execute
+        AgentClientResponse response =
+            chain.nextCall(request);
+
+        // After agent execution
+        log.info("Result: {}",
+            response.getResult());
+
+        return response;
+    }
+}
+----
+
+|===
+
+=== Use Case Comparison
+
+While the pattern is identical, the specific use cases differ based on the domain:
+
+[cols="1,1"]
+|===
+|ChatClient Advisor Use Cases |AgentClient Advisor Use Cases
+
+a|
+**Context Augmentation**
+
+* RAG: Inject retrieved documents
+* Chat memory: Add conversation history
+* Prompt engineering: Template expansion
+
+**Post-Processing**
+
+* Response filtering
+* Content moderation
+* Output formatting
+
+**Observability**
+
+* Token usage tracking
+* Latency monitoring
+* Cost calculation
+
+a|
+**Context Engineering**
+
+* Git repository cloning
+* Dependency synchronization (vendir)
+* Workspace preparation
+* Project metadata gathering
+
+**Post-Execution Evaluation (Judges)**
+
+* Test suite execution
+* File existence verification
+* Code quality checks
+* Schema validation
+
+**Observability**
+
+* Execution time tracking
+* File modification metrics
+* Command execution logging
+
+|===
+
+=== Spring Boot Auto-Configuration
+
+Both support automatic discovery of advisor beans:
+
+[cols="1,1"]
+|===
+|ChatClient Auto-Configuration |AgentClient Auto-Configuration
+
+a|
+[source,java]
+----
+@Configuration
+public class ChatAdvisorConfig {
+
+    @Bean
+    public CallAroundAdvisor memoryAdvisor() {
+        return new MessageChatMemoryAdvisor();
+    }
+
+    @Bean
+    public ChatClient chatClient(
+        ChatModel model,
+        List<CallAroundAdvisor> advisors) {
+        return ChatClient.builder(model)
+            .defaultAdvisors(advisors)
+            .build();
+    }
+}
+----
+
+a|
+[source,java]
+----
+@Configuration
+public class AgentAdvisorConfig {
+
+    @Bean
+    public AgentCallAdvisor contextAdvisor() {
+        return new WorkspaceContextAdvisor();
+    }
+
+    @Bean
+    public AgentClient agentClient(
+        AgentModel model,
+        List<AgentCallAdvisor> advisors) {
+        return AgentClient.builder(model)
+            .defaultAdvisors(advisors)
+            .build();
+    }
+}
+----
+
+|===
+
+=== Context Sharing Between Advisors
+
+Both APIs provide mutable context maps for advisors to share data:
+
+[cols="1,1"]
+|===
+|ChatClient Context |AgentClient Context
+
+a|
+[source,java]
+----
+public class WriterAdvisor
+    implements CallAroundAdvisor {
+
+    @Override
+    public ChatResponse aroundCall(
+        ChatRequest request,
+        CallAroundAdvisorChain chain) {
+
+        // Write to context
+        request.context()
+            .put("user_id", getCurrentUser());
+
+        return chain.nextCall(request);
+    }
+}
+
+public class ReaderAdvisor
+    implements CallAroundAdvisor {
+
+    @Override
+    public ChatResponse aroundCall(
+        ChatRequest request,
+        CallAroundAdvisorChain chain) {
+
+        // Read from context
+        String userId = (String) request
+            .context().get("user_id");
+
+        return chain.nextCall(request);
+    }
+}
+----
+
+a|
+[source,java]
+----
+public class WriterAdvisor
+    implements AgentCallAdvisor {
+
+    @Override
+    public AgentClientResponse adviseCall(
+        AgentClientRequest request,
+        AgentCallAdvisorChain chain) {
+
+        // Write to context
+        request.context()
+            .put("workspace_info", analyze());
+
+        return chain.nextCall(request);
+    }
+}
+
+public class ReaderAdvisor
+    implements AgentCallAdvisor {
+
+    @Override
+    public AgentClientResponse adviseCall(
+        AgentClientRequest request,
+        AgentCallAdvisorChain chain) {
+
+        // Read from context
+        String info = (String) request
+            .context().get("workspace_info");
+
+        return chain.nextCall(request);
+    }
+}
+----
+
+|===
+
+=== Advisor Ordering
+
+Both use Spring's `Ordered` interface for execution order control:
+
+[source,java]
+----
+// Same pattern for both ChatClient and AgentClient advisors
+public class SecurityAdvisor implements AgentCallAdvisor {
+
+    @Override
+    public int getOrder() {
+        return Ordered.HIGHEST_PRECEDENCE; // Run first
+    }
+}
+
+public class MetricsAdvisor implements AgentCallAdvisor {
+
+    @Override
+    public int getOrder() {
+        return Ordered.LOWEST_PRECEDENCE; // Run last
+    }
+}
+----
+
+=== Learn More About Advisors
+
+* **AgentClient Advisors**: See xref:api/advisors.adoc[Agent Advisors API] for complete documentation
+* **ChatClient Advisors**: Refer to https://docs.spring.io/spring-ai/reference/api/advisors.html[Spring AI Advisor Documentation]
+
+The advisor pattern demonstrates the deep architectural alignment between AgentClient and ChatClient, making it easy to apply familiar Spring AI patterns to autonomous agent development.
+
 == Summary
 
 AgentClient and ChatClient share the same Spring AI design philosophy and fluent API patterns, making them familiar to Spring developers. The key difference is their purpose: ChatClient for conversational AI interactions, AgentClient for autonomous goal execution.
 
-Both APIs integrate seamlessly into Spring Boot applications and follow established Spring patterns for configuration, dependency injection, and error handling.
+Both APIs integrate seamlessly into Spring Boot applications and follow established Spring patterns for configuration, dependency injection, and error handling. The advisor pattern is nearly identical between the two, providing powerful extension points for both conversational and autonomous AI workflows.
 
 == Next Steps
 
 * Explore the full xref:api/agentclient.adoc[AgentClient API] documentation
+* Learn about xref:api/advisors.adoc[Agent Advisors] in detail
 * Learn about specific agent implementations in xref:api/claude-code-sdk.adoc[Claude Code SDK]
 * See practical examples in xref:samples.adoc[Sample Agents]

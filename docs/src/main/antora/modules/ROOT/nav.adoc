@@ -2,6 +2,7 @@
 * xref:getting-started.adoc[Getting Started]
 * xref:jbang-runner.adoc[JBang Agent Runner]
 * xref:api/agentclient.adoc[AgentClient API]
+** xref:api/advisors.adoc[Agent Advisors]
 ** xref:api/agentclient-vs-chatclient.adoc[AgentClient vs ChatClient]
 ** xref:api/claude-code-sdk.adoc[Claude Code SDK]
 ** xref:api/gemini-cli-sdk.adoc[Gemini CLI SDK]

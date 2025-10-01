@@ -345,8 +345,256 @@ if (response instanceof StreamingAgentResponse streaming) {
 }
 ----
 
+== Working with Advisors
+
+Agent Advisors provide powerful interception points for augmenting agent execution, following the same pattern as Spring AI's ChatClient advisors.
+
+=== Configuring Advisors
+
+Register advisors at build time using the builder's `defaultAdvisor()` or `defaultAdvisors()` methods:
+
+[source,java]
+----
+AgentClient client = AgentClient.builder(agentModel)
+    .defaultAdvisor(new SimpleLoggerAdvisor())
+    .defaultAdvisor(new WorkspaceContextAdvisor())
+    .build();
+----
+
+=== Common Use Cases
+
+==== Logging and Observability
+
+Monitor agent execution with custom metrics and logging:
+
+[source,java]
+----
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+
+public class MetricsAdvisor implements AgentCallAdvisor {
+
+	private final MeterRegistry meterRegistry;
+
+	public MetricsAdvisor(MeterRegistry meterRegistry) {
+		this.meterRegistry = meterRegistry;
+	}
+
+	@Override
+	public AgentClientResponse adviseCall(AgentClientRequest request, AgentCallAdvisorChain chain) {
+		Timer.Sample sample = Timer.start(meterRegistry);
+		try {
+			AgentClientResponse response = chain.nextCall(request);
+			sample.stop(Timer.builder("agent.execution")
+				.tag("success", String.valueOf(response.isSuccessful()))
+				.register(meterRegistry));
+			return response;
+		} catch (Exception e) {
+			sample.stop(Timer.builder("agent.execution")
+				.tag("success", "false")
+				.register(meterRegistry));
+			throw e;
+		}
+	}
+
+	@Override
+	public String getName() {
+		return "Metrics";
+	}
+
+	@Override
+	public int getOrder() {
+		return 0;
+	}
+}
+----
+
+==== Context Engineering
+
+Inject additional context before agent execution (see xref:future/context-engineering.adoc[Context Engineering]):
+
+* Clone git repositories
+* Sync vendor dependencies
+* Gather project metadata
+* Prepare test fixtures
+
+Example:
+
+[source,java]
+----
+public class WorkspaceContextAdvisor implements AgentCallAdvisor {
+
+	@Override
+	public AgentClientResponse adviseCall(AgentClientRequest request, AgentCallAdvisorChain chain) {
+		// Inject workspace info into context before execution
+		Path workspace = request.workingDirectory();
+		String workspaceInfo = analyzeWorkspace(workspace);
+		request.context().put("workspace_info", workspaceInfo);
+
+		// Continue the chain
+		AgentClientResponse response = chain.nextCall(request);
+
+		// Add execution metrics to response context
+		response.context().put("files_modified", countModifiedFiles(response));
+		return response;
+	}
+
+	private String analyzeWorkspace(Path workspace) {
+		// Implementation details...
+		return "Workspace analyzed";
+	}
+
+	private int countModifiedFiles(AgentClientResponse response) {
+		// Implementation details...
+		return 0;
+	}
+
+	@Override
+	public String getName() {
+		return "WorkspaceContext";
+	}
+
+	@Override
+	public int getOrder() {
+		return 100;
+	}
+}
+----
+
+==== Post-Execution Evaluation
+
+Validate agent output and enforce quality standards (see xref:future/judge-concept.adoc[Judge Concept]):
+
+* Verify file existence
+* Run test suites
+* Check code quality metrics
+* Validate against schemas
+
+Example:
+
+[source,java]
+----
+public class TestExecutionAdvisor implements AgentCallAdvisor {
+
+	@Override
+	public AgentClientResponse adviseCall(AgentClientRequest request, AgentCallAdvisorChain chain) {
+		// Execute the agent goal
+		AgentClientResponse response = chain.nextCall(request);
+
+		// Post-execution: run tests to validate the changes
+		if (response.isSuccessful()) {
+			boolean testsPass = runTests(request.workingDirectory());
+			response.context().put("tests_passed", testsPass);
+
+			if (!testsPass) {
+				// Optionally modify response to indicate failure
+				System.err.println("WARNING: Tests failed after agent execution");
+			}
+		}
+
+		return response;
+	}
+
+	private boolean runTests(Path workingDirectory) {
+		// Run test suite and return result
+		return true; // Placeholder
+	}
+
+	@Override
+	public String getName() {
+		return "TestExecution";
+	}
+
+	@Override
+	public int getOrder() {
+		return Ordered.LOWEST_PRECEDENCE - 100; // Run near the end
+	}
+}
+----
+
+==== Security and Validation
+
+Enforce security policies before execution:
+
+[source,java]
+----
+public class GoalValidationAdvisor implements AgentCallAdvisor {
+
+	private final List<String> bannedOperations = List.of("rm -rf", "DROP DATABASE");
+
+	@Override
+	public AgentClientResponse adviseCall(AgentClientRequest request, AgentCallAdvisorChain chain) {
+		String goal = request.goal().getContent().toLowerCase();
+
+		// Block dangerous operations
+		for (String banned : bannedOperations) {
+			if (goal.contains(banned.toLowerCase())) {
+				// Return failure response without executing
+				return new AgentClientResponse(
+					createBlockedResponse("Goal blocked: dangerous operation")
+				);
+			}
+		}
+
+		return chain.nextCall(request);
+	}
+
+	private AgentResponse createBlockedResponse(String reason) {
+		// Create blocked response
+		return new AgentResponse(List.of(
+			new AgentGeneration(reason, new AgentGenerationMetadata("BLOCKED", Map.of()))
+		));
+	}
+
+	@Override
+	public String getName() {
+		return "GoalValidation";
+	}
+
+	@Override
+	public int getOrder() {
+		return Ordered.HIGHEST_PRECEDENCE; // Execute first for security
+	}
+}
+----
+
+=== Spring Boot Integration
+
+Register advisors as Spring beans for automatic discovery:
+
+[source,java]
+----
+@Configuration
+public class AgentAdvisorConfiguration {
+
+	@Bean
+	public AgentCallAdvisor metricsAdvisor(MeterRegistry meterRegistry) {
+		return new MetricsAdvisor(meterRegistry);
+	}
+
+	@Bean
+	public AgentCallAdvisor validationAdvisor() {
+		return new GoalValidationAdvisor();
+	}
+
+	@Bean
+	public AgentClient agentClient(
+			AgentModel agentModel,
+			List<AgentCallAdvisor> advisors) { // Auto-injects all advisor beans
+		return AgentClient.builder(agentModel)
+			.defaultAdvisors(advisors)
+			.build();
+	}
+}
+----
+
+=== Learn More
+
+For complete advisor documentation, see xref:api/advisors.adoc[Agent Advisors API].
+
 == Next Steps
 
+* Master the xref:api/advisors.adoc[Agent Advisors API] for advanced execution control
 * Learn how AgentClient compares to ChatClient in xref:api/agentclient-vs-chatclient.adoc[AgentClient vs ChatClient]
 * Explore agent-specific features in xref:api/claude-code-sdk.adoc[Claude Code SDK]
 * See real-world examples in xref:samples.adoc[Sample Agents]

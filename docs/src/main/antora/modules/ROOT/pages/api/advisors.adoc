@@ -1,0 +1,594 @@
+[[Agent-Advisors]]
+= Agent Advisors API
+:page-title: Agent Advisors API Reference
+:toc: left
+:tabsize: 2
+:sectnums:
+
+The Spring AI Agents Advisors API provides a flexible and powerful way to intercept, modify, and enhance autonomous agent execution in your Spring applications.
+By leveraging the Advisors API, developers can create more sophisticated, reusable, and maintainable agent components.
+
+The key benefits include encapsulating recurring agent patterns, transforming data sent to and from agents, injecting execution context, validating outputs with judges, and providing portability across various agent implementations.
+
+You can configure advisors using the xref:api/agentclient.adoc[AgentClient API] as shown in the following example:
+
+[source,java]
+----
+AgentClient agentClient = AgentClient.builder(agentModel)
+    .defaultAdvisors(List.of(
+        new SimpleLoggerAdvisor(),           // Logging and observability
+        new WorkspaceContextAdvisor()        // Context engineering
+    ))
+    .build();
+
+AgentClientResponse response = agentClient
+    .goal("Create a Hello World Java class")
+    .workingDirectory(projectRoot)
+    .run();
+----
+
+It is recommended to register the advisors at build time using the builder's `defaultAdvisors()` or `defaultAdvisor()` methods.
+
+== Relationship to Spring AI ChatClient Advisors
+
+The Agent Advisors API follows the **exact same design pattern** as Spring AI's ChatClient Advisors. If you're familiar with ChatClient advisors, you'll immediately understand Agent Advisors.
+
+[cols="1,1"]
+|===
+|Spring AI ChatClient |Spring AI Agents AgentClient
+
+a|
+[source,java]
+----
+ChatClient client = ChatClient.builder(chatModel)
+    .defaultAdvisors(
+        MessageChatMemoryAdvisor.builder(chatMemory).build(),
+        QuestionAnswerAdvisor.builder(vectorStore).build()
+    )
+    .build();
+----
+
+a|
+[source,java]
+----
+AgentClient client = AgentClient.builder(agentModel)
+    .defaultAdvisors(List.of(
+        new WorkspaceContextAdvisor(),
+        new ValidationAdvisor()
+    ))
+    .build();
+----
+|===
+
+The key difference is the domain:
+
+* **ChatClient advisors** work with conversational prompts and chat responses
+* **AgentClient advisors** work with autonomous goals and agent execution results
+
+== Core Components
+
+The API consists of `AgentCallAdvisor` and `AgentCallAdvisorChain` for non-streaming scenarios.
+It also includes `AgentClientRequest` to represent the goal request with context, and `AgentClientResponse` for the agent execution response.
+Both hold an `advise-context` (a mutable `Map<String, Object>`) to share state across the advisor chain.
+
+The `adviseCall()` is the key advisor method, typically performing actions such as:
+
+* Examining the goal and execution parameters
+* Customizing and augmenting the request (e.g., injecting workspace context)
+* Invoking the next advisor in the chain
+* Optionally blocking the request for security or validation
+* Examining the agent execution response
+* Throwing exceptions to indicate processing errors
+
+In addition, the `getOrder()` method determines advisor order in the chain, while `getName()` provides a unique advisor name.
+
+The Advisor Chain, created by the Spring AI Agents framework, allows sequential invocation of multiple advisors ordered by their `getOrder()` values.
+The lower values are executed first.
+The last advisor, added automatically, sends the request to the agent model.
+
+The interaction between the advisor chain and the Agent Model follows this flow:
+
+. The Spring AI Agents framework creates an `AgentClientRequest` from the user's `Goal` along with an empty advisor `context` object.
+. Each advisor in the chain processes the request, potentially modifying it. Alternatively, it can choose to block the request by not making the call to invoke the next entity. In the latter case, the advisor is responsible for filling out the response.
+. The final advisor, provided by the framework, sends the request to the `Agent Model`.
+. The Agent Model's response is then passed back through the advisor chain and converted into `AgentClientResponse`. This includes the shared advisor `context` instance.
+. Each advisor can process or modify the response.
+. The final `AgentClientResponse` is returned to the client.
+
+=== Advisor Order
+
+The execution order of advisors in the chain is determined by the `getOrder()` method. Key points to understand:
+
+* Advisors with lower order values are executed first.
+* The advisor chain operates as a stack:
+** The first advisor in the chain is the first to process the request.
+** It is also the last to process the response.
+* To control execution order:
+** Set the order close to `Ordered.HIGHEST_PRECEDENCE` to ensure an advisor is executed first in the chain (first for request processing, last for response processing).
+** Set the order close to `Ordered.LOWEST_PRECEDENCE` to ensure an advisor is executed last in the chain (last for request processing, first for response processing).
+* Higher values are interpreted as lower priority.
+* If multiple advisors have the same order value, their execution order is not guaranteed.
+
+[NOTE]
+====
+The seeming contradiction between order and execution sequence is due to the stack-like nature of the advisor chain:
+
+- An advisor with the highest precedence (lowest order value) is added to the top of the stack.
+- It will be the first to process the request as the stack unwinds.
+- It will be the last to process the response as the stack rewinds.
+====
+
+As a reminder, here are the semantics of the Spring `Ordered` interface:
+
+[source,java]
+----
+public interface Ordered {
+
+    /**
+     * Constant for the highest precedence value.
+     * @see java.lang.Integer#MIN_VALUE
+     */
+    int HIGHEST_PRECEDENCE = Integer.MIN_VALUE;
+
+    /**
+     * Constant for the lowest precedence value.
+     * @see java.lang.Integer#MAX_VALUE
+     */
+    int LOWEST_PRECEDENCE = Integer.MAX_VALUE;
+
+    /**
+     * Get the order value of this object.
+     * <p>Higher values are interpreted as lower priority. As a consequence,
+     * the object with the lowest value has the highest priority (somewhat
+     * analogous to Servlet {@code load-on-startup} values).
+     * <p>Same order values will result in arbitrary sort positions for the
+     * affected objects.
+     * @return the order value
+     * @see #HIGHEST_PRECEDENCE
+     * @see #LOWEST_PRECEDENCE
+     */
+    int getOrder();
+}
+----
+
+[TIP]
+====
+For use cases that need to be first in the chain on both the input and output sides:
+
+1. Use separate advisors for each side.
+2. Configure them with different order values.
+3. Use the advisor context to share state between them.
+====
+
+== API Overview
+
+The main Advisor interfaces are located in the package `org.springaicommunity.agents.client.advisor.api`. Here are the key interfaces you'll encounter when creating your own advisor:
+
+```java
+public interface AgentAdvisor extends Ordered {
+
+	String getName();
+
+	int DEFAULT_AGENT_PRECEDENCE_ORDER = Ordered.HIGHEST_PRECEDENCE + 1000;
+
+}
+```
+
+The `AgentCallAdvisor` sub-interface:
+
+```java
+public interface AgentCallAdvisor extends AgentAdvisor {
+
+	AgentClientResponse adviseCall(
+		AgentClientRequest request, AgentCallAdvisorChain chain);
+
+}
+```
+
+To continue the chain of advice, use `AgentCallAdvisorChain` in your advisor implementation:
+
+```java
+public interface AgentCallAdvisorChain {
+
+	/**
+	 * Invokes the next {@link AgentCallAdvisor} in the chain with the given request.
+	 */
+	AgentClientResponse nextCall(AgentClientRequest request);
+
+	/**
+	 * Returns the list of all {@link AgentCallAdvisor} instances included in this chain
+	 * at the time of its creation.
+	 */
+	List<AgentCallAdvisor> getCallAdvisors();
+
+}
+```
+
+== Implementing an Advisor
+
+To create an advisor, implement `AgentCallAdvisor`. The key method to implement is `adviseCall()`.
+
+=== Examples
+
+We will provide several hands-on examples to illustrate how to implement advisors for observing and augmenting use-cases.
+
+==== Hello World: Simple Logging Advisor
+
+The simplest possible advisor logs the goal before execution and the result after:
+
+[source,java]
+----
+import org.springaicommunity.agents.client.AgentClientRequest;
+import org.springaicommunity.agents.client.AgentClientResponse;
+import org.springaicommunity.agents.client.advisor.api.AgentCallAdvisor;
+import org.springaicommunity.agents.client.advisor.api.AgentCallAdvisorChain;
+
+public class SimpleLoggerAdvisor implements AgentCallAdvisor {
+
+	@Override
+	public AgentClientResponse adviseCall(AgentClientRequest request, AgentCallAdvisorChain chain) {
+		// Log before execution
+		System.out.println("Goal: " + request.goal().getContent());
+
+		// Continue the chain
+		AgentClientResponse response = chain.nextCall(request);
+
+		// Log after execution
+		System.out.println("Success: " + response.agentResponse().getResult());
+
+		return response;
+	}
+
+	@Override
+	public String getName() {
+		return "SimpleLogger";
+	}
+
+	@Override
+	public int getOrder() {
+		return 0; // Execute early in the chain
+	}
+}
+----
+
+Usage:
+
+[source,java]
+----
+AgentClient client = AgentClient.builder(agentModel)
+    .defaultAdvisor(new SimpleLoggerAdvisor())
+    .build();
+
+client.run("Create a Hello World Java class");
+// Console output:
+// Goal: Create a Hello World Java class
+// Success: Created HelloWorld.java successfully
+----
+
+==== Intermediate: Context Injection Advisor
+
+This advisor shows how to use the context map to share data across the advisor chain:
+
+[source,java]
+----
+import java.nio.file.Path;
+import java.nio.file.Files;
+import java.util.stream.Collectors;
+
+public class WorkspaceContextAdvisor implements AgentCallAdvisor {
+
+	@Override
+	public AgentClientResponse adviseCall(AgentClientRequest request, AgentCallAdvisorChain chain) {
+		// Inject workspace info into context before execution
+		Path workspace = request.workingDirectory();
+		String workspaceInfo = analyzeWorkspace(workspace);
+		request.context().put("workspace_info", workspaceInfo);
+		request.context().put("workspace_analyzed_at", System.currentTimeMillis());
+
+		// Continue the chain
+		AgentClientResponse response = chain.nextCall(request);
+
+		// Add execution metrics to response context
+		int filesModified = countModifiedFiles(response);
+		response.context().put("files_modified", filesModified);
+		response.context().put("workspace_path", workspace.toString());
+
+		return response;
+	}
+
+	private String analyzeWorkspace(Path workspace) {
+		try {
+			long fileCount = Files.walk(workspace)
+				.filter(Files::isRegularFile)
+				.count();
+			return String.format("Workspace contains %d files", fileCount);
+		} catch (Exception e) {
+			return "Unable to analyze workspace";
+		}
+	}
+
+	private int countModifiedFiles(AgentClientResponse response) {
+		// Implementation would check file system changes
+		return 0; // Placeholder
+	}
+
+	@Override
+	public String getName() {
+		return "WorkspaceContext";
+	}
+
+	@Override
+	public int getOrder() {
+		return 100; // Execute after high-priority advisors
+	}
+}
+----
+
+Usage:
+
+[source,java]
+----
+AgentClient client = AgentClient.builder(agentModel)
+    .defaultAdvisor(new WorkspaceContextAdvisor())
+    .build();
+
+AgentClientResponse response = client
+    .goal("Refactor UserService class")
+    .workingDirectory(projectRoot)
+    .run();
+
+// Access context data
+String workspaceInfo = (String) response.context().get("workspace_info");
+int filesModified = (int) response.context().get("files_modified");
+System.out.println(workspaceInfo + ", modified " + filesModified + " files");
+----
+
+==== Advanced: Goal Validation Advisor
+
+This advisor demonstrates blocking capability by validating goals before execution:
+
+[source,java]
+----
+import java.util.List;
+
+public class GoalValidationAdvisor implements AgentCallAdvisor {
+
+	private final List<String> bannedOperations = List.of(
+		"rm -rf",
+		"DROP DATABASE",
+		"DELETE FROM",
+		"format disk"
+	);
+
+	@Override
+	public AgentClientResponse adviseCall(AgentClientRequest request, AgentCallAdvisorChain chain) {
+		String goal = request.goal().getContent().toLowerCase();
+
+		// Block dangerous operations
+		for (String banned : bannedOperations) {
+			if (goal.contains(banned.toLowerCase())) {
+				// Create a failure response without calling the agent
+				return new AgentClientResponse(
+					createBlockedResponse("Goal blocked: contains dangerous operation '" + banned + "'")
+				);
+			}
+		}
+
+		// Validate goal is not empty
+		if (goal.trim().isEmpty()) {
+			return new AgentClientResponse(
+				createBlockedResponse("Goal blocked: goal cannot be empty")
+			);
+		}
+
+		// Goal is valid, continue the chain
+		return chain.nextCall(request);
+	}
+
+	private AgentResponse createBlockedResponse(String reason) {
+		// Create an agent response indicating blocked execution
+		List<AgentGeneration> generations = List.of(
+			new AgentGeneration(reason, new AgentGenerationMetadata("BLOCKED", Map.of()))
+		);
+		return new AgentResponse(generations);
+	}
+
+	@Override
+	public String getName() {
+		return "GoalValidation";
+	}
+
+	@Override
+	public int getOrder() {
+		return Ordered.HIGHEST_PRECEDENCE; // Execute first for security
+	}
+}
+----
+
+Usage:
+
+[source,java]
+----
+AgentClient client = AgentClient.builder(agentModel)
+    .defaultAdvisor(new GoalValidationAdvisor())
+    .build();
+
+// This will be blocked
+AgentClientResponse response = client.run("rm -rf /important/data");
+System.out.println(response.agentResponse().getResult().getOutput());
+// Output: Goal blocked: contains dangerous operation 'rm -rf'
+----
+
+==== Metrics and Observability Advisor
+
+This example shows integration with Spring Boot's Micrometer metrics:
+
+[source,java]
+----
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+
+public class MetricsAdvisor implements AgentCallAdvisor {
+
+	private final MeterRegistry meterRegistry;
+
+	public MetricsAdvisor(MeterRegistry meterRegistry) {
+		this.meterRegistry = meterRegistry;
+	}
+
+	@Override
+	public AgentClientResponse adviseCall(AgentClientRequest request, AgentCallAdvisorChain chain) {
+		Timer.Sample sample = Timer.start(meterRegistry);
+
+		try {
+			AgentClientResponse response = chain.nextCall(request);
+
+			// Record successful execution
+			sample.stop(Timer.builder("agent.execution")
+				.tag("success", "true")
+				.tag("goal_length", String.valueOf(request.goal().getContent().length()))
+				.register(meterRegistry));
+
+			// Record additional metrics
+			meterRegistry.counter("agent.goals.completed").increment();
+
+			return response;
+
+		} catch (Exception e) {
+			// Record failed execution
+			sample.stop(Timer.builder("agent.execution")
+				.tag("success", "false")
+				.tag("error", e.getClass().getSimpleName())
+				.register(meterRegistry));
+
+			meterRegistry.counter("agent.goals.failed").increment();
+			throw e;
+		}
+	}
+
+	@Override
+	public String getName() {
+		return "Metrics";
+	}
+
+	@Override
+	public int getOrder() {
+		return Ordered.HIGHEST_PRECEDENCE + 500; // Early in chain for accurate metrics
+	}
+}
+----
+
+== Common Use Cases
+
+=== Context Engineering
+
+Advisors are ideal for preparing the execution environment before the agent runs. This concept, called "Context Engineering", includes:
+
+* **Workspace Preparation**: Clone git repositories, sync vendor dependencies
+* **Resource Injection**: Download required files, prepare test fixtures
+* **Metadata Collection**: Gather project information, analyze codebase structure
+
+See xref:future/context-engineering.adoc[Context Engineering] for more details on this pattern.
+
+=== Post-Execution Evaluation (Judges)
+
+Advisors can validate agent output after execution to ensure quality and correctness:
+
+* **File Verification**: Check that expected files were created
+* **Test Execution**: Run test suites and verify they pass
+* **Quality Metrics**: Analyze code quality, coverage, or complexity
+* **Schema Validation**: Verify output matches expected structure
+
+See xref:future/judge-concept.adoc[Judge Concept] for more details on this pattern.
+
+=== Logging and Observability
+
+Track agent execution with structured logging and metrics:
+
+* **Execution Tracking**: Log goals, duration, success/failure
+* **Custom Metrics**: Micrometer integration for production monitoring
+* **Distributed Tracing**: Integrate with Spring Cloud Sleuth or OpenTelemetry
+* **Audit Trails**: Record all agent actions for compliance
+
+=== Security and Validation
+
+Enforce security policies and validate inputs:
+
+* **Goal Sanitization**: Block dangerous operations
+* **Permission Checking**: Verify user authorization
+* **Rate Limiting**: Prevent abuse
+* **Input Validation**: Ensure goals meet requirements
+
+== Spring Boot Integration
+
+=== Configuration as Spring Beans
+
+Register advisors as Spring beans for dependency injection:
+
+[source,java]
+----
+@Configuration
+public class AgentAdvisorConfiguration {
+
+	@Bean
+	public AgentCallAdvisor metricsAdvisor(MeterRegistry meterRegistry) {
+		return new MetricsAdvisor(meterRegistry);
+	}
+
+	@Bean
+	public AgentCallAdvisor validationAdvisor() {
+		return new GoalValidationAdvisor();
+	}
+
+	@Bean
+	public AgentClient agentClient(
+			AgentModel agentModel,
+			List<AgentCallAdvisor> advisors) {
+		return AgentClient.builder(agentModel)
+			.defaultAdvisors(advisors)
+			.build();
+	}
+}
+----
+
+Spring Boot will automatically inject all `AgentCallAdvisor` beans into the `List<AgentCallAdvisor>` parameter.
+
+== Best Practices
+
+. **Keep advisors focused** on specific tasks for better modularity and testability.
+. **Use the context map** to share state between advisors when necessary.
+. **Consider order carefully** - security advisors should execute first, metrics advisors early, evaluation advisors last.
+. **Handle exceptions gracefully** - decide whether to block execution or let errors propagate.
+. **Avoid heavy computation** in advisors to minimize performance impact on agent execution.
+. **Test advisors independently** before integrating into the advisor chain.
+
+== Comparison with Spring AI ChatClient Advisors
+
+[cols="1,1"]
+|===
+|ChatClient Advisors |AgentClient Advisors
+
+|Work with `Prompt` and `ChatResponse`
+|Work with `Goal` and `AgentResponse`
+
+|Conversational context (chat messages)
+|Execution context (workspace, files)
+
+|RAG, chat memory, content filtering
+|Context engineering, judges, validation
+
+|`CallAdvisor` and `StreamAdvisor`
+|`AgentCallAdvisor` (streaming not yet supported)
+
+|Modifies prompts and chat completions
+|Modifies goals and agent execution results
+|===
+
+The **API structure is identical**, only the domain is different. If you know ChatClient advisors, you know AgentClient advisors.
+
+== Next Steps
+
+* Learn about built-in advisors (coming soon): VendirContextAdvisor, BenchJudgeAdvisor
+* Explore xref:future/context-engineering.adoc[Context Engineering] patterns
+* Understand xref:future/judge-concept.adoc[Judge evaluation] patterns
+* See the full xref:api/agentclient.adoc[AgentClient API] documentation

@@ -18,8 +18,10 @@ package org.springaicommunity.agents.client;
 
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.List;
 import java.util.function.Consumer;
 
+import org.springaicommunity.agents.client.advisor.api.AgentCallAdvisor;
 import org.springaicommunity.agents.model.AgentModel;
 import org.springaicommunity.agents.model.AgentOptions;
 
@@ -161,6 +163,20 @@ public interface AgentClient {
 		 * @return this builder for chaining
 		 */
 		Builder defaultTimeout(Duration timeout);
+
+		/**
+		 * Set the list of default advisors to use for all agent requests.
+		 * @param advisors the default advisors
+		 * @return this builder for chaining
+		 */
+		Builder defaultAdvisors(List<AgentCallAdvisor> advisors);
+
+		/**
+		 * Add a single default advisor to use for all agent requests.
+		 * @param advisor the advisor to add
+		 * @return this builder for chaining
+		 */
+		Builder defaultAdvisor(AgentCallAdvisor advisor);
 
 		/**
 		 * Create a new {@link AgentClient} with the configured defaults.

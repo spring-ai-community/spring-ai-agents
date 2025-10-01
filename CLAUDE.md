@@ -22,6 +22,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - The `install` phase ensures artifacts are available for dependency resolution in later reactor modules
 - This prevents "Could not find artifact" errors when modules depend on each other
 
+### Documentation
+- `./mvnw antora:antora -pl docs` - Build Antora documentation site
+- Output location: `docs/target/antora/site/`
+- Open `file:///home/mark/community/spring-ai-agents/docs/target/antora/site/index.html` to view locally
+
 ### Code Quality
 - Code formatting is enforced via `spring-javaformat-maven-plugin`
 - Formatting validation runs during the `validate` phase

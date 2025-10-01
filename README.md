@@ -82,6 +82,55 @@ AgentClientResponse response = agentClient
     .run();
 ```
 
+### Agent Advisors
+
+Spring AI Agents implements the same advisor pattern as Spring AI's ChatClient, providing powerful interception points for execution flows:
+
+```java
+// Create an advisor to inject workspace context
+public class WorkspaceContextAdvisor implements AgentCallAdvisor {
+
+    @Override
+    public AgentClientResponse adviseCall(AgentClientRequest request,
+                                          AgentCallAdvisorChain chain) {
+        // Inject context before execution
+        String workspaceInfo = analyzeWorkspace(request.workingDirectory());
+        request.context().put("workspace_info", workspaceInfo);
+
+        // Execute agent
+        AgentClientResponse response = chain.nextCall(request);
+
+        // Add post-execution metrics
+        response.context().put("files_modified", countModifiedFiles());
+        return response;
+    }
+
+    @Override
+    public String getName() {
+        return "WorkspaceContext";
+    }
+
+    @Override
+    public int getOrder() {
+        return 100;
+    }
+}
+
+// Register advisors with AgentClient builder
+AgentClient client = AgentClient.builder(agentModel)
+    .defaultAdvisor(new WorkspaceContextAdvisor())
+    .defaultAdvisor(new TestExecutionAdvisor())
+    .build();
+```
+
+**Common Advisor Use Cases**:
+- **Context Engineering**: Git cloning, dependency sync, workspace preparation
+- **Evaluation (Judges)**: Post-execution test running, file verification, quality checks
+- **Security**: Goal validation, dangerous operation blocking
+- **Observability**: Metrics collection, execution logging, performance tracking
+
+See the [Agent Advisors documentation](https://spring-ai-community.github.io/spring-ai-agents/api/advisors.html) for complete details.
+
 ### Configuration
 
 ```yaml
@@ -164,6 +213,7 @@ spring-ai-agents/
 - **Observability**: Micrometer metrics and structured logging
 - **Type Safe**: Full Java type safety with comprehensive JavaDoc
 - **Flexible**: Provider-agnostic `AgentClient` with pluggable implementations
+- **Advisor Pattern**: Powerful interception points for context engineering, validation, and evaluation
 
 ## Examples
 
