@@ -466,7 +466,7 @@
     <distributionManagement>
         <snapshotRepository>
             <id>central</id>
-            <url>https://central.sonatype.com/api/v1/publisher/deployments</url>
+            <url>https://central.sonatype.com/repository/maven-snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
 </project>
