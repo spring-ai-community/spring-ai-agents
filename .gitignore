@@ -156,3 +156,9 @@ local.properties
 .cache-main
 .scala_dependencies
 .worksheet
+
+# Node.js dependencies for Antora documentation
+docs/src/main/antora/node_modules/
+docs/src/main/antora/package-lock.json
+node_modules/
+package-lock.json
