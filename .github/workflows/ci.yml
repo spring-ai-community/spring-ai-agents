@@ -215,9 +215,5 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           echo "Publishing snapshot artifacts to Maven Central..."
-          if [[ "${{ github.event.inputs.skip_all_tests }}" == "true" ]]; then
-            echo "Publishing with tests skipped for speed"
-            ./mvnw --batch-mode --update-snapshots deploy -DskipTests -Dmaven.test.skip=true -Dfailsafe.skip=true
-          else
-            ./mvnw --batch-mode --update-snapshots deploy
-          fi
+          # Temporarily skip tests in deploy since we already ran install
+          ./mvnw --batch-mode --update-snapshots deploy -DskipTests -Dmaven.test.skip=true -Dfailsafe.skip=true
