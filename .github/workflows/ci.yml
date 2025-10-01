@@ -197,13 +197,14 @@ jobs:
             **/target/failsafe-reports/*.xml
           retention-days: 7
 
-      - name: Generate Java docs
-        if: github.ref == 'refs/heads/main'
-        run: ./mvnw --batch-mode --quiet javadoc:aggregate
+      # Temporarily disabled to debug Maven Central publishing
+      # - name: Generate Java docs
+      #   if: github.ref == 'refs/heads/main'
+      #   run: ./mvnw --batch-mode --quiet javadoc:aggregate
 
-      - name: Build documentation
-        if: github.ref == 'refs/heads/main'
-        run: ./mvnw --quiet clean antora:antora -pl docs
+      # - name: Build documentation
+      #   if: github.ref == 'refs/heads/main'
+      #   run: ./mvnw --quiet clean antora:antora -pl docs
 
       - name: Publish snapshots to Maven Central
         if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
