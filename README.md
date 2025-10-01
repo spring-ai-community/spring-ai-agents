@@ -115,11 +115,11 @@ spring:
 spring-ai-agents/
 ├── agent-models/                    # Agent implementations
 │   ├── spring-ai-agent-model/       # Core abstractions
-│   ├── spring-ai-claude-code/       # Claude Code agent
+│   ├── spring-ai-claude-agent/       # Claude Code agent
 │   ├── spring-ai-gemini/           # Gemini CLI agent
 │   └── spring-ai-swebench-agent/   # SWE-bench agent
 ├── provider-sdks/                   # CLI/SDK integrations
-│   ├── claude-code-sdk/            # Claude Code CLI client
+│   ├── claude-agent-sdk/            # Claude Code CLI client
 │   ├── gemini-cli-sdk/             # Gemini CLI client
 │   └── swe-agent-sdk/              # SWE-bench agent SDK
 ├── agents/                          # JBang-compatible agents
@@ -144,10 +144,10 @@ spring-ai-agents/
 | Module | Description | Maven Coordinates |
 |--------|-------------|-------------------|
 | Core Abstractions | `AgentModel`, `AgentTaskRequest`, `AgentCallResult` | `org.springaicommunity.agents:spring-ai-agent-model` |
-| Claude Code SDK | CLI client with resilience features | `org.springaicommunity.agents:claude-code-sdk` |
+| Claude Agent SDK | CLI client with resilience features | `org.springaicommunity.agents:claude-agent-sdk` |
 | Gemini CLI SDK | Gemini command-line interface client | `org.springaicommunity.agents:gemini-cli-sdk` |
 | SWE Agent SDK | SWE-bench agent SDK | `org.springaicommunity.agents:swe-agent-sdk` |
-| Claude Code Agent | Spring AI adapter for Claude Code | `org.springaicommunity.agents:spring-ai-claude-code` |
+| Claude Code Agent | Spring AI adapter for Claude Code | `org.springaicommunity.agents:spring-ai-claude-agent` |
 | Gemini Agent | Spring AI adapter for Gemini CLI | `org.springaicommunity.agents:spring-ai-gemini` |
 | SWE-bench Agent | Software engineering benchmarking agent | `org.springaicommunity.agents:spring-ai-swebench-agent` |
 | Agent Client | Unified fluent API | `org.springaicommunity.agents:spring-ai-agent-client` |
@@ -209,13 +209,13 @@ See the [`samples/`](samples/) directory for complete examples:
 ./mvnw clean verify
 
 # Run specific integration test (Failsafe - proper way)
-./mvnw failsafe:integration-test -pl agent-models/spring-ai-claude-code -Dit.test=ClaudeCodeLocalSandboxIT
+./mvnw failsafe:integration-test -pl agent-models/spring-ai-claude-agent -Dit.test=ClaudeCodeLocalSandboxIT
 
 # Run Docker infrastructure tests (Failsafe - proper way)
-./mvnw failsafe:integration-test -pl agent-models/spring-ai-claude-code -Dit.test=ClaudeDockerInfraIT
+./mvnw failsafe:integration-test -pl agent-models/spring-ai-claude-agent -Dit.test=ClaudeDockerInfraIT
 
 # Alternative: Surefire can run IT tests when explicitly specified
-./mvnw test -pl agent-models/spring-ai-claude-code -Dtest=ClaudeDockerInfraIT
+./mvnw test -pl agent-models/spring-ai-claude-agent -Dtest=ClaudeDockerInfraIT
 ```
 
 #### Authentication for Tests

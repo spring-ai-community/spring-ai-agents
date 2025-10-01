@@ -24,12 +24,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.io.TempDir;
-import org.springaicommunity.agents.claudecode.ClaudeCodeAgentModel;
-import org.springaicommunity.agents.claudecode.ClaudeCodeAgentOptions;
+import org.springaicommunity.agents.claude.ClaudeAgentModel;
+import org.springaicommunity.agents.claude.ClaudeAgentOptions;
 import org.springaicommunity.agents.model.sandbox.LocalSandbox;
-import org.springaicommunity.agents.claudecode.sdk.ClaudeCodeClient;
-import org.springaicommunity.agents.claudecode.sdk.transport.CLIOptions;
-import org.springaicommunity.agents.claudecode.sdk.config.ClaudeCliDiscovery;
+import org.springaicommunity.agents.claude.sdk.ClaudeAgentClient;
+import org.springaicommunity.agents.claude.sdk.transport.CLIOptions;
+import org.springaicommunity.agents.claude.sdk.config.ClaudeCliDiscovery;
 import org.springaicommunity.agents.gemini.GeminiAgentModel;
 import org.springaicommunity.agents.gemini.GeminiAgentOptions;
 import org.springaicommunity.agents.geminisdk.GeminiClient;
@@ -74,14 +74,14 @@ class AgentClientHelloWorldSmokeTest {
 		assumeTrue(isClaudeCliAvailable(), "Claude CLI must be available for this test");
 
 		// Create Claude Code agent
-		ClaudeCodeAgentOptions options = ClaudeCodeAgentOptions.builder()
+		ClaudeAgentOptions options = ClaudeAgentOptions.builder()
 			.model("claude-sonnet-4-20250514")
 			.yolo(true) // Bypass permissions for test
 			.build();
 
-		ClaudeCodeClient claudeClient = ClaudeCodeClient.create(CLIOptions.defaultOptions(), this.tempWorkspace);
+		ClaudeAgentClient claudeClient = ClaudeAgentClient.create(CLIOptions.defaultOptions(), this.tempWorkspace);
 		LocalSandbox sandbox = new LocalSandbox(this.tempWorkspace);
-		ClaudeCodeAgentModel agentModel = new ClaudeCodeAgentModel(claudeClient, options, sandbox);
+		ClaudeAgentModel agentModel = new ClaudeAgentModel(claudeClient, options, sandbox);
 
 		// Skip if agent not available
 		assumeTrue(agentModel.isAvailable(), "Claude agent must be available");

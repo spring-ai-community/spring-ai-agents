@@ -67,12 +67,12 @@ These paths are automatically discovered by the respective CLI discovery utiliti
 - `AgentOptions` - Configuration options for agent behavior
 
 **Provider SDKs** (`provider-sdks/`)
-- `claude-code-sdk/` - CLI client for Claude Code with resilience features
+- `claude-agent-sdk/` - CLI client for Claude Code with resilience features
 - `gemini-cli-sdk/` - CLI client for Gemini with robust transport
 - `swe-agent-sdk/` - SWE-bench agent integration
 
 **Agent Implementations** (`agent-models/`)
-- `spring-ai-claude-code/` - Spring AI adapter for Claude Code
+- `spring-ai-claude-agent/` - Spring AI adapter for Claude Code
 - `spring-ai-gemini/` - Spring AI adapter for Gemini CLI  
 - `spring-ai-swe-agent/` - Spring AI adapter for SWE-bench agent
 

@@ -27,12 +27,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.io.TempDir;
-import org.springaicommunity.agents.claudecode.ClaudeCodeAgentModel;
-import org.springaicommunity.agents.claudecode.ClaudeCodeAgentOptions;
+import org.springaicommunity.agents.claude.ClaudeAgentModel;
+import org.springaicommunity.agents.claude.ClaudeAgentOptions;
 import org.springaicommunity.agents.model.sandbox.LocalSandbox;
-import org.springaicommunity.agents.claudecode.sdk.ClaudeCodeClient;
-import org.springaicommunity.agents.claudecode.sdk.config.ClaudeCliDiscovery;
-import org.springaicommunity.agents.claudecode.sdk.transport.CLIOptions;
+import org.springaicommunity.agents.claude.sdk.ClaudeAgentClient;
+import org.springaicommunity.agents.claude.sdk.config.ClaudeCliDiscovery;
+import org.springaicommunity.agents.claude.sdk.transport.CLIOptions;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -65,7 +65,7 @@ class AgentClientIT {
 
 	private Path testWorkspace;
 
-	private ClaudeCodeAgentModel claudeAgentModel;
+	private ClaudeAgentModel claudeAgentModel;
 
 	private AgentClient agentClient;
 
@@ -112,14 +112,14 @@ class AgentClientIT {
 	private void setupAgentClients() {
 		try {
 			// Create agent model
-			ClaudeCodeAgentOptions options = ClaudeCodeAgentOptions.builder()
+			ClaudeAgentOptions options = ClaudeAgentOptions.builder()
 				.model("claude-sonnet-4-20250514")
 				.yolo(true) // Enable dangerous permissions for testing
 				.build();
 
-			ClaudeCodeClient claudeClient = ClaudeCodeClient.create(CLIOptions.defaultOptions(), this.testWorkspace);
+			ClaudeAgentClient claudeClient = ClaudeAgentClient.create(CLIOptions.defaultOptions(), this.testWorkspace);
 			LocalSandbox sandbox = new LocalSandbox(this.testWorkspace);
-			this.claudeAgentModel = new ClaudeCodeAgentModel(claudeClient, options, sandbox);
+			this.claudeAgentModel = new ClaudeAgentModel(claudeClient, options, sandbox);
 
 			assumeTrue(this.claudeAgentModel.isAvailable(), "Claude agent must be available");
 

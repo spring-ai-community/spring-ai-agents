@@ -20,11 +20,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springaicommunity.agents.client.AgentClient;
 import org.springaicommunity.agents.client.AgentClientResponse;
-import org.springaicommunity.agents.claudecode.ClaudeCodeAgentModel;
-import org.springaicommunity.agents.claudecode.ClaudeCodeAgentOptions;
-import org.springaicommunity.agents.claudecode.sdk.ClaudeCodeClient;
-import org.springaicommunity.agents.claudecode.sdk.config.ClaudeCliDiscovery;
-import org.springaicommunity.agents.claudecode.sdk.transport.CLIOptions;
+import org.springaicommunity.agents.claude.ClaudeAgentModel;
+import org.springaicommunity.agents.claude.ClaudeAgentOptions;
+import org.springaicommunity.agents.claude.sdk.ClaudeAgentClient;
+import org.springaicommunity.agents.claude.sdk.config.ClaudeCliDiscovery;
+import org.springaicommunity.agents.claude.sdk.transport.CLIOptions;
 import org.springaicommunity.agents.core.AgentRunner;
 import org.springaicommunity.agents.core.LauncherSpec;
 import org.springaicommunity.agents.core.Result;
@@ -154,14 +154,14 @@ public class HelloWorldAgentAIRunner implements AgentRunner {
 			return null;
 		}
 
-		ClaudeCodeAgentOptions options = ClaudeCodeAgentOptions.builder()
+		ClaudeAgentOptions options = ClaudeAgentOptions.builder()
 			.model("claude-sonnet-4-20250514")
 			.yolo(true) // Bypass permissions for automated execution
 			.build();
 
-		ClaudeCodeClient claudeClient = ClaudeCodeClient.create(CLIOptions.defaultOptions(), workingDirectory);
+		ClaudeAgentClient claudeClient = ClaudeAgentClient.create(CLIOptions.defaultOptions(), workingDirectory);
 		LocalSandbox sandbox = new LocalSandbox(workingDirectory);
-		return new ClaudeCodeAgentModel(claudeClient, options, sandbox);
+		return new ClaudeAgentModel(claudeClient, options, sandbox);
 	}
 
 	private AgentModel createGeminiAgent(Path workingDirectory) {

@@ -6,9 +6,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import org.springaicommunity.agents.client.AgentClient;
-import org.springaicommunity.agents.claudecode.ClaudeCodeAgentModel;
-import org.springaicommunity.agents.claudecode.ClaudeCodeAgentOptions;
-import org.springaicommunity.agents.claudecode.sdk.ClaudeCodeClient;
+import org.springaicommunity.agents.claude.ClaudeAgentModel;
+import org.springaicommunity.agents.claude.ClaudeAgentOptions;
+import org.springaicommunity.agents.claude.sdk.ClaudeAgentClient;
 import org.springaicommunity.agents.model.sandbox.LocalSandbox;
 import org.springaicommunity.agents.model.sandbox.Sandbox;
 
@@ -116,10 +116,10 @@ public class PrReviewDemoRunner implements CommandLineRunner {
 
 	private AgentClient createAgentClient() throws Exception {
 		// Create Claude Code client (uses current directory by default)
-		ClaudeCodeClient claudeClient = ClaudeCodeClient.create();
+		ClaudeAgentClient claudeClient = ClaudeAgentClient.create();
 		
 		// Configure agent options
-		ClaudeCodeAgentOptions options = ClaudeCodeAgentOptions.builder()
+		ClaudeAgentOptions options = ClaudeAgentOptions.builder()
 			.model("claude-sonnet-4-20250514")
 			.yolo(true)
 			.build();
@@ -128,7 +128,7 @@ public class PrReviewDemoRunner implements CommandLineRunner {
 		Sandbox sandbox = new LocalSandbox(Paths.get(System.getProperty("user.dir")));
 
 		// Create agent model
-		ClaudeCodeAgentModel agentModel = new ClaudeCodeAgentModel(claudeClient, options, sandbox);
+		ClaudeAgentModel agentModel = new ClaudeAgentModel(claudeClient, options, sandbox);
 		
 		return AgentClient.create(agentModel);
 	}

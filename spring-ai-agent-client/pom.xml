@@ -34,7 +34,7 @@
         <!-- Agent model dependencies for testing -->
         <dependency>
             <groupId>org.springaicommunity.agents</groupId>
-            <artifactId>spring-ai-claude-code</artifactId>
+            <artifactId>spring-ai-claude-agent</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>

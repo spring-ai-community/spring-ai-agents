@@ -22,9 +22,9 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import org.springaicommunity.agents.client.AgentClient;
 import org.springaicommunity.agents.client.AgentClientResponse;
-import org.springaicommunity.agents.claudecode.ClaudeCodeAgentModel;
-import org.springaicommunity.agents.claudecode.ClaudeCodeAgentOptions;
-import org.springaicommunity.agents.claudecode.sdk.ClaudeCodeClient;
+import org.springaicommunity.agents.claude.ClaudeAgentModel;
+import org.springaicommunity.agents.claude.ClaudeAgentOptions;
+import org.springaicommunity.agents.claude.sdk.ClaudeAgentClient;
 import org.springaicommunity.agents.model.sandbox.LocalSandbox;
 
 /**
@@ -58,17 +58,17 @@ public class HelloWorldRunner implements CommandLineRunner {
 
 		try {
 			// 1. Create Claude Code client (uses current directory by default)
-			ClaudeCodeClient claudeClient = ClaudeCodeClient.create();
+			ClaudeAgentClient claudeClient = ClaudeAgentClient.create();
 
 			// 2. Configure agent options
-			ClaudeCodeAgentOptions options = ClaudeCodeAgentOptions.builder()
+			ClaudeAgentOptions options = ClaudeAgentOptions.builder()
 				.model("claude-sonnet-4-20250514")
 				.yolo(true) // Allow agent to make changes
 				.build();
 
 			// 3. Create sandbox and agent model
 			LocalSandbox sandbox = new LocalSandbox();
-			ClaudeCodeAgentModel agentModel = new ClaudeCodeAgentModel(claudeClient, options, sandbox);
+			ClaudeAgentModel agentModel = new ClaudeAgentModel(claudeClient, options, sandbox);
 
 			// 4. Check if agent is available
 			if (!agentModel.isAvailable()) {
