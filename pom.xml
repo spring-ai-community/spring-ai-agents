@@ -40,6 +40,7 @@
     <modules>
         <!-- Base modules first -->
         <module>agent-models/spring-ai-agent-model</module>
+        <module>agent-models/spring-ai-agent-tck</module>
         <module>spring-ai-agent-client</module>
 
         <!-- SDK modules -->

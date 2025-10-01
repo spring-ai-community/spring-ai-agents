@@ -18,7 +18,7 @@ package org.springaicommunity.agents.sweagent;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
-import org.springaicommunity.agents.model.sandbox.AbstractDockerInfrastructureTCK;
+import org.springaicommunity.agents.tck.sandbox.AbstractDockerInfrastructureTCK;
 import org.springaicommunity.agents.model.sandbox.ExecResult;
 import org.springaicommunity.agents.model.sandbox.ExecSpec;
 

@@ -19,7 +19,7 @@ package org.springaicommunity.agents.sweagent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 import org.springaicommunity.agents.sweagentsdk.transport.SweCliApi;
-import org.springaicommunity.agents.model.AbstractAgentModelTCK;
+import org.springaicommunity.agents.tck.AbstractAgentModelTCK;
 import org.springaicommunity.agents.model.AgentOptions;
 import org.springaicommunity.agents.model.sandbox.LocalSandbox;
 

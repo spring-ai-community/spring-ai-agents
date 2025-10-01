@@ -11,45 +11,31 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <artifactId>spring-ai-agent-model</artifactId>
+    <artifactId>spring-ai-agent-tck</artifactId>
     <packaging>jar</packaging>
 
-    <name>Spring AI Agent Model</name>
-    <description>Core abstractions for Spring AI Agents - AgentModel, AgentTaskRequest, AgentCallResult, and AgentOptions</description>
+    <name>Spring AI Agent TCK</name>
+    <description>Technology Compatibility Kit for Spring AI Agent implementations - Provides abstract test classes for validating AgentModel and Sandbox implementations</description>
 
     <dependencies>
-        <!-- Spring AI Model (for ModelOptions interface) -->
+        <!-- Agent Model Core - for interfaces that TCK tests against -->
         <dependency>
-            <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-model</artifactId>
+            <groupId>org.springaicommunity.agents</groupId>
+            <artifactId>spring-ai-agent-model</artifactId>
         </dependency>
 
-        <!-- TestContainers for Docker sandbox -->
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>testcontainers</artifactId>
-        </dependency>
-
-        <!-- SLF4J for logging -->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.zeroturnaround</groupId>
-            <artifactId>zt-exec</artifactId>
-        </dependency>
-
-        <!-- Test dependencies -->
+        <!-- JUnit Jupiter - TCK uses JUnit 5 (compile scope for TCK API) -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <scope>test</scope>
+            <scope>compile</scope>
         </dependency>
+
+        <!-- AssertJ - fluent assertions (compile scope for TCK API) -->
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <scope>test</scope>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 
@@ -60,12 +46,16 @@
                 <artifactId>maven-compiler-plugin</artifactId>
             </plugin>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-            </plugin>
-            <plugin>
                 <groupId>io.spring.javaformat</groupId>
                 <artifactId>spring-javaformat-maven-plugin</artifactId>
+            </plugin>
+            <!-- Do not deploy TCK to Maven Central - internal use only -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
             </plugin>
         </plugins>
     </build>

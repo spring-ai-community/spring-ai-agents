@@ -22,7 +22,7 @@ import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.springaicommunity.agents.geminisdk.GeminiClient;
 import org.springaicommunity.agents.geminisdk.exceptions.GeminiSDKException;
 import org.springaicommunity.agents.geminisdk.transport.CLIOptions;
-import org.springaicommunity.agents.model.AbstractAgentModelTCK;
+import org.springaicommunity.agents.tck.AbstractAgentModelTCK;
 import org.springaicommunity.agents.model.AgentOptions;
 import org.springaicommunity.agents.model.sandbox.DockerSandbox;
 

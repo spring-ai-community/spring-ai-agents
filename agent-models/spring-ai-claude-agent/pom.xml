@@ -45,9 +45,8 @@
         <!-- Testing dependencies -->
         <dependency>
             <groupId>org.springaicommunity.agents</groupId>
-            <artifactId>spring-ai-agent-model</artifactId>
+            <artifactId>spring-ai-agent-tck</artifactId>
             <version>${project.version}</version>
-            <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>
