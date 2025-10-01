@@ -17,6 +17,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
  && rm -rf /var/lib/apt/lists/*
 
 # Install CLIs EXACTLY as proven in CI (as root for global install)
+# Updated for Claude Code 2.0 release (October 2025)
 ARG CLAUDE_CODE_VERSION=latest
 ARG GEMINI_CLI_VERSION=latest
 ARG VENDIR_VERSION=0.44.0

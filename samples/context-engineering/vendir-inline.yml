@@ -1,0 +1,45 @@
+apiVersion: vendir.k14s.io/v1alpha1
+kind: Config
+directories:
+- path: vendor
+  contents:
+  - path: docs
+    inline:
+      paths:
+        CODING_GUIDELINES.md: |
+          # Coding Guidelines
+
+          ## Naming Conventions
+          - Use meaningful, descriptive variable names
+          - Class names should be nouns in PascalCase
+          - Method names should be verbs in camelCase
+
+          ## Dependency Injection
+          - Prefer constructor injection over field injection
+          - Do not use @Autowired on fields
+          - Use final fields for required dependencies
+
+          ## Documentation
+          - Add JavaDoc for all public classes and methods
+          - Include @param and @return tags
+          - Document exceptions with @throws
+
+          ## Testing
+          - Write unit tests for all public APIs
+          - Use meaningful test method names
+          - Follow AAA pattern: Arrange, Act, Assert
+
+        DESIGN_PATTERNS.md: |
+          # Design Patterns
+
+          ## Principles
+          - Prefer composition over inheritance
+          - Program to interfaces, not implementations
+          - Single Responsibility Principle
+          - Don't Repeat Yourself (DRY)
+
+          ## Spring Best Practices
+          - Use Spring's dependency injection
+          - Leverage Spring Boot auto-configuration
+          - Follow Spring naming conventions
+          - Use Spring's exception hierarchy

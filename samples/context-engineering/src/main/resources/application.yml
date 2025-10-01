@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: spring-ai-agents-context-engineering
+  main:
+    banner-mode: "off"
+    web-application-type: none
+
+logging:
+  level:
+    org.springaicommunity.agents: INFO
+    org.springaicommunity.agents.client.advisor.context: DEBUG
+    org.springframework.boot: WARN
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

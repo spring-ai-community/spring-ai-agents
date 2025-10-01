@@ -51,7 +51,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Sample Applications
 - `cd samples/hello-world && mvn spring-boot:run` - Run the Hello World sample
+- `cd samples/context-engineering && mvn spring-boot:run` - Run the Context Engineering sample
 - Authentication: Uses Claude CLI session authentication (recommended) or ANTHROPIC_API_KEY
+- **IMPORTANT**: All sample modules must include maven-deploy-plugin configuration with `<skip>true</skip>` to exclude them from Maven Central publishing
 
 ### CLI Tool Locations (for this environment)
 - **Claude CLI**: `/home/mark/.nvm/versions/node/v22.15.0/bin/claude` (version 1.0.128)
@@ -273,6 +275,31 @@ try {
 - `ClaudeCliDiscovery.java` - CLI discovery with version check
 - `VendirContextAdvisor.java` - Context engineering with vendir
 - `CLITransport.java` - Claude/Gemini CLI communication
+
+## CI/CD
+
+### Docker Image for CI
+The project maintains a pre-built Docker image (`ghcr.io/spring-ai-community/agents-runtime:latest`) with all required CLIs pre-installed:
+- JDK 17 (Temurin)
+- Maven 3.9.11
+- Node.js LTS
+- Claude Code CLI (latest)
+- Gemini CLI (latest)
+- Vendir CLI v0.44.0
+
+**Building the image locally:**
+```bash
+docker build -f Dockerfile.agents-runtime -t agents-runtime:local .
+```
+
+**Using the image in CI:**
+The CI workflow installs CLIs directly on GitHub Actions runners for now. Future optimization will use the pre-built Docker container to speed up builds.
+
+**Triggering image rebuild:**
+The image is automatically rebuilt:
+- Weekly on Mondays (scheduled)
+- When Dockerfile changes are pushed to main
+- Manually via workflow_dispatch
 
 ## Troubleshooting
 

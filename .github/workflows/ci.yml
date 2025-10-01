@@ -135,6 +135,14 @@ jobs:
           npm install -g @google/gemini-cli --silent
           echo "✅ Gemini CLI installed via npm"
 
+      - name: Install Vendir CLI
+        run: |
+          # Install vendir for context engineering
+          VENDIR_VERSION=0.44.0
+          curl -fsSL https://github.com/vmware-tanzu/carvel-vendir/releases/download/v${VENDIR_VERSION}/vendir-linux-amd64 \
+            -o /tmp/vendir && sudo mv /tmp/vendir /usr/local/bin/vendir && sudo chmod +x /usr/local/bin/vendir
+          echo "✅ Vendir CLI installed"
+
       - name: Verify CLI installations
         run: |
           echo "=== Verifying CLI installations ==="
@@ -152,6 +160,13 @@ jobs:
             echo "❌ Gemini CLI not found in PATH"
             echo "PATH: $PATH"
             ls -la /usr/local/bin/ | grep gemini || echo "No gemini in /usr/local/bin/"
+            exit 1
+          fi
+          if command -v vendir >/dev/null 2>&1; then
+            echo "✅ Vendir CLI verified: $(vendir --version 2>&1)"
+          else
+            echo "❌ Vendir CLI not found in PATH"
+            echo "PATH: $PATH"
             exit 1
           fi
 

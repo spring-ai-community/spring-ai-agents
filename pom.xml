@@ -60,6 +60,7 @@
         <!-- Documentation and samples last -->
         <module>docs</module>
         <module>samples/hello-world</module>
+        <module>samples/context-engineering</module>
 
         <!-- Exclude problematic modules -->
         <!-- <module>agents/code-coverage-agent</module> -->
