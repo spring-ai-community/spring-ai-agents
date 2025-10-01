@@ -354,6 +354,29 @@ All exceptions are runtime exceptions:
 - `TimeoutException` - Command timeout (runtime, not checked)
 - `ClaudeSDKException` - Claude CLI errors (runtime, not checked)
 
+### Verifying Snapshot Deployments to Maven Central
+
+Maven Central has a known UI bug that prevents browsing SNAPSHOT artifacts via the web interface. However, snapshots ARE published and accessible.
+
+**To verify a snapshot was published successfully:**
+
+1. Check the maven-metadata.xml directly:
+   ```
+   https://central.sonatype.com/repository/maven-snapshots/org/springaicommunity/agents/{artifact-id}/{version}-SNAPSHOT/maven-metadata.xml
+   ```
+
+2. Example for spring-ai-agent-model:
+   ```
+   https://central.sonatype.com/repository/maven-snapshots/org/springaicommunity/agents/spring-ai-agent-model/0.1.0-SNAPSHOT/maven-metadata.xml
+   ```
+
+3. Direct artifact download URLs (from maven-metadata.xml):
+   ```
+   https://central.sonatype.com/repository/maven-snapshots/org/springaicommunity/agents/{artifact-id}/{version}-SNAPSHOT/{artifact-id}-{timestamp-buildNumber}.{extension}
+   ```
+
+**Note:** The web UI at `https://central.sonatype.com/` will show "SNAPSHOT Browsing Unavailable" but artifacts are still accessible via Maven and direct URLs.
+
 ## Development Guidelines
 
 ### Commit Messages
