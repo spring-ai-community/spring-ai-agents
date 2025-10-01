@@ -32,8 +32,14 @@ RUN curl -fsSL https://github.com/vmware-tanzu/carvel-vendir/releases/download/v
     -o /usr/local/bin/vendir && chmod +x /usr/local/bin/vendir
 
 # Create non-root user and workspace
-RUN useradd -m agent && mkdir -p /work && chown -R agent:agent /work
+# GitHub Actions container jobs use specific paths:
+# - HOME=/github/home
+# - WORKSPACE=/__w/[owner]/[repo]
+RUN useradd -m agent && \
+    mkdir -p /work /github/home /__w /home/agent/.m2 /github/home/.m2 && \
+    chown -R agent:agent /work /github /__w /home/agent
 USER agent
+ENV HOME=/github/home
 WORKDIR /work
 
 # Verify installations work
