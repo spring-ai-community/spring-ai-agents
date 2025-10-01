@@ -22,18 +22,21 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import org.springaicommunity.agents.client.AgentClient;
 import org.springaicommunity.agents.client.AgentClientResponse;
-import org.springaicommunity.agents.claude.ClaudeAgentModel;
-import org.springaicommunity.agents.claude.ClaudeAgentOptions;
-import org.springaicommunity.agents.claude.sdk.ClaudeAgentClient;
-import org.springaicommunity.agents.model.sandbox.LocalSandbox;
 
 /**
  * Command line runner that demonstrates a simple hello world example using Spring AI
- * Agents.
+ * Agents with Spring Boot auto-configuration.
  *
- * This runner: 1. Sets up Claude Code client and agent model 2. Uses AgentClient to
- * create a hello.txt file in the current directory 3. Verifies the file was created and
- * displays the contents
+ * <p>
+ * This runner uses Spring Boot auto-configuration to automatically set up: - Claude agent
+ * model (spring.ai.claude-agent.*) - Local or Docker sandbox (spring.ai.sandbox.*) -
+ * AgentClient bean
+ * </p>
+ *
+ * <p>
+ * Prerequisites: - ANTHROPIC_API_KEY environment variable or Claude CLI session
+ * authentication - Claude CLI installed: npm install -g @anthropic-ai/claude-code
+ * </p>
  *
  * @author Spring AI Community
  */
@@ -42,60 +45,27 @@ public class HelloWorldRunner implements CommandLineRunner {
 
 	private static final Logger log = LoggerFactory.getLogger(HelloWorldRunner.class);
 
-	private static final String HELLO_WORLD_GOAL = "Create a simple hello.txt file with the content 'Hello, World!'";
+	private final AgentClient agentClient;
+
+	public HelloWorldRunner(AgentClient agentClient) {
+		this.agentClient = agentClient;
+	}
 
 	@Override
-	public void run(String... args) throws Exception {
+	public void run(String... args) {
 		log.info("Starting Spring AI Agents Hello World sample...");
 
-		// Check if API key is set
-		String apiKey = System.getenv("ANTHROPIC_API_KEY");
-		if (apiKey == null || apiKey.isBlank()) {
-			log.error("ANTHROPIC_API_KEY environment variable is not set!");
-			log.error("Please set your API key: export ANTHROPIC_API_KEY='your-api-key-here'");
-			return;
+		String goal = "Create a simple hello.txt file with the content 'Hello, World!'";
+
+		log.info("Executing goal: {}", goal);
+		AgentClientResponse response = agentClient.run(goal);
+
+		if (response.isSuccessful()) {
+			log.info("✅ Goal completed successfully!");
+			log.info("Agent response: {}", response.getResult());
 		}
-
-		try {
-			// 1. Create Claude Code client (uses current directory by default)
-			ClaudeAgentClient claudeClient = ClaudeAgentClient.create();
-
-			// 2. Configure agent options
-			ClaudeAgentOptions options = ClaudeAgentOptions.builder()
-				.model("claude-sonnet-4-20250514")
-				.yolo(true) // Allow agent to make changes
-				.build();
-
-			// 3. Create sandbox and agent model
-			LocalSandbox sandbox = new LocalSandbox();
-			ClaudeAgentModel agentModel = new ClaudeAgentModel(claudeClient, options, sandbox);
-
-			// 4. Check if agent is available
-			if (!agentModel.isAvailable()) {
-				log.error("Claude Code agent is not available. Please ensure Claude CLI is installed:");
-				log.error("npm install -g @anthropic-ai/claude-code");
-				return;
-			}
-
-			// 5. Create AgentClient and execute goal
-			AgentClient agentClient = AgentClient.create(agentModel);
-
-			log.info("Executing goal: {}", HELLO_WORLD_GOAL);
-			AgentClientResponse response = agentClient.goal(HELLO_WORLD_GOAL).run();
-
-			// 6. Check results
-			if (response.isSuccessful()) {
-				log.info("✅ Goal completed successfully!");
-				log.info("Agent response: {}", response.getResult());
-			}
-			else {
-				log.error("❌ Goal execution failed: {}", response.getResult());
-			}
-
-		}
-		catch (Exception e) {
-			log.error("❌ Error running hello world sample: {}", e.getMessage(), e);
-			throw e;
+		else {
+			log.error("❌ Goal execution failed: {}", response.getResult());
 		}
 	}
 

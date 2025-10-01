@@ -38,8 +38,8 @@ import org.testcontainers.DockerClientFactory;
  * <ol>
  * <li>User-defined {@link Sandbox} bean (highest priority via
  * {@link ConditionalOnMissingBean})</li>
- * <li>Docker sandbox when Docker is available and enabled</li>
- * <li>Local sandbox as fallback</li>
+ * <li>Local sandbox (default - no isolation, direct host execution)</li>
+ * <li>Docker sandbox when explicitly enabled and Docker is available</li>
  * </ol>
  *
  * <p>
@@ -56,17 +56,27 @@ public class SandboxAutoConfiguration {
 	private static final Logger logger = LoggerFactory.getLogger(SandboxAutoConfiguration.class);
 
 	/**
-	 * Creates a Docker-based sandbox when Docker is available and not explicitly
-	 * disabled. This is the preferred sandbox implementation for secure isolation.
+	 * Creates a local sandbox (default). Executes directly on host with no isolation.
 	 * @param properties sandbox configuration properties
-	 * @return configured Docker sandbox
+	 * @return configured local sandbox
 	 */
 	@Bean
 	@Primary
 	@ConditionalOnMissingBean
+	public Sandbox localSandbox(SandboxProperties properties) {
+		return createLocalSandbox(properties);
+	}
+
+	/**
+	 * Creates a Docker-based sandbox when explicitly enabled and Docker is available.
+	 * Provides secure isolation via Docker containers.
+	 * @param properties sandbox configuration properties
+	 * @return configured Docker sandbox
+	 */
+	@Bean
+	@ConditionalOnMissingBean
 	@ConditionalOnClass(name = "org.testcontainers.DockerClientFactory")
-	@ConditionalOnProperty(name = "spring.ai.agents.sandbox.docker.enabled", havingValue = "true",
-			matchIfMissing = true)
+	@ConditionalOnProperty(name = "spring.ai.agents.sandbox.docker.enabled", havingValue = "true")
 	public Sandbox dockerSandbox(SandboxProperties properties) {
 		try {
 			// Verify Docker is actually available
@@ -81,17 +91,6 @@ public class SandboxAutoConfiguration {
 			logger.warn("Docker is not available, falling back to LocalSandbox: {}", e.getMessage());
 			return createLocalSandbox(properties);
 		}
-	}
-
-	/**
-	 * Creates a local sandbox as fallback when Docker is not available or disabled.
-	 * @param properties sandbox configuration properties
-	 * @return configured local sandbox
-	 */
-	@Bean
-	@ConditionalOnMissingBean
-	public Sandbox localSandbox(SandboxProperties properties) {
-		return createLocalSandbox(properties);
 	}
 
 	private LocalSandbox createLocalSandbox(SandboxProperties properties) {

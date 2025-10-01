@@ -181,8 +181,8 @@ public class VendirContextAdvisor implements AgentCallAdvisor {
 				logger.debug("Vendir output:\n{}", output);
 			}
 			else {
-				logger.warn("Vendir sync failed with exit code: {}", exitCode);
-				logger.debug("Vendir output:\n{}", output);
+				logger.warn("Vendir sync failed with exit code: {}. Command: {}", exitCode, String.join(" ", command));
+				logger.warn("Vendir error output:\n{}", output);
 			}
 
 			return new VendirSyncResult(success, success ? null : "Vendir exited with code " + exitCode, output);

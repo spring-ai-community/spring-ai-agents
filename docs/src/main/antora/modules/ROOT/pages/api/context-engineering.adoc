@@ -1,0 +1,298 @@
+= Context Engineering
+:page-title: Context Engineering with VendirContextAdvisor
+:toc: left
+:tabsize: 2
+:sectnums:
+
+Context engineering provides AI agents with rich, structured external reference materials to improve reasoning and decision-making.
+
+== Overview
+
+**Context engineering** is the practice of providing AI agents with "the right information, at the right time, in the right format." For autonomous development agents, this means gathering external documentation, API specifications, examples, and best practices before agent execution.
+
+The `VendirContextAdvisor` implements the **"Select Context"** strategy using https://carvel.dev/vendir/[vendir] to declaratively fetch external content into the agent's workspace.
+
+== Why Context Engineering?
+
+Most agent failures are context failures, not model failures. Agents make better decisions when they have access to:
+
+* **Framework documentation** - Understanding APIs and patterns
+* **API specifications** - Correct usage of external services
+* **Best practices** - Industry-standard approaches
+* **Examples** - Real-world usage patterns
+
+Without proper context, agents may:
+
+* Hallucinate non-existent APIs
+* Use deprecated patterns
+* Miss important conventions
+* Make suboptimal architectural decisions
+
+== VendirContextAdvisor
+
+The `VendirContextAdvisor` automatically gathers external context before agent execution using vendir configuration files.
+
+=== Basic Usage
+
+[source,java]
+----
+// Create vendir configuration
+Path vendirConfig = createVendirConfig(); // vendir.yml
+
+// Create advisor
+VendirContextAdvisor advisor = VendirContextAdvisor.builder()
+    .vendirConfigPath(vendirConfig)
+    .contextDirectory(".agent-context/vendir")
+    .build();
+
+// Register with AgentClient
+AgentClient client = AgentClient.builder(agentModel)
+    .defaultAdvisor(advisor)
+    .build();
+
+// Execute - context is gathered automatically before agent runs
+AgentClientResponse response = client.run(
+    "Implement Spring Boot actuator health endpoint following best practices"
+);
+----
+
+=== Vendir Configuration
+
+Create a `vendir.yml` file specifying what external content to fetch:
+
+[source,yaml]
+----
+apiVersion: vendir.k14s.io/v1alpha1
+kind: Config
+directories:
+- path: vendor
+  contents:
+  # Clone entire repository
+  - path: spring-guide
+    git:
+      url: https://github.com/spring-guides/gs-rest-service
+      ref: main
+      depth: 1    # Shallow clone for efficiency
+
+  # Fetch specific paths
+  - path: spring-boot-docs
+    git:
+      url: https://github.com/spring-projects/spring-boot
+      ref: v3.3.0
+      depth: 1
+    includePaths:
+    - README.adoc
+
+  # HTTP source
+  - path: api-specs
+    http:
+      url: https://example.com/api-spec.yaml
+----
+
+For complete vendir configuration options, see the https://carvel.dev/vendir/docs/latest/vendir-spec/[official vendir documentation].
+
+== Configuration Options
+
+=== Context Directory
+
+Specify where context files are placed:
+
+[source,java]
+----
+VendirContextAdvisor advisor = VendirContextAdvisor.builder()
+    .vendirConfigPath("vendir.yml")
+    .contextDirectory(".agent-context/vendir") // Default
+    .build();
+----
+
+Context files are placed in `{workingDirectory}/.agent-context/vendir/vendor/`.
+
+=== Timeout
+
+Configure how long vendir has to fetch content:
+
+[source,java]
+----
+VendirContextAdvisor advisor = VendirContextAdvisor.builder()
+    .vendirConfigPath("vendir.yml")
+    .timeout(300) // 5 minutes (default)
+    .build();
+----
+
+=== Auto-cleanup
+
+Optionally remove context files after agent execution:
+
+[source,java]
+----
+VendirContextAdvisor advisor = VendirContextAdvisor.builder()
+    .vendirConfigPath("vendir.yml")
+    .autoCleanup(true) // Default: false (keep for inspection)
+    .build();
+----
+
+=== Execution Order
+
+Control when context is gathered relative to other advisors:
+
+[source,java]
+----
+import org.springframework.core.Ordered;
+
+VendirContextAdvisor advisor = VendirContextAdvisor.builder()
+    .vendirConfigPath("vendir.yml")
+    .order(Ordered.HIGHEST_PRECEDENCE + 100) // Default: early execution
+    .build();
+----
+
+== Context Metadata
+
+The advisor adds metadata to request/response contexts for observability:
+
+[source,java]
+----
+AgentClientResponse response = client.run("Some goal");
+
+// Check if context was gathered successfully
+Boolean success = (Boolean) response.context().get("vendir.context.success");
+String contextPath = (String) response.context().get("vendir.context.path");
+String output = (String) response.context().get("vendir.context.output");
+
+if (!success) {
+    String error = (String) response.context().get("vendir.context.error");
+    logger.warn("Context gathering failed: {}", error);
+}
+----
+
+== Examples
+
+=== Clone Entire Repository
+
+[source,yaml]
+----
+apiVersion: vendir.k14s.io/v1alpha1
+kind: Config
+directories:
+- path: vendor
+  contents:
+  - path: spring-guide
+    git:
+      url: https://github.com/spring-guides/gs-rest-service
+      ref: main
+      depth: 1
+----
+
+[source,java]
+----
+VendirContextAdvisor advisor = VendirContextAdvisor.builder()
+    .vendirConfigPath("vendir.yml")
+    .build();
+
+AgentClient client = AgentClient.builder(agentModel)
+    .defaultAdvisor(advisor)
+    .build();
+
+client.run("Based on the Spring guide, create a similar REST service for products");
+----
+
+=== Fetch Specific Files
+
+[source,yaml]
+----
+apiVersion: vendir.k14s.io/v1alpha1
+kind: Config
+directories:
+- path: vendor
+  contents:
+  - path: spring-boot
+    git:
+      url: https://github.com/spring-projects/spring-boot
+      ref: v3.3.0
+      depth: 1
+    includePaths:
+    - README.adoc
+----
+
+=== HTTP Sources
+
+[source,yaml]
+----
+apiVersion: vendir.k14s.io/v1alpha1
+kind: Config
+directories:
+- path: vendor
+  contents:
+  - path: api-spec
+    http:
+      url: https://api.example.com/openapi.yaml
+----
+
+== Spring Boot Integration
+
+Register as a Spring bean for automatic configuration:
+
+[source,java]
+----
+@Configuration
+public class ContextEngineeringConfig {
+
+    @Bean
+    public VendirContextAdvisor vendirContextAdvisor() {
+        return VendirContextAdvisor.builder()
+            .vendirConfigPath("context/vendir.yml")
+            .contextDirectory(".agent-context")
+            .timeout(300)
+            .autoCleanup(false)
+            .build();
+    }
+
+    @Bean
+    public AgentClient agentClient(
+            AgentModel agentModel,
+            VendirContextAdvisor contextAdvisor) {
+        return AgentClient.builder(agentModel)
+            .defaultAdvisor(contextAdvisor)
+            .build();
+    }
+}
+----
+
+== Error Handling
+
+The advisor handles failures gracefully:
+
+* **Vendir not installed** - Logs error, agent continues without context
+* **Network failures** - Logs error, agent continues without context
+* **Invalid configuration** - Logs error, agent continues without context
+* **Timeout** - Logs error, agent continues without context
+
+Failures are recorded in the context for observability:
+
+[source,java]
+----
+AgentClientResponse response = client.run("Some goal");
+
+if (!(Boolean) response.context().get("vendir.context.success")) {
+    String error = (String) response.context().get("vendir.context.error");
+    // Handle degraded execution
+}
+----
+
+== Tips
+
+* Use `depth: 1` for faster shallow clones
+* Use `includePaths` to fetch only relevant files
+* Keep `autoCleanup: false` during development to inspect gathered context
+* Adjust timeout based on repository size
+
+
+
+== Related Concepts
+
+* xref:api/advisors.adoc[Agent Advisors] - Complete advisor pattern documentation
+* xref:api/agentclient.adoc[AgentClient] - High-level client API
+* xref:future/judge-concept.adoc[Judge Concept] - Post-execution validation
+
+---
+
+Context engineering transforms autonomous agents from isolated tools into context-aware developers that understand and respect external APIs, frameworks, and best practices.

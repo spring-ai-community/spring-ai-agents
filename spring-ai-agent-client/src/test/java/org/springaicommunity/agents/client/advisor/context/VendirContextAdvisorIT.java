@@ -89,10 +89,10 @@ class VendirContextAdvisorIT {
 	}
 
 	@Test
-	@DisplayName("VendirContextAdvisor gathers documentation and agent uses it")
-	void testVendirContextEngineeringEndToEnd() throws IOException {
-		// Create vendir.yml to fetch a simple text file from GitHub
-		Path vendirConfig = createVendirConfig();
+	@DisplayName("VendirContextAdvisor efficiently clones Spring Guide repository (shallow, no history)")
+	void testEfficientGitClone() throws IOException {
+		// Create vendir.yml for efficient shallow clone of spring-guides/gs-rest-service
+		Path vendirConfig = createEfficientGitCloneConfig();
 
 		// Create VendirContextAdvisor
 		VendirContextAdvisor advisor = VendirContextAdvisor.builder()
@@ -109,10 +109,13 @@ class VendirContextAdvisorIT {
 			.defaultTimeout(Duration.ofMinutes(3))
 			.build();
 
-		// Execute agent goal that should benefit from the gathered context
+		// Execute agent goal using the cloned repository context
 		String goal = """
-				Look in the .agent-context/vendir directory for any documentation or files that were gathered.
-				Create a file called 'context-summary.txt' that lists what files you found and briefly summarizes their content.
+				Look in .agent-context/vendir/vendor/spring-guide for the cloned Spring REST service guide.
+				Read the README.adoc file and create a summary file called 'guide-summary.txt' with:
+				1. What this guide teaches
+				2. The main technologies used
+				3. Key file locations
 				""";
 
 		AgentClientResponse response = client.run(goal);
@@ -121,35 +124,34 @@ class VendirContextAdvisorIT {
 		assertThat(response).isNotNull();
 		assertThat(response.isSuccessful()).isTrue();
 
-		// Verify context was gathered
+		// Verify context was gathered successfully
 		assertThat(response.context()).containsKey("vendir.context.success");
 		assertThat(response.context().get("vendir.context.success")).isEqualTo(true);
 		assertThat(response.context()).containsKey("vendir.context.path");
 
 		// Verify context directory exists and has content
-		Path contextDir = this.testWorkspace.resolve(".agent-context/vendir");
+		Path contextDir = this.testWorkspace.resolve(".agent-context/vendir/vendor/spring-guide");
 		assertThat(contextDir).exists();
 		assertThat(contextDir).isDirectory();
 
-		// Verify vendir actually downloaded something
-		Path vendorDir = contextDir.resolve("vendor");
-		if (Files.exists(vendorDir)) {
-			assertThat(Files.walk(vendorDir).count()).isGreaterThan(1); // More than just
-																		// the
-																		// directory
-		}
+		// Verify key files from the guide exist
+		assertThat(contextDir.resolve("README.adoc")).exists();
+
+		// Verify vendir downloaded the repository (should have multiple files)
+		assertThat(Files.walk(contextDir).count()).isGreaterThan(10);
 
 		// Verify agent created the summary file
-		Path summaryFile = this.testWorkspace.resolve("context-summary.txt");
+		Path summaryFile = this.testWorkspace.resolve("guide-summary.txt");
 		if (Files.exists(summaryFile)) {
 			String summary = Files.readString(summaryFile);
 			assertThat(summary).isNotBlank();
-			System.out.println("Agent's context summary:\n" + summary);
+			assertThat(summary.toLowerCase()).contains("rest");
+			System.out.println("✅ Agent's guide summary:\n" + summary);
 		}
 
-		System.out.println("✅ Context engineering test completed");
+		System.out.println("✅ Efficient git clone test completed");
 		System.out.println("   Context path: " + response.context().get("vendir.context.path"));
-		System.out.println("   Context gathered: " + response.context().get("vendir.context.gathered"));
+		System.out.println("   Repository cloned with depth=1 (no history)");
 	}
 
 	@Test
@@ -211,6 +213,215 @@ class VendirContextAdvisorIT {
 		System.out.println("✅ Auto-cleanup test completed. Context dir exists: " + Files.exists(contextDir));
 	}
 
+	@Test
+	@DisplayName("VendirContextAdvisor with inline content (no network required)")
+	void testInlineContent() throws IOException {
+		// Create vendir.yml with inline content (no network required)
+		Path vendirConfig = createInlineVendirConfig();
+
+		VendirContextAdvisor advisor = VendirContextAdvisor.builder()
+			.vendirConfigPath(vendirConfig)
+			.contextDirectory(".agent-context/vendir-inline")
+			.timeout(30)
+			.build();
+
+		AgentClient client = AgentClient.builder(this.claudeAgentModel)
+			.defaultAdvisor(advisor)
+			.defaultWorkingDirectory(this.testWorkspace)
+			.defaultTimeout(Duration.ofMinutes(2))
+			.build();
+
+		AgentClientResponse response = client
+			.run("Read the file in .agent-context/vendir-inline/vendor/docs/ and create summary.txt with its content");
+
+		assertThat(response).isNotNull();
+		assertThat(response.context().get("vendir.context.success")).isEqualTo(true);
+
+		// Verify inline content was created
+		Path contextDir = this.testWorkspace.resolve(".agent-context/vendir-inline/vendor/docs");
+		assertThat(contextDir).exists();
+
+		System.out.println("✅ Inline content test completed");
+	}
+
+	@Test
+	@DisplayName("VendirContextAdvisor with HTTP source")
+	void testHttpSource() throws IOException {
+		// Create vendir.yml to fetch from HTTP
+		Path vendirConfig = createHttpVendirConfig();
+
+		VendirContextAdvisor advisor = VendirContextAdvisor.builder()
+			.vendirConfigPath(vendirConfig)
+			.contextDirectory(".agent-context/vendir-http")
+			.timeout(60)
+			.build();
+
+		AgentClient client = AgentClient.builder(this.claudeAgentModel)
+			.defaultAdvisor(advisor)
+			.defaultWorkingDirectory(this.testWorkspace)
+			.defaultTimeout(Duration.ofMinutes(2))
+			.build();
+
+		AgentClientResponse response = client
+			.run("Check if any files were downloaded in .agent-context/vendir-http/ and create http-summary.txt");
+
+		assertThat(response).isNotNull();
+
+		// Verify context gathering was attempted (may fail due to network)
+		assertThat(response.context()).containsKey("vendir.context.success");
+
+		System.out.println("✅ HTTP source test completed");
+		System.out.println("   Success: " + response.context().get("vendir.context.success"));
+	}
+
+	@Test
+	@DisplayName("VendirContextAdvisor with relative config path")
+	void testRelativeConfigPath() throws IOException {
+		// Create config in subdirectory
+		Path configDir = this.testWorkspace.resolve("config");
+		Files.createDirectories(configDir);
+		Path vendirConfig = configDir.resolve("vendir.yml");
+		Files.writeString(vendirConfig, createInlineVendirYaml());
+
+		// Use relative path from workspace
+		VendirContextAdvisor advisor = VendirContextAdvisor.builder()
+			.vendirConfigPath("config/vendir.yml") // Relative path
+			.contextDirectory(".agent-context/vendir-relative")
+			.timeout(30)
+			.build();
+
+		AgentClient client = AgentClient.builder(this.claudeAgentModel)
+			.defaultAdvisor(advisor)
+			.defaultWorkingDirectory(this.testWorkspace)
+			.defaultTimeout(Duration.ofMinutes(2))
+			.build();
+
+		AgentClientResponse response = client.run("Create a file called 'relative-test.txt' with content 'OK'");
+
+		assertThat(response).isNotNull();
+		assertThat(response.context().get("vendir.context.success")).isEqualTo(true);
+
+		System.out.println("✅ Relative config path test completed");
+	}
+
+	@Test
+	@DisplayName("VendirContextAdvisor with multiple content sources")
+	void testMultipleSources() throws IOException {
+		// Create vendir.yml with multiple sources
+		Path vendirConfig = createMultiSourceVendirConfig();
+
+		VendirContextAdvisor advisor = VendirContextAdvisor.builder()
+			.vendirConfigPath(vendirConfig)
+			.contextDirectory(".agent-context/vendir-multi")
+			.timeout(120)
+			.build();
+
+		AgentClient client = AgentClient.builder(this.claudeAgentModel)
+			.defaultAdvisor(advisor)
+			.defaultWorkingDirectory(this.testWorkspace)
+			.defaultTimeout(Duration.ofMinutes(3))
+			.build();
+
+		AgentClientResponse response = client
+			.run("List all directories in .agent-context/vendir-multi/vendor/ and create multi-source-summary.txt");
+
+		assertThat(response).isNotNull();
+
+		// At least inline content should succeed
+		Path contextDir = this.testWorkspace.resolve(".agent-context/vendir-multi/vendor");
+		if (Files.exists(contextDir)) {
+			assertThat(Files.walk(contextDir).count()).isGreaterThan(1);
+		}
+
+		System.out.println("✅ Multiple sources test completed");
+	}
+
+	@Test
+	@DisplayName("VendirContextAdvisor with custom order executes at correct priority")
+	void testCustomOrder() throws IOException {
+		Path vendirConfig = createInlineVendirConfig();
+
+		VendirContextAdvisor advisor = VendirContextAdvisor.builder()
+			.vendirConfigPath(vendirConfig)
+			.contextDirectory(".agent-context/vendir-order")
+			.order(500) // Custom order
+			.timeout(30)
+			.build();
+
+		assertThat(advisor.getOrder()).isEqualTo(500);
+
+		AgentClient client = AgentClient.builder(this.claudeAgentModel)
+			.defaultAdvisor(advisor)
+			.defaultWorkingDirectory(this.testWorkspace)
+			.defaultTimeout(Duration.ofMinutes(2))
+			.build();
+
+		AgentClientResponse response = client.run("Create a file called 'order-test.txt' with content 'OK'");
+
+		assertThat(response).isNotNull();
+		assertThat(response.context().get("vendir.context.success")).isEqualTo(true);
+
+		System.out.println("✅ Custom order test completed");
+	}
+
+	@Test
+	@DisplayName("VendirContextAdvisor metadata is accessible in response")
+	void testMetadataAccessibility() throws IOException {
+		Path vendirConfig = createInlineVendirConfig();
+
+		VendirContextAdvisor advisor = VendirContextAdvisor.builder()
+			.vendirConfigPath(vendirConfig)
+			.contextDirectory(".agent-context/vendir-metadata")
+			.timeout(30)
+			.build();
+
+		AgentClient client = AgentClient.builder(this.claudeAgentModel)
+			.defaultAdvisor(advisor)
+			.defaultWorkingDirectory(this.testWorkspace)
+			.defaultTimeout(Duration.ofMinutes(2))
+			.build();
+
+		AgentClientResponse response = client.run("Create a file called 'metadata-test.txt' with content 'OK'");
+
+		// Verify all expected metadata keys exist
+		assertThat(response.context()).containsKeys("vendir.context.success", "vendir.context.path",
+				"vendir.context.gathered", "vendir.context.output");
+
+		// Verify metadata values are correct type
+		assertThat(response.context().get("vendir.context.success")).isInstanceOf(Boolean.class);
+		assertThat(response.context().get("vendir.context.path")).isInstanceOf(String.class);
+		assertThat(response.context().get("vendir.context.gathered")).isInstanceOf(Boolean.class);
+		assertThat(response.context().get("vendir.context.output")).isInstanceOf(String.class);
+
+		// Verify path points to correct location
+		String contextPath = (String) response.context().get("vendir.context.path");
+		assertThat(contextPath).contains(".agent-context/vendir-metadata");
+
+		System.out.println("✅ Metadata accessibility test completed");
+		System.out.println("   Context path: " + contextPath);
+	}
+
+	private Path createEfficientGitCloneConfig() throws IOException {
+		// Create vendir.yml with efficient shallow clone (depth=1, no history)
+		// This is the most important use case for context engineering
+		String vendirYml = """
+				apiVersion: vendir.k14s.io/v1alpha1
+				kind: Config
+				directories:
+				- path: vendor
+				  contents:
+				  - path: spring-guide
+				    git:
+				      url: https://github.com/spring-guides/gs-rest-service
+				      ref: main
+				      depth: 1
+				""";
+
+		Path configPath = this.testWorkspace.resolve("vendir.yml");
+		Files.writeString(configPath, vendirYml);
+		return configPath;
+	}
+
 	private Path createVendirConfig() throws IOException {
 		// Create a simple vendir.yml that fetches Spring Boot's README from GitHub
 		String vendirYml = """
@@ -223,6 +434,7 @@ class VendirContextAdvisorIT {
 				    git:
 				      url: https://github.com/spring-projects/spring-boot
 				      ref: v3.3.0
+				      depth: 1
 				    includePaths:
 				    - README.adoc
 				    - CODE_OF_CONDUCT.md
@@ -248,6 +460,78 @@ class VendirContextAdvisorIT {
 				""";
 
 		Path configPath = this.testWorkspace.resolve("vendir-invalid.yml");
+		Files.writeString(configPath, vendirYml);
+		return configPath;
+	}
+
+	private Path createInlineVendirConfig() throws IOException {
+		Path configPath = this.testWorkspace.resolve("vendir-inline.yml");
+		Files.writeString(configPath, createInlineVendirYaml());
+		return configPath;
+	}
+
+	private String createInlineVendirYaml() {
+		return """
+				apiVersion: vendir.k14s.io/v1alpha1
+				kind: Config
+				directories:
+				- path: vendor
+				  contents:
+				  - path: docs
+				    inline:
+				      paths:
+				        GUIDELINES.md: |
+				          # Development Guidelines
+				          Always use meaningful variable names.
+				          Write tests for all public APIs.
+				        PATTERNS.md: |
+				          # Design Patterns
+				          Prefer composition over inheritance.
+				          Use dependency injection.
+				""";
+	}
+
+	private Path createHttpVendirConfig() throws IOException {
+		// Use a simple, reliable HTTP source (Spring Boot's pom.xml)
+		String vendirYml = """
+				apiVersion: vendir.k14s.io/v1alpha1
+				kind: Config
+				directories:
+				- path: vendor
+				  contents:
+				  - path: http-content
+				    http:
+				      url: https://raw.githubusercontent.com/spring-projects/spring-boot/v3.3.0/pom.xml
+				""";
+
+		Path configPath = this.testWorkspace.resolve("vendir-http.yml");
+		Files.writeString(configPath, vendirYml);
+		return configPath;
+	}
+
+	private Path createMultiSourceVendirConfig() throws IOException {
+		// Combine inline (always works) with git (may work if network available)
+		String vendirYml = """
+				apiVersion: vendir.k14s.io/v1alpha1
+				kind: Config
+				directories:
+				- path: vendor
+				  contents:
+				  - path: inline-docs
+				    inline:
+				      paths:
+				        README.md: |
+				          # Multi-Source Test
+				          This is inline content that always works.
+				  - path: git-docs
+				    git:
+				      url: https://github.com/spring-projects/spring-boot
+				      ref: v3.3.0
+				    includePaths:
+				    - README.adoc
+				""";
+
+		Path configPath = this.testWorkspace.resolve("vendir-multi.yml");
 		Files.writeString(configPath, vendirYml);
 		return configPath;
 	}
