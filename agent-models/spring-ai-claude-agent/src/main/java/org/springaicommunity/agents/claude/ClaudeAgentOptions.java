@@ -19,6 +19,7 @@ package org.springaicommunity.agents.claude;
 import org.springaicommunity.agents.model.AgentOptions;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -66,6 +67,36 @@ public class ClaudeAgentOptions implements AgentOptions {
 	 * WITH EXTREME CAUTION - This is the most dangerous permission mode.
 	 */
 	private boolean yolo = true;
+
+	/**
+	 * System prompt configuration. Can be either a simple string or a preset
+	 * configuration. Default is null (no system prompt).
+	 */
+	private SystemPrompt systemPrompt;
+
+	/**
+	 * Setting sources to load (user, project, local). Default is empty (no filesystem
+	 * settings loaded). This ensures SDK applications have predictable behavior
+	 * independent of local filesystem configurations.
+	 */
+	private List<SettingSource> settingSources = List.of();
+
+	/**
+	 * Programmatic subagent definitions. Allows defining agents inline without filesystem
+	 * dependencies.
+	 */
+	private Map<String, AgentDefinition> agents = Map.of();
+
+	/**
+	 * When true, resumed sessions will fork to a new session ID rather than continuing
+	 * the previous session.
+	 */
+	private boolean forkSession = false;
+
+	/**
+	 * Include partial message events for real-time UI streaming.
+	 */
+	private boolean includePartialMessages = false;
 
 	public ClaudeAgentOptions() {
 	}
@@ -122,6 +153,46 @@ public class ClaudeAgentOptions implements AgentOptions {
 		this.yolo = yolo;
 	}
 
+	public SystemPrompt getSystemPrompt() {
+		return systemPrompt;
+	}
+
+	public void setSystemPrompt(SystemPrompt systemPrompt) {
+		this.systemPrompt = systemPrompt;
+	}
+
+	public List<SettingSource> getSettingSources() {
+		return settingSources;
+	}
+
+	public void setSettingSources(List<SettingSource> settingSources) {
+		this.settingSources = settingSources != null ? settingSources : List.of();
+	}
+
+	public Map<String, AgentDefinition> getAgents() {
+		return agents;
+	}
+
+	public void setAgents(Map<String, AgentDefinition> agents) {
+		this.agents = agents != null ? agents : Map.of();
+	}
+
+	public boolean isForkSession() {
+		return forkSession;
+	}
+
+	public void setForkSession(boolean forkSession) {
+		this.forkSession = forkSession;
+	}
+
+	public boolean isIncludePartialMessages() {
+		return includePartialMessages;
+	}
+
+	public void setIncludePartialMessages(boolean includePartialMessages) {
+		this.includePartialMessages = includePartialMessages;
+	}
+
 	@Override
 	public Map<String, Object> getExtras() {
 		return extras;
@@ -172,6 +243,41 @@ public class ClaudeAgentOptions implements AgentOptions {
 
 		public Builder yolo(boolean yolo) {
 			options.setYolo(yolo);
+			return this;
+		}
+
+		public Builder systemPrompt(SystemPrompt systemPrompt) {
+			options.setSystemPrompt(systemPrompt);
+			return this;
+		}
+
+		public Builder systemPrompt(String prompt) {
+			options.setSystemPrompt(SystemPrompt.of(prompt));
+			return this;
+		}
+
+		public Builder settingSources(List<SettingSource> settingSources) {
+			options.setSettingSources(settingSources);
+			return this;
+		}
+
+		public Builder settingSources(SettingSource... settingSources) {
+			options.setSettingSources(List.of(settingSources));
+			return this;
+		}
+
+		public Builder agents(Map<String, AgentDefinition> agents) {
+			options.setAgents(agents);
+			return this;
+		}
+
+		public Builder forkSession(boolean forkSession) {
+			options.setForkSession(forkSession);
+			return this;
+		}
+
+		public Builder includePartialMessages(boolean includePartialMessages) {
+			options.setIncludePartialMessages(includePartialMessages);
 			return this;
 		}
 
