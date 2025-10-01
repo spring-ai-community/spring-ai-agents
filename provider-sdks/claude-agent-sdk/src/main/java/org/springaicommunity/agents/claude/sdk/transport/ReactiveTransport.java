@@ -261,6 +261,28 @@ public class ReactiveTransport implements AutoCloseable {
 			command.add("--interactive");
 		}
 
+		// Add setting sources (Claude Agent SDK v0.1.0)
+		if (options.getSettingSources() != null && !options.getSettingSources().isEmpty()) {
+			command.add("--setting-sources");
+			command.add(String.join(",", options.getSettingSources()));
+		}
+
+		// Add agents JSON (Claude Agent SDK v0.1.0)
+		if (options.getAgents() != null && !options.getAgents().trim().isEmpty()) {
+			command.add("--agents");
+			command.add(options.getAgents());
+		}
+
+		// Add fork session flag (Claude Agent SDK v0.1.0)
+		if (options.isForkSession()) {
+			command.add("--fork-session");
+		}
+
+		// Add include partial messages flag (Claude Agent SDK v0.1.0)
+		if (options.isIncludePartialMessages()) {
+			command.add("--include-partial-messages");
+		}
+
 		// Add the prompt
 		command.add("--print");
 		command.add(prompt);

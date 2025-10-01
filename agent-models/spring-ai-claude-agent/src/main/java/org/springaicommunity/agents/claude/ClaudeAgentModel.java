@@ -291,6 +291,33 @@ public class ClaudeAgentModel implements AgentModel {
 		}
 		// else use default permission mode (will prompt for permissions)
 
+		// Set setting sources (Claude Agent SDK v0.1.0)
+		if (options.getSettingSources() != null && !options.getSettingSources().isEmpty()) {
+			builder.settingSources(options.getSettingSources()
+				.stream()
+				.map(s -> s.getValue())
+				.collect(java.util.stream.Collectors.toList()));
+		}
+
+		// Set agents JSON (Claude Agent SDK v0.1.0)
+		if (options.getAgents() != null && !options.getAgents().isEmpty()) {
+			// Convert agents map to JSON string
+			try {
+				String agentsJson = new com.fasterxml.jackson.databind.ObjectMapper()
+					.writeValueAsString(options.getAgents());
+				builder.agents(agentsJson);
+			}
+			catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+				logger.warn("Failed to serialize agents to JSON: {}", e.getMessage());
+			}
+		}
+
+		// Set fork session (Claude Agent SDK v0.1.0)
+		builder.forkSession(options.isForkSession());
+
+		// Set include partial messages (Claude Agent SDK v0.1.0)
+		builder.includePartialMessages(options.isIncludePartialMessages());
+
 		return builder.build();
 	}
 
