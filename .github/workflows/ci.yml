@@ -216,4 +216,5 @@ jobs:
         run: |
           echo "Publishing snapshot artifacts to Maven Central..."
           # Temporarily skip tests in deploy since we already ran install
-          ./mvnw --batch-mode --update-snapshots deploy -DskipTests -Dmaven.test.skip=true -Dfailsafe.skip=true
+          # Exclude docs module - it produces empty JAR and should not be published
+          ./mvnw --batch-mode --update-snapshots deploy -DskipTests -Dmaven.test.skip=true -Dfailsafe.skip=true -pl '!docs'

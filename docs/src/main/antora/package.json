@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "@antora/collector-extension": "^1.0.0-beta.1",
+    "@asciidoctor/tabs": "^1.0.0-beta.6",
+    "@djencks/asciidoctor-mathjax": "^0.0.9",
+    "@springio/antora-extensions": "^1.14.2",
+    "@springio/asciidoctor-extensions": "^1.0.0-alpha.12"
+  }
+}
