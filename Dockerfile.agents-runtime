@@ -19,11 +19,16 @@ RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
 # Install CLIs EXACTLY as proven in CI (as root for global install)
 ARG CLAUDE_CODE_VERSION=latest
 ARG GEMINI_CLI_VERSION=latest
+ARG VENDIR_VERSION=0.44.0
 
 # Install Claude Code CLI from npm globally
 RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} --silent
 # Install official Gemini CLI from npm
 RUN npm install -g @google/gemini-cli@${GEMINI_CLI_VERSION} --silent
+
+# Install vendir CLI for context engineering
+RUN curl -fsSL https://github.com/vmware-tanzu/carvel-vendir/releases/download/v${VENDIR_VERSION}/vendir-linux-amd64 \
+    -o /usr/local/bin/vendir && chmod +x /usr/local/bin/vendir
 
 # Create non-root user and workspace
 RUN useradd -m agent && mkdir -p /work && chown -R agent:agent /work
@@ -33,6 +38,7 @@ WORKDIR /work
 # Verify installations work
 RUN echo "=== Verifying CLI installations ===" && \
     claude --version && echo "✅ Claude CLI verified" && \
-    gemini --version && echo "✅ Gemini CLI verified"
+    gemini --version && echo "✅ Gemini CLI verified" && \
+    vendir --version && echo "✅ Vendir CLI verified"
 
 CMD ["sleep", "infinity"]

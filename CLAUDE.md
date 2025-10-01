@@ -109,8 +109,8 @@ These paths are automatically discovered by the respective CLI discovery utiliti
 - Ultra-thin launcher script for zero-build development experience
 
 **CLI Integration Pattern**
-- All provider SDKs wrap external CLI tools (claude, gemini, swe-agent)
-- Robust process management using zt-exec library for reliable execution
+- All provider SDKs wrap external CLI tools (claude, gemini, swe-agent, vendir)
+- **MANDATORY**: Use zt-exec library for all process management (see Process Management section below)
 - Unix-style `--` separator for complex prompts to prevent shell parsing issues
 - Comprehensive permission handling with `--dangerously-skip-permissions` for autonomous mode
 - Circuit breakers, retries, and timeouts for resilience
@@ -195,6 +195,84 @@ spring-ai-agents/
     └── code-coverage-agent/
         └── src/main/resources/agents/coverage.yaml
 ```
+
+## Process Management
+
+### MANDATORY: Use zt-exec for All Process Execution
+
+**All process/subprocess execution MUST use the zt-exec library.** Never use Java's built-in `ProcessBuilder` or `Runtime.exec()`.
+
+#### Why zt-exec?
+- Robust process lifecycle management
+- Reliable output capture (stdout/stderr)
+- Timeout handling without thread interruption issues
+- Exit code handling
+- Process destruction safeguards
+
+#### Dependency
+zt-exec is available through the `spring-ai-agent-model` dependency (transitive):
+```xml
+<!-- Already included transitively via spring-ai-agent-model -->
+<dependency>
+    <groupId>org.zeroturnaround</groupId>
+    <artifactId>zt-exec</artifactId>
+</dependency>
+```
+
+#### Basic Usage Pattern
+```java
+import org.zeroturnaround.exec.ProcessExecutor;
+import org.zeroturnaround.exec.ProcessResult;
+
+// Execute a command with timeout
+ProcessResult result = new ProcessExecutor()
+    .command("vendir", "--version")
+    .timeout(5, TimeUnit.SECONDS)
+    .readOutput(true)
+    .execute();
+
+String output = result.outputUTF8();
+int exitCode = result.getExitValue();
+boolean success = exitCode == 0;
+```
+
+#### Advanced Usage
+```java
+// Execute with working directory and environment
+ProcessResult result = new ProcessExecutor()
+    .command("vendir", "sync", "--file", "vendir.yml")
+    .directory(workingDir.toFile())
+    .environment("VENDIR_CACHE_DIR", "/tmp/cache")
+    .timeout(300, TimeUnit.SECONDS)
+    .readOutput(true)
+    .execute();
+```
+
+#### Error Handling
+```java
+try {
+    ProcessResult result = new ProcessExecutor()
+        .command("some-cli", "arg1", "arg2")
+        .timeout(60, TimeUnit.SECONDS)
+        .readOutput(true)
+        .execute();
+
+    if (result.getExitValue() != 0) {
+        logger.warn("Command failed: {}", result.outputUTF8());
+    }
+} catch (org.zeroturnaround.exec.InvalidExitValueException e) {
+    // zt-exec throws this for non-zero exit codes if not configured otherwise
+    // Handle or let it propagate as runtime exception
+} catch (Exception e) {
+    logger.error("Process execution failed", e);
+}
+```
+
+#### Examples in Codebase
+- `LocalSandbox.java` - Sandbox command execution
+- `ClaudeCliDiscovery.java` - CLI discovery with version check
+- `VendirContextAdvisor.java` - Context engineering with vendir
+- `CLITransport.java` - Claude/Gemini CLI communication
 
 ## Troubleshooting
 
