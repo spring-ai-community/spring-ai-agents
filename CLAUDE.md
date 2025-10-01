@@ -322,15 +322,31 @@ unset ANTHROPIC_API_KEY  # Avoid conflicts
 - **Timeout**: Tests use 3+ minute timeouts for complex operations
 
 ### Sandbox Selection
-**Docker Sandbox** (preferred):
-- Provides complete isolation
-- Requires Docker daemon
-- Automatic container lifecycle management
 
-**Local Sandbox** (fallback):
+**LocalSandbox** (default):
 - Direct host execution (⚠️ NO ISOLATION)
 - Uses zt-exec for robust process management
+- Fast startup, no Docker required
 - Enhanced logging for debugging
+- Suitable for development and trusted environments
+
+**DockerSandbox** (optional, recommended for production):
+- Complete container isolation
+- Requires Docker daemon
+- Automatic container lifecycle management
+- Enable via `spring.ai.agents.sandbox.docker.enabled=true`
+- Safer for untrusted code execution
+
+**Configuration:**
+```properties
+# Use Docker sandbox (recommended for production)
+spring.ai.agents.sandbox.docker.enabled=true
+spring.ai.agents.sandbox.docker.image-tag=ghcr.io/spring-ai-community/agents-runtime:latest
+
+# Use Local sandbox (default, faster for development)
+spring.ai.agents.sandbox.docker.enabled=false
+spring.ai.agents.sandbox.local.working-directory=/path/to/workspace
+```
 
 ### Exception Handling
 All exceptions are runtime exceptions:
