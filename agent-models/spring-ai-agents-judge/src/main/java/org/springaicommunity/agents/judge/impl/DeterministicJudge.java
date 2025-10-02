@@ -54,8 +54,17 @@ public abstract class DeterministicJudge implements Judge {
 		this.metadata = new JudgeMetadata(name, description, JudgeType.DETERMINISTIC);
 	}
 
-	@Override
-	public JudgeMetadata getMetadata() {
+	/**
+	 * Get metadata for this judge.
+	 * <p>
+	 * Note: This method is not inherited from Judge interface. It's provided as a
+	 * convenience for subclasses that extend DeterministicJudge. To make metadata
+	 * accessible through the Judge interface, wrap with
+	 * {@link org.springaicommunity.agents.judge.NamedJudge}.
+	 * </p>
+	 * @return the judge metadata
+	 */
+	public JudgeMetadata metadata() {
 		return this.metadata;
 	}
 

@@ -49,6 +49,36 @@ public record Judgment(Score score, boolean pass, String reasoning, List<Check> 
 		metadata = Map.copyOf(metadata);
 	}
 
+	/**
+	 * Create a passing judgment with reasoning.
+	 * <p>
+	 * Convenience method for simple pass judgments without explicit score/checks.
+	 * </p>
+	 * @param reasoning the reasoning for passing
+	 * @return passing judgment with boolean score
+	 */
+	public static Judgment pass(String reasoning) {
+		return builder().score(new org.springaicommunity.agents.judge.score.BooleanScore(true))
+			.pass(true)
+			.reasoning(reasoning)
+			.build();
+	}
+
+	/**
+	 * Create a failing judgment with reasoning.
+	 * <p>
+	 * Convenience method for simple fail judgments without explicit score/checks.
+	 * </p>
+	 * @param reasoning the reasoning for failing
+	 * @return failing judgment with boolean score
+	 */
+	public static Judgment fail(String reasoning) {
+		return builder().score(new org.springaicommunity.agents.judge.score.BooleanScore(false))
+			.pass(false)
+			.reasoning(reasoning)
+			.build();
+	}
+
 	public static Builder builder() {
 		return new Builder();
 	}

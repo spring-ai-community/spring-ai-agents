@@ -91,9 +91,9 @@ class FileExistsJudgeTest {
 	void hasCorrectMetadata() {
 		FileExistsJudge judge = new FileExistsJudge("test.txt");
 
-		assertThat(judge.getMetadata().name()).isEqualTo("FileExistsJudge");
-		assertThat(judge.getMetadata().description()).contains("test.txt");
-		assertThat(judge.getMetadata().type()).isEqualTo(JudgeType.DETERMINISTIC);
+		assertThat(judge.metadata().name()).isEqualTo("FileExistsJudge");
+		assertThat(judge.metadata().description()).contains("test.txt");
+		assertThat(judge.metadata().type()).isEqualTo(JudgeType.DETERMINISTIC);
 	}
 
 }

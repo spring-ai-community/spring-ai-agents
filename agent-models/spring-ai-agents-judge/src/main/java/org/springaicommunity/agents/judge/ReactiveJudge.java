@@ -63,10 +63,4 @@ public interface ReactiveJudge {
 	 */
 	Mono<Judgment> judge(JudgmentContext context);
 
-	/**
-	 * Get metadata about this judge (name, description, type).
-	 * @return judge metadata
-	 */
-	JudgeMetadata getMetadata();
-
 }

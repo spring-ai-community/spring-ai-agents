@@ -20,50 +20,54 @@ import org.springaicommunity.agents.judge.context.JudgmentContext;
 import org.springaicommunity.agents.judge.result.Judgment;
 
 /**
- * Core interface for judging agent execution results.
+ * Pure functional interface for judging agent execution results.
  *
  * <p>
- * Judges evaluate whether an agent successfully accomplished its goal. They can be
- * deterministic (rule-based) or AI-powered (LLM-based). This interface defines the
- * synchronous evaluation contract.
+ * This interface defines the core judging contract as a single abstract method, enabling
+ * functional programming patterns like lambdas, method references, and composition.
  * </p>
  *
  * <p>
- * Judges are designed to be used as Spring beans and configured via dependency injection
- * rather than factory methods. For asynchronous evaluation, see {@link AsyncJudge}.
- * </p>
- *
- * <p>
- * <strong>Design Inspiration:</strong> This interface draws from the "judges" framework's
- * clean BaseJudge abstraction - a single judge() method with rich context. The pattern of
- * "composability through simplicity" allows juries (ensembles) to be judges themselves,
- * enabling recursive composition. See judge-api-research-influences.md for detailed
- * design rationale.
+ * <strong>Functional Purity:</strong> Judge is intentionally minimal - a single method
+ * with no default methods or metadata concerns. This preserves functional interface
+ * discipline and clean separation of concerns. For judges that need metadata (name,
+ * description, type), use {@link NamedJudge} which wraps a Judge with metadata through
+ * composition.
  * </p>
  *
  * <p>
  * Example usage:
  * </p>
  * <pre>{@code
- * &#64;Component
- * public class FileExistsJudge implements Judge {
- *     public Judgment judge(JudgmentContext context) {
- *         Path file = context.workspace().resolve(targetPath);
- *         boolean exists = Files.exists(file);
- *         return Judgment.builder()
- *             .score(new BooleanScore(exists))
- *             .pass(exists)
- *             .reasoning(exists ? "File exists" : "File not found")
- *             .build();
- *     }
- * }
+ * // Pure lambda judges
+ * Judge simpleCheck = ctx -> Judgment.pass("Success");
+ *
+ * // Method references
+ * Judge validator = this::validateOutput;
+ *
+ * // Composition
+ * Judge combined = ctx -> {
+ *     Judgment first = checkOne.judge(ctx);
+ *     return first.pass() ? checkTwo.judge(ctx) : first;
+ * };
+ *
+ * // With metadata via NamedJudge
+ * NamedJudge named = Judges.named(simpleCheck, "SimpleCheck", "Basic validation", JudgeType.DETERMINISTIC);
  * }</pre>
+ *
+ * <p>
+ * <strong>Design Inspiration:</strong> This interface draws from the "judges" framework's
+ * clean BaseJudge abstraction and Spring AI's Evaluator pattern - a single abstract
+ * method with rich context. The composition-over-inheritance approach (NamedJudge
+ * wrapper) avoids default method pollution while maintaining functional purity.
+ * </p>
  *
  * @author Mark Pollack
  * @since 0.1.0
- * @see AsyncJudge
- * @see ReactiveJudge
+ * @see NamedJudge
+ * @see Judges
  */
+@FunctionalInterface
 public interface Judge {
 
 	/**
@@ -73,11 +77,5 @@ public interface Judge {
 	 * @return the judgment with score, pass/fail, reasoning, and checks
 	 */
 	Judgment judge(JudgmentContext context);
-
-	/**
-	 * Get metadata about this judge (name, description, type).
-	 * @return judge metadata
-	 */
-	JudgeMetadata getMetadata();
 
 }

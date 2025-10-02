@@ -81,10 +81,4 @@ public interface AsyncJudge {
 	 */
 	CompletableFuture<Judgment> judgeAsync(JudgmentContext context);
 
-	/**
-	 * Get metadata about this judge (name, description, type).
-	 * @return judge metadata
-	 */
-	JudgeMetadata getMetadata();
-
 }
