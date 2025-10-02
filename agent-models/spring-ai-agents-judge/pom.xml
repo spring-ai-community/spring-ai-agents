@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springaicommunity.agents</groupId>
+        <artifactId>spring-ai-agents-parent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>spring-ai-agents-judge</artifactId>
+    <packaging>jar</packaging>
+
+    <name>Spring AI Agents Judge</name>
+    <description>Judge API for evaluating agent execution results - deterministic and LLM-powered</description>
+
+    <dependencies>
+        <!-- Agent Model interfaces -->
+        <dependency>
+            <groupId>org.springaicommunity.agents</groupId>
+            <artifactId>spring-ai-agent-model</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Spring AI Model (for consistency) -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-model</artifactId>
+        </dependency>
+
+        <!-- Agent Client for agent-as-judge pattern -->
+        <dependency>
+            <groupId>org.springaicommunity.agents</groupId>
+            <artifactId>spring-ai-agent-client</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- AssertJ for assertion-based judges -->
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+        </dependency>
+
+        <!-- Jackson for JSON parsing -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+
+        <!-- Spring Boot for auto-configuration (optional) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Spring Framework for DI -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+        </dependency>
+
+        <!-- Reactor for reactive judges (optional) -->
+        <dependency>
+            <groupId>io.projectreactor</groupId>
+            <artifactId>reactor-core</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Test dependencies -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>
