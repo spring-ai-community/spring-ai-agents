@@ -81,15 +81,16 @@ class JudgeAdvisorTest {
 		// Verify chain was called
 		verify(chain).nextCall(request);
 
-		// Verify judgment attached to context
+		// Verify judgment attached to context (backward compatibility)
 		assertThat(response.context()).containsKey("judgment");
 		assertThat(response.context()).containsKey("judgment.pass");
 		assertThat(response.context()).containsKey("judgment.score");
 
-		Judgment judgment = (Judgment) response.context().get("judgment");
+		// Verify first-class accessor
+		Judgment judgment = response.getJudgment();
 		assertThat(judgment).isNotNull();
 		assertThat(judgment.pass()).isTrue();
-		assertThat((Boolean) response.context().get("judgment.pass")).isTrue();
+		assertThat(response.isJudgmentPassed()).isTrue();
 	}
 
 	@Test
@@ -107,9 +108,9 @@ class JudgeAdvisorTest {
 
 		AgentClientResponse response = advisor.adviseCall(request, chain);
 
-		Judgment judgment = (Judgment) response.context().get("judgment");
+		Judgment judgment = response.getJudgment();
 		assertThat(judgment.pass()).isFalse();
-		assertThat((Boolean) response.context().get("judgment.pass")).isFalse();
+		assertThat(response.isJudgmentPassed()).isFalse();
 	}
 
 	@Test

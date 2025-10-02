@@ -78,4 +78,44 @@ public record AgentClientResponse(AgentResponse agentResponse, Map<String, Objec
 				&& "SUCCESS".equals(this.agentResponse.getResult().getMetadata().getFinishReason());
 	}
 
+	/**
+	 * Get the judgment result from JudgeAdvisor evaluation if present.
+	 * <p>
+	 * Provides first-class access to judgment results without requiring magic strings.
+	 * Returns null if no JudgeAdvisor was used in the execution.
+	 * </p>
+	 * <p>
+	 * Example usage:
+	 * </p>
+	 * <pre>{@code
+	 * AgentClientResponse response = agentClient
+	 *     .advisors(JudgeAdvisor.builder().judge(judge).build())
+	 *     .run();
+	 *
+	 * Judgment judgment = response.getJudgment();
+	 * if (judgment != null && judgment.pass()) {
+	 *     // Task passed evaluation
+	 * }
+	 * }</pre>
+	 * @param <T> the judgment type (typically Judgment from spring-ai-agents-judge)
+	 * @return the judgment result, or null if no judgment was performed
+	 */
+	@SuppressWarnings("unchecked")
+	public <T> T getJudgment() {
+		return (T) this.context.get("judgment");
+	}
+
+	/**
+	 * Check if a judgment was performed and passed.
+	 * <p>
+	 * Convenience method that checks for judgment presence and pass status without
+	 * requiring direct access to the Judgment object.
+	 * </p>
+	 * @return true if judgment exists and passed, false otherwise
+	 */
+	public boolean isJudgmentPassed() {
+		Boolean pass = (Boolean) this.context.get("judgment.pass");
+		return pass != null && pass;
+	}
+
 }

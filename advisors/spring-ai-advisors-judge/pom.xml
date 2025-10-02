@@ -49,7 +49,13 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Integration test dependencies for AgentClient + Claude -->
+        <!-- Integration test dependencies for AgentClient + Gemini/Claude -->
+        <dependency>
+            <groupId>org.springaicommunity.agents</groupId>
+            <artifactId>spring-ai-gemini</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.springaicommunity.agents</groupId>
             <artifactId>spring-ai-claude-agent</artifactId>
