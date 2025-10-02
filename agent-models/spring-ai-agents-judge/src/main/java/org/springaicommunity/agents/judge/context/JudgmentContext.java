@@ -32,6 +32,14 @@ import java.util.Optional;
  * information they need from this context.
  * </p>
  *
+ * <p>
+ * <strong>Design Inspiration:</strong> Follows the pattern from deepeval's LLMTestCase
+ * and ragas's metric input columns - a single rich context object with all evaluation
+ * inputs. The "context is king" principle from our research: all inputs in one place,
+ * optional fields for flexibility, extensible via metadata map. Workspace-centric design
+ * is unique to our agent-focused implementation.
+ * </p>
+ *
  * @param goal the agent's goal or task description
  * @param workspace the workspace directory where the agent executed
  * @param executionTime how long the agent took to execute

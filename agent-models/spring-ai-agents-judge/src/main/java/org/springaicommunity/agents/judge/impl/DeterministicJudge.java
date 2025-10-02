@@ -34,6 +34,15 @@ import org.springaicommunity.agents.judge.JudgeType;
  * their specific evaluation logic.
  * </p>
  *
+ * <p>
+ * <strong>Design Rationale:</strong> Deterministic and AI-powered judges receive equal
+ * first-class support, a key principle from our research. While frameworks like deepeval
+ * focus heavily on LLM metrics, we recognize that deterministic judges (file checks,
+ * build validation, test parsing) are often faster, cheaper, and more reliable for
+ * specific evaluation criteria. Base classes provide convenience but are not required -
+ * judges can implement the Judge interface directly.
+ * </p>
+ *
  * @author Mark Pollack
  * @since 0.1.0
  */

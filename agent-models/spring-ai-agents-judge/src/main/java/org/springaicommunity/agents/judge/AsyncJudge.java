@@ -36,6 +36,13 @@ import org.springaicommunity.agents.judge.result.Judgment;
  * </p>
  *
  * <p>
+ * <strong>Design Inspiration:</strong> Influenced by deepeval's async_mode pattern and
+ * evals' parallel execution with ThreadPoolExecutor, but adapted to Spring's async
+ * separation principle. Rather than default methods mixing sync/async (not Spring-like),
+ * we provide completely separate interfaces for different execution models.
+ * </p>
+ *
+ * <p>
  * Example usage:
  * </p>
  * <pre>{@code

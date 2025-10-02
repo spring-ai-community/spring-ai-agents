@@ -26,6 +26,14 @@ import org.springaicommunity.agents.judge.score.Score;
 /**
  * Result of a judgment containing score, pass/fail, reasoning, and checks.
  *
+ * <p>
+ * <strong>Design Inspiration:</strong> Combines patterns from multiple frameworks:
+ * deepeval's rich metadata (score_breakdown, reason, success), ragas's explainability
+ * emphasis, and the "judges" framework's Judgment structure. The checks list allows
+ * judges to report multiple sub-assertions (inspired by AssertJ's SoftAssertions
+ * pattern), providing transparency into evaluation logic.
+ * </p>
+ *
  * @param score the score (boolean, numerical, or categorical)
  * @param pass whether the judgment passed (true) or failed (false)
  * @param reasoning human-readable explanation of the judgment

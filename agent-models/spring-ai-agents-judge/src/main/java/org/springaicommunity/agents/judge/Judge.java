@@ -34,6 +34,14 @@ import org.springaicommunity.agents.judge.result.Judgment;
  * </p>
  *
  * <p>
+ * <strong>Design Inspiration:</strong> This interface draws from the "judges" framework's
+ * clean BaseJudge abstraction - a single judge() method with rich context. The pattern of
+ * "composability through simplicity" allows juries (ensembles) to be judges themselves,
+ * enabling recursive composition. See judge-api-research-influences.md for detailed
+ * design rationale.
+ * </p>
+ *
+ * <p>
  * Example usage:
  * </p>
  * <pre>{@code

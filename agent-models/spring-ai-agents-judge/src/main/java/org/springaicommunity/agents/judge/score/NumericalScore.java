@@ -19,6 +19,12 @@ package org.springaicommunity.agents.judge.score;
 /**
  * Numerical score with min/max bounds and normalization support.
  *
+ * <p>
+ * <strong>Design Inspiration:</strong> Normalization capability influenced by deepeval's
+ * BaseMetric pattern which uses threshold-based scoring with 0-1 normalization for
+ * consistent comparison across different scale metrics.
+ * </p>
+ *
  * @param value the score value
  * @param min the minimum possible value
  * @param max the maximum possible value

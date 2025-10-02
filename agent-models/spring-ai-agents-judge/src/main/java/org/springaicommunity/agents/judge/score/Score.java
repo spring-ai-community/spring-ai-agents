@@ -25,6 +25,14 @@ package org.springaicommunity.agents.judge.score;
  * exhaustive pattern matching.
  * </p>
  *
+ * <p>
+ * <strong>Design Inspiration:</strong> Influenced by the "judges" framework's flexible
+ * scoring types (bool | int | str) but adapted for Java's type system using sealed
+ * interfaces. This provides the flexibility of union types with compile-time safety. The
+ * BooleanScore, NumericalScore, and CategoricalScore variants map to the score_type
+ * patterns from multiple evaluation frameworks (judges, deepeval, ragas).
+ * </p>
+ *
  * @author Mark Pollack
  * @since 0.1.0
  */
