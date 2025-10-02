@@ -15,6 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `./mvnw clean verify -Pfailsafe` - Run integration tests with failsafe profile
 - `./mvnw clean install -Pfailsafe` - **Use for CI/multi-module builds** - installs artifacts to local repository ensuring dependencies are available for later modules
 - Integration tests follow the `*IT.java` naming convention
+- `./mvnw test -Dsandbox.integration.test=true -Dtest="*DockerInfraIT"` - Run Docker infrastructure tests
 
 ### Important: Maven Lifecycle Phases for CI
 - **Use `install` not `verify`** when running integration tests in CI or multi-module environments
