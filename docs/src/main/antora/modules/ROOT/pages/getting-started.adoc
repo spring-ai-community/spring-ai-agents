@@ -6,12 +6,37 @@
 
 This guide will help you get started with Spring AI Agents in under 5 minutes.
 
+== Try It Now with JBang (Zero Setup)
+
+The fastest way to experience Spring AI Agents - no cloning, no building:
+
+[source,bash]
+----
+# One-time setup: Add the catalog
+jbang catalog add --name=springai \
+  https://raw.githubusercontent.com/spring-ai-community/spring-ai-agents/main/jbang-catalog.json
+
+# Try a static agent (no API key needed)
+jbang agents@springai hello-world \
+  path=test.txt \
+  content="Hello Spring AI Agents!"
+
+# Try an AI-powered agent (requires API key)
+export ANTHROPIC_API_KEY="your-key-here"
+jbang agents@springai hello-world-agent-ai \
+  path=greeting.txt \
+  content="a creative welcome message" \
+  provider=claude
+----
+
+Ready to integrate into your Spring application? Continue below.
+
 == Prerequisites
 
-Before you begin, ensure you have the following:
+Before integrating into your Spring application, ensure you have:
 
 * Java 17 or higher
-* Maven 3.6.3 or higher  
+* Maven 3.6.3 or higher
 * An agent CLI tool installed (Claude Code, Gemini CLI, or SWE Agent)
 * API keys for your chosen agent provider
 

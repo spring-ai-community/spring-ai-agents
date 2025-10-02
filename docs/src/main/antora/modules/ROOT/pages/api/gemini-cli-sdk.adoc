@@ -633,6 +633,46 @@ logging:
     org.springaicommunity.agents.client: DEBUG
 ----
 
+== Workspace Restrictions
+
+IMPORTANT: Gemini CLI enforces workspace boundaries for security. It can **only** create or modify files within your current project directory.
+
+=== What Works
+
+[source,bash]
+----
+# Relative paths within workspace ✅
+jbang agents@springai hello-world-agent-ai \
+  path=myfile.txt \
+  content="content" \
+  provider=gemini
+
+# Subdirectories within workspace ✅
+jbang agents@springai hello-world-agent-ai \
+  path=output/data.txt \
+  content="data" \
+  provider=gemini
+----
+
+=== What Doesn't Work
+
+[source,bash]
+----
+# Absolute paths outside workspace ❌
+jbang agents@springai hello-world-agent-ai \
+  path=/tmp/myfile.txt \
+  content="content" \
+  provider=gemini
+# Error: Path must be within workspace directory
+----
+
+=== Best Practices
+
+1. **Always use relative paths** when working with Gemini CLI
+2. **Run commands from your project root** to ensure all paths are accessible
+3. **Create subdirectories within your workspace** if you need organized output
+4. **Switch to Claude Code** if you need to write files outside the workspace
+
 == Comparison with Claude Code
 
 While both are autonomous coding agents, they have different strengths:
@@ -649,13 +689,17 @@ While both are autonomous coding agents, they have different strengths:
 |Very fast with gemini-1.5-flash
 |Consistent performance
 
+|Workspace Restrictions
+|**Restricted to project directory**
+|Can access any path
+
 |Integration
 |Google Cloud ecosystem
 |Anthropic ecosystem
 
 |Best For
 |Large codebases, Google Cloud
-|General development, detailed reasoning
+|General development, file system flexibility
 |===
 
 == Next Steps

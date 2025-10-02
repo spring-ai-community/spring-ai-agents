@@ -63,6 +63,7 @@ A concrete example of this pattern is the "stupid 'LLM in a loop executing bash 
 
 == Key Features
 
+* **Zero-Setup Quick Start** - Try agents via JBang catalog without cloning or building
 * **ChatClient-style API** - Same fluent patterns Spring developers already know
 * **JBang Agent Runner** - Primary developer entry point for trying agents locally with LocalSandbox
 * **Multiple agent providers** - Claude Code, Gemini CLI, SWE Agent support (more to come!)

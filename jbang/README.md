@@ -6,33 +6,68 @@ This directory contains JBang scripts for running Spring AI Agents without requi
 
 The main entry point for executing agents via JBang. Provides a simple command-line interface for running agents with various configurations.
 
+## Distribution via JBang Catalog (Recommended)
+
+The easiest way to use Spring AI Agents is through the JBang catalog:
+
+```bash
+# One-time setup: Add the catalog
+jbang catalog add --name=springai \
+  https://raw.githubusercontent.com/spring-ai-community/spring-ai-agents/main/jbang-catalog.json
+
+# Verify installation
+jbang catalog list | grep springai
+jbang alias list springai
+
+# Use agents via catalog alias
+jbang agents@springai hello-world path=test.txt content="Hello World!"
+
+# AI-powered agent with Claude
+export ANTHROPIC_API_KEY="your-key"
+jbang agents@springai hello-world-agent-ai \
+  path=ai-test.txt \
+  content="a creative message" \
+  provider=claude
+```
+
+## Alternative: Direct URL Invocation
+
+You can also run the launcher directly without the catalog:
+
+```bash
+jbang https://raw.githubusercontent.com/spring-ai-community/spring-ai-agents/main/jbang/launcher.java \
+  hello-world \
+  path=greeting.txt \
+  content="Hello from Direct URL!"
+```
+
 ### Usage
 
 ```bash
 # Basic usage - CLI provides inputs
-jbang launcher.java <agent-id> key=value key2=value2 ...
+jbang agents@springai <agent-id> key=value key2=value2 ...
 
 # Hello World example (static content)
-jbang launcher.java hello-world path=myfile.txt content="Hello World!"
+jbang agents@springai hello-world path=myfile.txt content="Hello World!"
 
 # AI-powered Hello World examples (requires API keys)
-jbang launcher.java hello-world-agent-ai path=greeting.txt content="a creative message" provider=claude
-jbang launcher.java hello-world-agent-ai path=ai-info.txt content="information about AI agents" provider=gemini
+jbang agents@springai hello-world-agent-ai path=greeting.txt content="a creative message" provider=claude
+jbang agents@springai hello-world-agent-ai path=ai-info.txt content="information about AI agents" provider=gemini
 
 # Using default content (agent provides defaults)
-jbang launcher.java hello-world path=myfile.txt
+jbang agents@springai hello-world path=myfile.txt
 
 # Coverage agent example
-jbang launcher.java coverage target_coverage=90 module=core
+jbang agents@springai coverage target_coverage=90 module=core
 
 # Values can contain equals signs
-jbang launcher.java hello-world path=output.txt content="url=http://example.com?a=b"
+jbang agents@springai hello-world path=output.txt content="url=http://example.com?a=b"
 
 # Windows/PowerShell - quote values with spaces
-jbang launcher.java hello-world path=output.txt content="Hello World with spaces"
+jbang agents@springai hello-world path=output.txt content="Hello World with spaces"
 
 # Empty values allowed
-jbang launcher.java hello-world path=output.txt content=
+jbang agents@springai hello-world path=output.txt content=
 ```
 
 ### CLI Format
