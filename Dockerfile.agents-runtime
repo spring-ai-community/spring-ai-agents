@@ -35,11 +35,9 @@ RUN curl -fsSL https://github.com/vmware-tanzu/carvel-vendir/releases/download/v
 # GitHub Actions container jobs use specific paths:
 # - HOME=/github/home
 # - WORKSPACE=/__w/[owner]/[repo]
-# - RUNNER_TEMP=/__w/_temp
 RUN useradd -m agent && \
     mkdir -p /work /github/home /__w /home/agent/.m2 /github/home/.m2 && \
-    chown -R agent:agent /work /github /__w /home/agent && \
-    chmod -R 777 /__w
+    chown -R agent:agent /work /github /__w /home/agent
 USER agent
 ENV HOME=/github/home
 WORKDIR /work
