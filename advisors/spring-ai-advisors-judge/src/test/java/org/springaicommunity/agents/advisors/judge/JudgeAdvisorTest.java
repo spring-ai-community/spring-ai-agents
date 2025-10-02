@@ -115,7 +115,7 @@ class JudgeAdvisorTest {
 
 	@Test
 	void getNameIncludesJudgeName() {
-		Judge testJudge = new TestJudge(true);
+		Judge testJudge = org.springaicommunity.agents.judge.Judges.named(new TestJudge(true), "TestJudge");
 		JudgeAdvisor advisor = new JudgeAdvisor(testJudge);
 
 		assertThat(advisor.getName()).isEqualTo("JudgeAdvisor[TestJudge]");
@@ -198,11 +198,6 @@ class JudgeAdvisorTest {
 				.build();
 		}
 
-		@Override
-		public JudgeMetadata getMetadata() {
-			return new JudgeMetadata("TestJudge", "Test judge for unit tests", JudgeType.DETERMINISTIC);
-		}
-
 	}
 
 	/**
@@ -216,11 +211,6 @@ class JudgeAdvisorTest {
 		public Judgment judge(JudgmentContext context) {
 			this.capturedContext = context;
 			return Judgment.builder().score(new BooleanScore(true)).pass(true).reasoning("Context captured").build();
-		}
-
-		@Override
-		public JudgeMetadata getMetadata() {
-			return new JudgeMetadata("ContextCapturingJudge", "Captures context for testing", JudgeType.DETERMINISTIC);
 		}
 
 	}

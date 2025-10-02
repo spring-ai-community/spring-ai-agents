@@ -24,6 +24,7 @@ import org.springaicommunity.agents.client.AgentClientResponse;
 import org.springaicommunity.agents.client.advisor.api.AgentCallAdvisor;
 import org.springaicommunity.agents.client.advisor.api.AgentCallAdvisorChain;
 import org.springaicommunity.agents.judge.Judge;
+import org.springaicommunity.agents.judge.Judges;
 import org.springaicommunity.agents.judge.context.AgentExecutionStatus;
 import org.springaicommunity.agents.judge.context.JudgmentContext;
 import org.springaicommunity.agents.judge.result.Judgment;
@@ -134,7 +135,7 @@ public class JudgeAdvisor implements AgentCallAdvisor {
 
 	@Override
 	public String getName() {
-		return "JudgeAdvisor[" + judge.getMetadata().name() + "]";
+		return "JudgeAdvisor[" + Judges.tryMetadata(judge).map(m -> m.name()).orElse("anonymous") + "]";
 	}
 
 	@Override
