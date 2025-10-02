@@ -127,4 +127,110 @@ public final class Judges {
 		return (judge instanceof JudgeWithMetadata jwm) ? Optional.of(jwm.metadata()) : Optional.empty();
 	}
 
+	/**
+	 * Compose two judges with AND logic.
+	 * <p>
+	 * Returns a judge that executes the first judge, and only if it passes, executes the
+	 * second judge. If the first fails, its judgment is returned immediately
+	 * (short-circuit evaluation). This is analogous to Spring Security's CompositeVoter
+	 * or JUnit's RuleChain pattern.
+	 * </p>
+	 * <p>
+	 * Example usage:
+	 * </p>
+	 * <pre>{@code
+	 * Judge validation = Judges.and(fileExists, contentMatches);
+	 * Judge chained = Judges.and(fileExists, Judges.and(contentMatches, buildSucceeds));
+	 * }</pre>
+	 * @param first the first judge to execute
+	 * @param second the second judge to execute (only if first passes)
+	 * @return composed judge with AND logic
+	 */
+	public static Judge and(Judge first, Judge second) {
+		return ctx -> {
+			Judgment firstResult = first.judge(ctx);
+			return firstResult.pass() ? second.judge(ctx) : firstResult;
+		};
+	}
+
+	/**
+	 * Compose two judges with OR logic.
+	 * <p>
+	 * Returns a judge that executes the first judge, and only if it fails, executes the
+	 * second judge. If the first passes, its judgment is returned immediately
+	 * (short-circuit evaluation).
+	 * </p>
+	 * <p>
+	 * Example usage:
+	 * </p>
+	 * <pre>{@code
+	 * Judge fallback = Judges.or(primaryCheck, secondaryCheck);
+	 * }</pre>
+	 * @param first the first judge to execute
+	 * @param second the second judge to execute (only if first fails)
+	 * @return composed judge with OR logic
+	 */
+	public static Judge or(Judge first, Judge second) {
+		return ctx -> {
+			Judgment firstResult = first.judge(ctx);
+			return firstResult.pass() ? firstResult : second.judge(ctx);
+		};
+	}
+
+	/**
+	 * Compose multiple judges with AND logic (all must pass).
+	 * <p>
+	 * Returns a judge that executes all judges in sequence. If any judge fails, its
+	 * judgment is returned immediately (short-circuit evaluation). If all judges pass, a
+	 * passing judgment is returned. This is analogous to Stream.allMatch().
+	 * </p>
+	 * <p>
+	 * Example usage:
+	 * </p>
+	 * <pre>{@code
+	 * Judge validation = Judges.allOf(fileExists, contentMatches, buildSucceeds, testsPass);
+	 * }</pre>
+	 * @param judges the judges to compose (varargs)
+	 * @return composed judge with AND logic
+	 */
+	public static Judge allOf(Judge... judges) {
+		return ctx -> {
+			for (Judge judge : judges) {
+				Judgment judgment = judge.judge(ctx);
+				if (!judgment.pass()) {
+					return judgment;
+				}
+			}
+			return Judgment.pass("All checks passed");
+		};
+	}
+
+	/**
+	 * Compose multiple judges with OR logic (any must pass).
+	 * <p>
+	 * Returns a judge that executes all judges in sequence. If any judge passes, its
+	 * judgment is returned immediately (short-circuit evaluation). If all judges fail, a
+	 * failing judgment is returned. This is analogous to Stream.anyMatch().
+	 * </p>
+	 * <p>
+	 * Example usage:
+	 * </p>
+	 * <pre>{@code
+	 * Judge fallback = Judges.anyOf(checkA, checkB, checkC);
+	 * }</pre>
+	 * @param judges the judges to compose (varargs)
+	 * @return composed judge with OR logic
+	 */
+	public static Judge anyOf(Judge... judges) {
+		return ctx -> {
+			for (Judge judge : judges) {
+				Judgment judgment = judge.judge(ctx);
+				if (judgment.pass()) {
+					return judgment;
+				}
+			}
+			return Judgment.fail("All checks failed");
+		};
+	}
+
 }
