@@ -30,6 +30,11 @@ import org.springaicommunity.agents.judge.result.Judgment;
  * </p>
  *
  * <p>
+ * This class implements {@link JudgeWithMetadata} marker interface, enabling semantic
+ * pattern matching for infrastructure code, monitoring tools, and dashboards.
+ * </p>
+ *
+ * <p>
  * Example usage:
  * </p>
  * <pre>{@code
@@ -40,26 +45,23 @@ import org.springaicommunity.agents.judge.result.Judgment;
  *     new JudgeMetadata("SimpleCheck", "Basic validation", JudgeType.DETERMINISTIC)
  * );
  *
- * // Access metadata
- * log.info("Running judge: {}", named.metadata().name());
+ * // Access metadata via marker interface
+ * if (judge instanceof JudgeWithMetadata jwm) {
+ *     log.info("Running judge: {}", jwm.metadata().name());
+ * }
  *
  * // Use as normal Judge
  * Judgment result = named.judge(context);
- *
- * // Pattern matching for metadata extraction
- * if (judge instanceof NamedJudge nj) {
- *     JudgeMetadata meta = nj.metadata();
- *     // ... use metadata
- * }
  * }</pre>
  *
  * @author Mark Pollack
  * @since 0.1.0
  * @see Judge
+ * @see JudgeWithMetadata
  * @see JudgeMetadata
  * @see Judges
  */
-public final class NamedJudge implements Judge {
+public final class NamedJudge implements JudgeWithMetadata {
 
 	private final Judge delegate;
 

@@ -35,6 +35,12 @@ import org.springaicommunity.agents.judge.JudgeType;
  * </p>
  *
  * <p>
+ * This class implements {@link org.springaicommunity.agents.judge.JudgeWithMetadata}
+ * marker interface, enabling infrastructure code to discover judge metadata via semantic
+ * pattern matching.
+ * </p>
+ *
+ * <p>
  * <strong>Design Rationale:</strong> Deterministic and AI-powered judges receive equal
  * first-class support, a key principle from our research. While frameworks like deepeval
  * focus heavily on LLM metrics, we recognize that deterministic judges (file checks,
@@ -46,7 +52,7 @@ import org.springaicommunity.agents.judge.JudgeType;
  * @author Mark Pollack
  * @since 0.1.0
  */
-public abstract class DeterministicJudge implements Judge {
+public abstract class DeterministicJudge implements org.springaicommunity.agents.judge.JudgeWithMetadata {
 
 	private final JudgeMetadata metadata;
 
@@ -57,13 +63,14 @@ public abstract class DeterministicJudge implements Judge {
 	/**
 	 * Get metadata for this judge.
 	 * <p>
-	 * Note: This method is not inherited from Judge interface. It's provided as a
-	 * convenience for subclasses that extend DeterministicJudge. To make metadata
-	 * accessible through the Judge interface, wrap with
-	 * {@link org.springaicommunity.agents.judge.NamedJudge}.
+	 * This method implements
+	 * {@link org.springaicommunity.agents.judge.JudgeWithMetadata#metadata()}, enabling
+	 * infrastructure code to discover this judge's metadata via semantic pattern
+	 * matching.
 	 * </p>
 	 * @return the judge metadata
 	 */
+	@Override
 	public JudgeMetadata metadata() {
 		return this.metadata;
 	}

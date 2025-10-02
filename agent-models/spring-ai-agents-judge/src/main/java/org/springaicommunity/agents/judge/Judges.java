@@ -115,14 +115,16 @@ public final class Judges {
 	/**
 	 * Attempt to extract metadata from a judge.
 	 * <p>
-	 * Returns metadata if the judge is a {@link NamedJudge}, otherwise returns empty.
-	 * Useful for infrastructure code that needs to log or display judge information.
+	 * Returns metadata if the judge implements {@link JudgeWithMetadata}, otherwise
+	 * returns empty. This uses Spring's marker interface pattern for semantic type
+	 * checking. Useful for infrastructure code that needs to log or display judge
+	 * information.
 	 * </p>
 	 * @param judge the judge to extract metadata from
 	 * @return metadata if available, otherwise empty
 	 */
 	public static Optional<JudgeMetadata> tryMetadata(Judge judge) {
-		return (judge instanceof NamedJudge nj) ? Optional.of(nj.metadata()) : Optional.empty();
+		return (judge instanceof JudgeWithMetadata jwm) ? Optional.of(jwm.metadata()) : Optional.empty();
 	}
 
 }
