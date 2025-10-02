@@ -23,6 +23,10 @@ import java.nio.file.Path;
  * <p>
  * Provides secure execution of agent commands with proper isolation and resource
  * management. Implementations should ensure commands cannot affect the host system.
+ *
+ * <p>
+ * Supported implementations: {@link DockerSandbox} (container isolation),
+ * {@link LocalSandbox} (local process execution).
  */
 public interface Sandbox extends AutoCloseable {
 
