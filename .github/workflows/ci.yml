@@ -50,6 +50,9 @@ jobs:
         with:
           fetch-depth: 0  # Need full history for commit validation
 
+      - name: Configure git safe directory
+        run: git config --global --add safe.directory /__w/spring-ai-agents/spring-ai-agents
+
       - name: Validate commit messages
         run: |
           echo "Checking commit messages for AI attribution..."
