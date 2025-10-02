@@ -18,23 +18,48 @@ This separation enables benchmark programs to generate arrays of `RunSpec` objec
 
 == Quick Start
 
-The JBang Agent Runner is the easiest way for developers to try Spring AI Agents locally. No complex setup required - just run agents directly on your machine with LocalSandbox.
+The JBang Agent Runner is the easiest way for developers to try Spring AI Agents. Choose your approach based on your needs:
 
-=== Installation
+=== Option 1: Using the JBang Catalog (Recommended)
 
-JBang will automatically resolve dependencies when you run the agent launcher:
+The catalog approach provides the best developer experience - no cloning, no building, just run:
 
 [source,bash]
 ----
-jbang https://github.com/spring-ai-community/spring-ai-agents/blob/main/jbang/launcher.java \
-  hello-world \
-  path=greeting.txt \
-  content="Hello from JBang Agent Runner!"
+# One-time setup: Add the catalog
+jbang catalog add --name=springai \
+  https://raw.githubusercontent.com/spring-ai-community/spring-ai-agents/main/jbang-catalog.json
+
+# Verify catalog installation
+jbang catalog list | grep springai
+jbang alias list springai
+
+# Run agents using catalog alias
+jbang agents@springai hello-world path=test.txt content="Hello World!"
+
+# AI-powered agent with Claude
+export ANTHROPIC_API_KEY="your-key"
+jbang agents@springai hello-world-agent-ai \
+  path=ai-test.txt \
+  content="a creative message" \
+  provider=claude
 ----
 
-=== Local Development
+=== Option 2: Direct URL Invocation
 
-Clone the repository and run agents locally with LocalSandbox (the default sandbox type):
+No catalog setup needed, but longer command:
+
+[source,bash]
+----
+jbang https://raw.githubusercontent.com/spring-ai-community/spring-ai-agents/main/jbang/launcher.java \
+  hello-world \
+  path=greeting.txt \
+  content="Hello from Direct URL!"
+----
+
+=== Option 3: Local Development
+
+Clone the repository for local development and testing:
 
 [source,bash]
 ----
@@ -47,7 +72,7 @@ cd spring-ai-agents
 # Run hello-world agent
 jbang jbang/launcher.java hello-world path=test.txt content="Hello World!"
 
-# Run coverage agent with tweak
+# Run coverage agent
 jbang jbang/launcher.java \
   coverage \
   target_coverage=90 \
@@ -283,6 +308,50 @@ The runner provides structured error codes:
 * `2`: Usage error (missing inputs, unknown agent)
 
 Scripts and CI systems can differentiate between user errors and agent failures.
+
+== Provider-Specific Limitations
+
+Different agent providers have specific constraints you should be aware of:
+
+=== Gemini CLI Workspace Restrictions
+
+The Gemini CLI enforces workspace boundaries for security. It can only create or modify files within your current project directory.
+
+**What works:**
+[source,bash]
+----
+# Relative paths within workspace
+jbang agents@springai hello-world-agent-ai \
+  path=myfile.txt \
+  content="content" \
+  provider=gemini
+
+# Subdirectories within workspace
+jbang agents@springai hello-world-agent-ai \
+  path=output/data.txt \
+  content="data" \
+  provider=gemini
+----
+
+**What doesn't work:**
+[source,bash]
+----
+# Absolute paths outside workspace
+jbang agents@springai hello-world-agent-ai \
+  path=/tmp/myfile.txt \
+  content="content" \
+  provider=gemini
+# Error: Path must be within workspace directory
+----
+
+IMPORTANT: When using Gemini CLI, always use relative paths that stay within your project directory.
+
+=== Claude Code Permissions
+
+Claude Code has a flexible permissions model controlled by the `yolo` option:
+
+* `yolo=true` (default for JBang): Agent can make changes automatically
+* `yolo=false`: Agent will prompt for confirmation before changes
 
 == Next Steps
 

@@ -26,35 +26,34 @@ Transform autonomous CLI agents into pluggable Spring components:
 
 ## Quick Start
 
-> **⚠️ Local Development Notice**: To try out the latest features including hello-world-agent-ai, you need to build and install locally first:
-> ```bash
-> git clone https://github.com/spring-ai-community/spring-ai-agents.git
-> cd spring-ai-agents
-> ./mvnw clean install -DskipTests
-> ```
+### Try with JBang (Zero Setup Required)
 
-### Try with JBang (No Setup Required)
+The fastest way to try Spring AI Agents - no cloning, no building, just run:
 
 ```bash
+# One-time setup: Add the catalog
+jbang catalog add --name=springai https://raw.githubusercontent.com/spring-ai-community/spring-ai-agents/main/jbang-catalog.json
+
 # Static content example
-jbang agents@spring-ai-community/spring-ai-agents \
-  hello-world \
+jbang agents@springai hello-world \
   path=greeting.txt \
   content="Hello Spring AI Agents!"
 
 # AI-powered examples (requires API keys)
-jbang agents@spring-ai-community/spring-ai-agents \
-  hello-world-agent-ai \
+export ANTHROPIC_API_KEY="your-key-here"
+
+jbang agents@springai hello-world-agent-ai \
   path=ai-greeting.txt \
   content="a creative message about AI agents" \
   provider=claude
 
-jbang agents@spring-ai-community/spring-ai-agents \
-  hello-world-agent-ai \
-  path=future.txt \
+jbang agents@springai hello-world-agent-ai \
+  path=ai-future.txt \
   content="a vision of the future of AI" \
   provider=gemini
 ```
+
+> **Note**: Gemini CLI can only write files within your current project directory due to workspace restrictions. Use relative paths like `myfile.txt` instead of absolute paths like `/tmp/myfile.txt`.
 
 ### Maven Dependencies
 
