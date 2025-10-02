@@ -25,15 +25,15 @@ import java.util.List;
  * Jury of multiple judges that vote on agent execution.
  *
  * <p>
- * A Jury is itself a Judge (composable pattern), allowing juries to be used anywhere a
- * single judge can be used. This enables recursive composition and flexible evaluation
- * strategies.
+ * A Jury is a separate abstraction from Judge that aggregates judgments from multiple
+ * judges using a voting strategy. Unlike Judge which returns a Judgment, Jury returns a
+ * Verdict containing both the aggregated result and all individual judgments.
  * </p>
  *
  * <p>
  * The jury executes all its constituent judges (potentially in parallel) and aggregates
- * their judgments using a {@link VotingStrategy}. The final verdict includes both the
- * aggregated judgment and all individual judgments.
+ * their judgments using a {@link VotingStrategy}. The final verdict includes identity
+ * preservation via judge names and supports composition via sub-verdicts.
  * </p>
  *
  * <p>
@@ -46,7 +46,8 @@ import java.util.List;
  *     .votingStrategy(new WeightedAverageStrategy())
  *     .build();
  *
- * Judgment aggregated = jury.judge(context);
+ * Verdict verdict = jury.vote(context);
+ * Judgment aggregated = verdict.aggregated();
  * }</pre>
  *
  * @author Mark Pollack
@@ -55,7 +56,7 @@ import java.util.List;
  * @see VotingStrategy
  * @see Verdict
  */
-public interface Jury extends Judge {
+public interface Jury {
 
 	/**
 	 * Get the list of judges in this jury.

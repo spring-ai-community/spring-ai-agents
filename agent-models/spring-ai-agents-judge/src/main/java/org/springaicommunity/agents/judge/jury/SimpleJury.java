@@ -143,25 +143,6 @@ public class SimpleJury implements Jury {
 		return Judges.tryMetadata(judge).map(m -> m.name()).orElse("Judge#" + (index + 1));
 	}
 
-	@Override
-	public Judgment judge(JudgmentContext context) {
-		Verdict verdict = vote(context);
-
-		Judgment aggregated = verdict.aggregated();
-
-		// Add verdict to metadata
-		return Judgment.builder()
-			.score(aggregated.score())
-			.status(aggregated.status())
-			.reasoning(aggregated.reasoning())
-			.checks(aggregated.checks())
-			.metadata(aggregated.metadata())
-			.metadata("verdict", verdict)
-			.metadata("jury.strategy", votingStrategy.getName())
-			.metadata("jury.judgeCount", judges.size())
-			.build();
-	}
-
 	/**
 	 * Create a new builder for SimpleJury.
 	 * @return builder instance

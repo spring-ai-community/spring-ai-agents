@@ -118,4 +118,46 @@ public record AgentClientResponse(AgentResponse agentResponse, Map<String, Objec
 		return pass != null && pass;
 	}
 
+	/**
+	 * Get the verdict from jury evaluation.
+	 * <p>
+	 * Retrieves the verdict object stored by
+	 * {@link org.springaicommunity.agents.advisors.judge.JuryAdvisor} after jury
+	 * evaluation completes. The verdict contains the aggregated judgment and all
+	 * individual judgments from the jury.
+	 * </p>
+	 * <p>
+	 * Example usage:
+	 * </p>
+	 * <pre>{@code
+	 * AgentClientResponse response = agentClient
+	 *     .advisors(JuryAdvisor.builder().jury(jury).build())
+	 *     .run();
+	 *
+	 * Verdict verdict = response.getVerdict();
+	 * if (verdict != null && verdict.aggregated().pass()) {
+	 *     // Task passed jury evaluation
+	 * }
+	 * }</pre>
+	 * @param <T> the verdict type (typically Verdict from spring-ai-agents-judge)
+	 * @return the verdict result, or null if no jury evaluation was performed
+	 */
+	@SuppressWarnings("unchecked")
+	public <T> T getVerdict() {
+		return (T) this.context.get("verdict");
+	}
+
+	/**
+	 * Check if a verdict was rendered and the aggregated judgment passed.
+	 * <p>
+	 * Convenience method that checks for verdict presence and aggregated pass status
+	 * without requiring direct access to the Verdict object.
+	 * </p>
+	 * @return true if verdict exists and aggregated judgment passed, false otherwise
+	 */
+	public boolean isVerdictPassed() {
+		Boolean pass = (Boolean) this.context.get("verdict.pass");
+		return pass != null && pass;
+	}
+
 }
