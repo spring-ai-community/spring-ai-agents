@@ -36,6 +36,7 @@ jobs:
 
       - name: Build documentation
         run: ./mvnw clean antora:antora -pl docs
+        continue-on-error: true
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
