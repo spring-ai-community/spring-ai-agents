@@ -25,6 +25,7 @@ import java.util.regex.Pattern;
 import org.springaicommunity.agents.judge.context.JudgmentContext;
 import org.springaicommunity.agents.judge.result.Check;
 import org.springaicommunity.agents.judge.result.Judgment;
+import org.springaicommunity.agents.judge.result.JudgmentStatus;
 import org.springaicommunity.agents.judge.score.BooleanScore;
 
 /**
@@ -93,7 +94,7 @@ public class FileContentJudge extends DeterministicJudge {
 		if (!Files.exists(targetFile)) {
 			return Judgment.builder()
 				.score(new BooleanScore(false))
-				.pass(false)
+				.status(JudgmentStatus.FAIL)
 				.reasoning(String.format("File not found at %s", filePath))
 				.check(Check.fail("file_exists", "File not found: " + filePath))
 				.build();
@@ -107,7 +108,7 @@ public class FileContentJudge extends DeterministicJudge {
 		catch (Exception e) {
 			return Judgment.builder()
 				.score(new BooleanScore(false))
-				.pass(false)
+				.status(JudgmentStatus.FAIL)
 				.reasoning(String.format("Failed to read file: %s", e.getMessage()))
 				.check(Check.pass("file_exists", "File exists"))
 				.check(Check.fail("file_readable", "Failed to read: " + e.getMessage()))
@@ -123,7 +124,7 @@ public class FileContentJudge extends DeterministicJudge {
 
 		return Judgment.builder()
 			.score(new BooleanScore(matches))
-			.pass(matches)
+			.status(matches ? JudgmentStatus.PASS : JudgmentStatus.FAIL)
 			.reasoning(matches ? String.format("Content %s matches in %s", matchMode.name().toLowerCase(), filePath)
 					: String.format("Content does not %s match in %s", matchMode.name().toLowerCase(), filePath))
 			.check(Check.pass("file_exists", "File found"))

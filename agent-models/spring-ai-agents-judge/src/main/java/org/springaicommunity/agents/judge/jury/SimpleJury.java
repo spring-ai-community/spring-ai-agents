@@ -17,11 +17,13 @@
 package org.springaicommunity.agents.judge.jury;
 
 import org.springaicommunity.agents.judge.Judge;
+import org.springaicommunity.agents.judge.Judges;
 import org.springaicommunity.agents.judge.context.JudgmentContext;
 import org.springaicommunity.agents.judge.result.Judgment;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -113,10 +115,32 @@ public class SimpleJury implements Jury {
 			individualJudgments = judges.stream().map(judge -> judge.judge(context)).toList();
 		}
 
+		// Build identity map (preserves order via LinkedHashMap)
+		Map<String, Judgment> judgmentByName = new LinkedHashMap<>();
+		for (int i = 0; i < judges.size(); i++) {
+			String name = getJudgeName(judges.get(i), i);
+			judgmentByName.put(name, individualJudgments.get(i));
+		}
+
 		// Aggregate using voting strategy
 		Judgment aggregated = votingStrategy.aggregate(individualJudgments, weights);
 
-		return new Verdict(aggregated, individualJudgments, weights);
+		return Verdict.builder()
+			.aggregated(aggregated)
+			.individual(individualJudgments)
+			.individualByName(judgmentByName)
+			.weights(weights)
+			.build();
+	}
+
+	/**
+	 * Get judge name from metadata or generate default.
+	 * @param judge the judge
+	 * @param index the judge index
+	 * @return judge name
+	 */
+	private String getJudgeName(Judge judge, int index) {
+		return Judges.tryMetadata(judge).map(m -> m.name()).orElse("Judge#" + (index + 1));
 	}
 
 	@Override
@@ -128,7 +152,7 @@ public class SimpleJury implements Jury {
 		// Add verdict to metadata
 		return Judgment.builder()
 			.score(aggregated.score())
-			.pass(aggregated.pass())
+			.status(aggregated.status())
 			.reasoning(aggregated.reasoning())
 			.checks(aggregated.checks())
 			.metadata(aggregated.metadata())

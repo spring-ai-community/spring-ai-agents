@@ -24,6 +24,7 @@ import java.nio.file.Path;
 import org.springaicommunity.agents.judge.context.JudgmentContext;
 import org.springaicommunity.agents.judge.result.Check;
 import org.springaicommunity.agents.judge.result.Judgment;
+import org.springaicommunity.agents.judge.result.JudgmentStatus;
 import org.springaicommunity.agents.judge.score.BooleanScore;
 
 /**
@@ -65,7 +66,7 @@ public class FileExistsJudge extends DeterministicJudge {
 
 		return Judgment.builder()
 			.score(new BooleanScore(exists))
-			.pass(exists)
+			.status(exists ? JudgmentStatus.PASS : JudgmentStatus.FAIL)
 			.reasoning(exists ? String.format("File exists at %s", filePath)
 					: String.format("File not found at %s", filePath))
 			.check(exists ? Check.pass("file_exists", "File found at " + filePath)

@@ -18,6 +18,7 @@ package org.springaicommunity.agents.judge.llm;
 
 import org.springaicommunity.agents.judge.context.JudgmentContext;
 import org.springaicommunity.agents.judge.result.Judgment;
+import org.springaicommunity.agents.judge.result.JudgmentStatus;
 import org.springaicommunity.agents.judge.score.BooleanScore;
 import org.springframework.ai.chat.client.ChatClient;
 
@@ -120,7 +121,11 @@ public class CorrectnessJudge extends LLMJudge {
 		// Extract reasoning (everything after "Reasoning:")
 		String reasoning = extractReasoning(response);
 
-		return Judgment.builder().score(new BooleanScore(pass)).pass(pass).reasoning(reasoning).build();
+		return Judgment.builder()
+			.score(new BooleanScore(pass))
+			.status(pass ? JudgmentStatus.PASS : JudgmentStatus.FAIL)
+			.reasoning(reasoning)
+			.build();
 	}
 
 	private String extractReasoning(String response) {

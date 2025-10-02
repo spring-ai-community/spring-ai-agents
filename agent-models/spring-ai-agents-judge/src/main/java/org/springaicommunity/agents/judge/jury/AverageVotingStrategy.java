@@ -17,6 +17,7 @@
 package org.springaicommunity.agents.judge.jury;
 
 import org.springaicommunity.agents.judge.result.Judgment;
+import org.springaicommunity.agents.judge.result.JudgmentStatus;
 import org.springaicommunity.agents.judge.score.BooleanScore;
 import org.springaicommunity.agents.judge.score.NumericalScore;
 import org.springaicommunity.agents.judge.score.Score;
@@ -67,7 +68,11 @@ public class AverageVotingStrategy implements VotingStrategy {
 		String reasoning = String.format("Average score: %.2f (threshold: %.2f, result: %s)", average, THRESHOLD,
 				pass ? "pass" : "fail");
 
-		return Judgment.builder().score(new NumericalScore(average, 0.0, 1.0)).pass(pass).reasoning(reasoning).build();
+		return Judgment.builder()
+			.score(new NumericalScore(average, 0.0, 1.0))
+			.status(pass ? JudgmentStatus.PASS : JudgmentStatus.FAIL)
+			.reasoning(reasoning)
+			.build();
 	}
 
 	@Override

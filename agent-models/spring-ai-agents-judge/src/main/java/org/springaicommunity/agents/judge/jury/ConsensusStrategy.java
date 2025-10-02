@@ -17,6 +17,7 @@
 package org.springaicommunity.agents.judge.jury;
 
 import org.springaicommunity.agents.judge.result.Judgment;
+import org.springaicommunity.agents.judge.result.JudgmentStatus;
 import org.springaicommunity.agents.judge.score.BooleanScore;
 import org.springaicommunity.agents.judge.score.NumericalScore;
 import org.springaicommunity.agents.judge.score.Score;
@@ -75,7 +76,11 @@ public class ConsensusStrategy implements VotingStrategy {
 					pass ? "passed" : "failed");
 		}
 
-		return Judgment.builder().score(new BooleanScore(pass)).pass(pass).reasoning(reasoning).build();
+		return Judgment.builder()
+			.score(new BooleanScore(pass))
+			.status(pass ? JudgmentStatus.PASS : JudgmentStatus.FAIL)
+			.reasoning(reasoning)
+			.build();
 	}
 
 	@Override

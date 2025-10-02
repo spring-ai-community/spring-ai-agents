@@ -16,6 +16,7 @@
 
 package org.springaicommunity.agents.judge.result;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -24,7 +25,7 @@ import java.util.Map;
 import org.springaicommunity.agents.judge.score.Score;
 
 /**
- * Result of a judgment containing score, pass/fail, reasoning, and checks.
+ * Result of a judgment containing score, status, reasoning, and checks.
  *
  * <p>
  * <strong>Design Inspiration:</strong> Combines patterns from multiple frameworks:
@@ -35,18 +36,43 @@ import org.springaicommunity.agents.judge.score.Score;
  * </p>
  *
  * @param score the score (boolean, numerical, or categorical)
- * @param pass whether the judgment passed (true) or failed (false)
+ * @param status the judgment status (PASS, FAIL, ABSTAIN, ERROR)
  * @param reasoning human-readable explanation of the judgment
  * @param checks individual check results (optional)
- * @param metadata additional judgment information (extensibility)
+ * @param metadata additional judgment information (extensibility, timing, errors)
  * @author Mark Pollack
  * @since 0.1.0
  */
-public record Judgment(Score score, boolean pass, String reasoning, List<Check> checks, Map<String, Object> metadata) {
+public record Judgment(Score score, JudgmentStatus status, String reasoning, List<Check> checks,
+		Map<String, Object> metadata) {
 
 	public Judgment {
 		checks = List.copyOf(checks);
 		metadata = Map.copyOf(metadata);
+	}
+
+	/**
+	 * Check if judgment passed.
+	 * @return true if status is PASS
+	 */
+	public boolean pass() {
+		return status == JudgmentStatus.PASS;
+	}
+
+	/**
+	 * Get elapsed time from metadata.
+	 * @return elapsed duration, or null if not present
+	 */
+	public Duration elapsed() {
+		return (Duration) metadata.get("elapsed");
+	}
+
+	/**
+	 * Get error from metadata.
+	 * @return error throwable, or null if not present
+	 */
+	public Throwable error() {
+		return (Throwable) metadata.get("error");
 	}
 
 	/**
@@ -59,7 +85,7 @@ public record Judgment(Score score, boolean pass, String reasoning, List<Check> 
 	 */
 	public static Judgment pass(String reasoning) {
 		return builder().score(new org.springaicommunity.agents.judge.score.BooleanScore(true))
-			.pass(true)
+			.status(JudgmentStatus.PASS)
 			.reasoning(reasoning)
 			.build();
 	}
@@ -74,9 +100,43 @@ public record Judgment(Score score, boolean pass, String reasoning, List<Check> 
 	 */
 	public static Judgment fail(String reasoning) {
 		return builder().score(new org.springaicommunity.agents.judge.score.BooleanScore(false))
-			.pass(false)
+			.status(JudgmentStatus.FAIL)
 			.reasoning(reasoning)
 			.build();
+	}
+
+	/**
+	 * Create an abstaining judgment with reasoning.
+	 * <p>
+	 * Used when a judge cannot or chooses not to evaluate.
+	 * </p>
+	 * @param reasoning the reasoning for abstaining
+	 * @return abstaining judgment
+	 */
+	public static Judgment abstain(String reasoning) {
+		return builder().score(new org.springaicommunity.agents.judge.score.BooleanScore(false))
+			.status(JudgmentStatus.ABSTAIN)
+			.reasoning(reasoning)
+			.build();
+	}
+
+	/**
+	 * Create an error judgment with reasoning and optional error.
+	 * <p>
+	 * Used when a judge encounters an error during evaluation.
+	 * </p>
+	 * @param reasoning the reasoning for the error
+	 * @param error the error that occurred (optional)
+	 * @return error judgment
+	 */
+	public static Judgment error(String reasoning, Throwable error) {
+		Builder builder = builder().score(new org.springaicommunity.agents.judge.score.BooleanScore(false))
+			.status(JudgmentStatus.ERROR)
+			.reasoning(reasoning);
+		if (error != null) {
+			builder.metadata("error", error);
+		}
+		return builder.build();
 	}
 
 	public static Builder builder() {
@@ -87,7 +147,7 @@ public record Judgment(Score score, boolean pass, String reasoning, List<Check> 
 
 		private Score score;
 
-		private boolean pass;
+		private JudgmentStatus status;
 
 		private String reasoning = "";
 
@@ -100,8 +160,8 @@ public record Judgment(Score score, boolean pass, String reasoning, List<Check> 
 			return this;
 		}
 
-		public Builder pass(boolean pass) {
-			this.pass = pass;
+		public Builder status(JudgmentStatus status) {
+			this.status = status;
 			return this;
 		}
 
@@ -131,7 +191,7 @@ public record Judgment(Score score, boolean pass, String reasoning, List<Check> 
 		}
 
 		public Judgment build() {
-			return new Judgment(score, pass, reasoning, checks, metadata);
+			return new Judgment(score, status, reasoning, checks, metadata);
 		}
 
 	}

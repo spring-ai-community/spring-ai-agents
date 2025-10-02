@@ -41,11 +41,17 @@ public record NumericalScore(double value, double min, double max) implements Sc
 
 	/**
 	 * Get the normalized score in 0-1 range.
+	 *
+	 * <p>
+	 * Edge case: When max == min (single-point range), returns 1.0 if value equals the
+	 * point, otherwise 0.0. This handles degenerate cases where all scores converge to a
+	 * single value.
+	 * </p>
 	 * @return normalized score between 0 and 1
 	 */
 	public double normalized() {
 		if (max == min) {
-			return 0.0;
+			return value == max ? 1.0 : 0.0;
 		}
 		return (value - min) / (max - min);
 	}

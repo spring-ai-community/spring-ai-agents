@@ -17,6 +17,7 @@
 package org.springaicommunity.agents.judge.jury;
 
 import org.springaicommunity.agents.judge.result.Judgment;
+import org.springaicommunity.agents.judge.result.JudgmentStatus;
 import org.springaicommunity.agents.judge.score.BooleanScore;
 import org.springaicommunity.agents.judge.score.NumericalScore;
 import org.springaicommunity.agents.judge.score.Score;
@@ -90,7 +91,7 @@ public class WeightedAverageStrategy implements VotingStrategy {
 
 		return Judgment.builder()
 			.score(new NumericalScore(weightedAverage, 0.0, 1.0))
-			.pass(pass)
+			.status(pass ? JudgmentStatus.PASS : JudgmentStatus.FAIL)
 			.reasoning(reasoning)
 			.build();
 	}

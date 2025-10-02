@@ -23,6 +23,7 @@ import org.springaicommunity.agents.judge.JudgeType;
 import org.springaicommunity.agents.judge.JudgeWithMetadata;
 import org.springaicommunity.agents.judge.context.JudgmentContext;
 import org.springaicommunity.agents.judge.result.Judgment;
+import org.springaicommunity.agents.judge.result.JudgmentStatus;
 import org.springaicommunity.agents.judge.score.BooleanScore;
 import org.springaicommunity.agents.judge.score.NumericalScore;
 
@@ -145,7 +146,9 @@ public class AgentJudge implements JudgeWithMetadata {
 		// Extract REASONING
 		String reasoning = extractReasoning(agentOutput);
 
-		Judgment.Builder builder = Judgment.builder().pass(pass).reasoning(reasoning);
+		Judgment.Builder builder = Judgment.builder()
+			.status(pass ? JudgmentStatus.PASS : JudgmentStatus.FAIL)
+			.reasoning(reasoning);
 
 		if (score != null) {
 			// Use numerical score if provided

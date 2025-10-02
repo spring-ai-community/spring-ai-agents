@@ -26,6 +26,7 @@ import java.util.Map;
 import org.springaicommunity.agents.judge.context.JudgmentContext;
 import org.springaicommunity.agents.judge.result.Check;
 import org.springaicommunity.agents.judge.result.Judgment;
+import org.springaicommunity.agents.judge.result.JudgmentStatus;
 import org.springaicommunity.agents.judge.score.BooleanScore;
 import org.springaicommunity.agents.model.sandbox.ExecResult;
 import org.springaicommunity.agents.model.sandbox.ExecSpec;
@@ -117,7 +118,7 @@ public class CommandJudge extends DeterministicJudge {
 
 			return Judgment.builder()
 				.score(new BooleanScore(pass))
-				.pass(pass)
+				.status(pass ? JudgmentStatus.PASS : JudgmentStatus.FAIL)
 				.reasoning(reasoning)
 				.check(pass ? Check.pass("command_execution", "Command executed successfully")
 						: Check.fail("command_execution", "Command execution failed"))
@@ -127,7 +128,7 @@ public class CommandJudge extends DeterministicJudge {
 		catch (Exception e) {
 			return Judgment.builder()
 				.score(new BooleanScore(false))
-				.pass(false)
+				.status(JudgmentStatus.FAIL)
 				.reasoning("Command execution failed: " + e.getMessage())
 				.check(Check.fail("command_execution", "Execution error: " + e.getMessage()))
 				.build();
