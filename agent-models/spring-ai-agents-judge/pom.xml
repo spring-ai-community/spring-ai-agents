@@ -31,6 +31,13 @@
             <artifactId>spring-ai-model</artifactId>
         </dependency>
 
+        <!-- Spring AI ChatClient for LLM judges -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-client-chat</artifactId>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Agent Client for agent-as-judge pattern -->
         <dependency>
             <groupId>org.springaicommunity.agents</groupId>
