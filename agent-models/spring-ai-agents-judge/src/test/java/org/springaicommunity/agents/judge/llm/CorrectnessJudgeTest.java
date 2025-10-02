@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.springaicommunity.agents.judge.impl;
+package org.springaicommunity.agents.judge.llm;
 
 import java.nio.file.Path;
 

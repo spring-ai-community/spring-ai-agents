@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.springaicommunity.agents.judge.impl;
+package org.springaicommunity.agents.judge.fs;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;

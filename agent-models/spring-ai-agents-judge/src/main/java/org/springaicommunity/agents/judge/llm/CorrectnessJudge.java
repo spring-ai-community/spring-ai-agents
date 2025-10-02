@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.springaicommunity.agents.judge.impl;
+package org.springaicommunity.agents.judge.llm;
 
 import org.springaicommunity.agents.judge.context.JudgmentContext;
 import org.springaicommunity.agents.judge.result.Judgment;

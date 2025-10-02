@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package org.springaicommunity.agents.judge.impl;
+package org.springaicommunity.agents.judge.fs;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springaicommunity.agents.judge.context.AgentExecutionStatus;
 import org.springaicommunity.agents.judge.context.JudgmentContext;
-import org.springaicommunity.agents.judge.impl.FileContentJudge.MatchMode;
+import org.springaicommunity.agents.judge.fs.FileContentJudge.MatchMode;
 import org.springaicommunity.agents.judge.result.Judgment;
 
 import java.io.IOException;

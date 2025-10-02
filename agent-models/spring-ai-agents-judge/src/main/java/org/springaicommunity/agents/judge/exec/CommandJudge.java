@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-package org.springaicommunity.agents.judge.impl;
+package org.springaicommunity.agents.judge.exec;
+
+import org.springaicommunity.agents.judge.DeterministicJudge;
 
 import java.time.Duration;
 import java.util.HashMap;
