@@ -191,11 +191,7 @@ class JudgeAdvisorTest {
 
 		@Override
 		public Judgment judge(JudgmentContext context) {
-			return Judgment.builder()
-				.score(new BooleanScore(pass))
-				.pass(pass)
-				.reasoning(pass ? "Test passed" : "Test failed")
-				.build();
+			return pass ? Judgment.pass("Test passed") : Judgment.fail("Test failed");
 		}
 
 	}
@@ -210,7 +206,7 @@ class JudgeAdvisorTest {
 		@Override
 		public Judgment judge(JudgmentContext context) {
 			this.capturedContext = context;
-			return Judgment.builder().score(new BooleanScore(true)).pass(true).reasoning("Context captured").build();
+			return Judgment.pass("Context captured");
 		}
 
 	}
