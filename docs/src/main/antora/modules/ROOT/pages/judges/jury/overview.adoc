@@ -1,0 +1,647 @@
+= Jury Pattern: Ensemble Evaluation
+:page-title: Jury Overview
+:toc: left
+:tabsize: 2
+:sectnums:
+
+The Jury pattern combines multiple judges into an ensemble for robust, consensus-based evaluation. Instead of relying on a single judge, a jury aggregates judgments from multiple sources using voting strategies.
+
+== Overview
+
+A `Jury` is a collection of judges that vote together on agent execution. The jury:
+
+1. Executes all judges (potentially in parallel)
+2. Collects individual judgments
+3. Aggregates using a voting strategy
+4. Returns a `Verdict` with both aggregated and individual results
+
+**When to use**:
+
+* Need robust evaluation resistant to single-judge failures
+* Want consensus from multiple perspectives (deterministic + LLM + agent)
+* Require weighted importance of different criteria
+* Need transparency (see individual votes + aggregate)
+
+[NOTE]
+====
+The Jury pattern is inspired by https://github.com/UpstageAI/judges[judges], a Python evaluation framework that pioneered the "jury of judges" approach for LLM evaluation. Their design insight: combining multiple judges with different strengths produces more reliable evaluation than any single judge.
+====
+
+== Jury vs Judge
+
+Understanding the key differences:
+
+[cols="1h,2,2"]
+|===
+|Aspect |Judge |Jury
+
+|**Returns**
+|`Judgment` (single result)
+|`Verdict` (aggregated + individual)
+
+|**Execution**
+|One evaluation
+|Multiple evaluations
+
+|**Aggregation**
+|N/A
+|Voting strategy
+
+|**Use Case**
+|Single criterion
+|Multiple criteria, robust evaluation
+
+|**Example**
+|"Does file exist?"
+|"Is code production-ready?" (build + tests + quality)
+|===
+
+== Basic Usage
+
+[source,java]
+----
+import org.springaicommunity.agents.judge.jury.Juries;
+import org.springaicommunity.agents.judge.jury.VotingStrategies;
+
+// Create jury with multiple judges
+Jury jury = Juries.builder()
+    .addJudge("build", new BuildSuccessJudge())
+    .addJudge("tests", new TestSuccessJudge())
+    .addJudge("quality", new CorrectnessJudge(chatClient))
+    .votingStrategy(VotingStrategies.majority())
+    .build();
+
+// Use with JudgeAdvisor (jury is itself a judge)
+AgentClientResponse response = agentClientBuilder
+    .goal("Implement user authentication")
+    .workingDirectory(projectRoot)
+    .advisors(JudgeAdvisor.builder()
+        .judge(jury)
+        .build())
+    .call();
+
+// Get verdict
+Verdict verdict = jury.getLastVerdict();
+
+// Check aggregated result
+if (verdict.aggregated().pass()) {
+    System.out.println("✓ Jury consensus: PASS");
+}
+
+// Examine individual judgments
+verdict.individual().forEach(judgment -> {
+    System.out.println("Judge: " + judgment.metadata().get("judgeName"));
+    System.out.println("  Result: " + judgment.pass());
+    System.out.println("  Reasoning: " + judgment.reasoning());
+});
+----
+
+== Creating Juries
+
+=== Method 1: Juries.builder()
+
+Most flexible approach with named judges and weights:
+
+[source,java]
+----
+Jury jury = Juries.builder()
+    .addJudge("build", new BuildSuccessJudge(), 0.4)
+    .addJudge("correctness", new CorrectnessJudge(chatClient), 0.6)
+    .votingStrategy(VotingStrategies.weightedAverage())
+    .build();
+----
+
+=== Method 2: Juries.fromJudges()
+
+Quick creation with auto-naming:
+
+[source,java]
+----
+Judge[] judges = {
+    new FileExistsJudge("README.md"),
+    new BuildSuccessJudge(),
+    new CorrectnessJudge(chatClient)
+};
+
+Jury jury = Juries.fromJudges(VotingStrategies.majority(), judges);
+// Auto-names: "FileExistsJudge", "BuildSuccessJudge", "CorrectnessJudge"
+----
+
+=== Method 3: Factory Methods
+
+Common patterns:
+
+[source,java]
+----
+// All judges must pass
+Jury strictJury = Juries.builder()
+    .addJudge("build", buildJudge)
+    .addJudge("tests", testJudge)
+    .votingStrategy(VotingStrategies.allMustPass())
+    .build();
+
+// Majority vote
+Jury consensusJury = Juries.builder()
+    .addJudge("judge1", judge1)
+    .addJudge("judge2", judge2)
+    .addJudge("judge3", judge3)
+    .votingStrategy(VotingStrategies.majority())
+    .build();
+----
+
+== Verdict Structure
+
+The `Verdict` record contains aggregated and individual results:
+
+[source,java]
+----
+public record Verdict(
+    Judgment aggregated,           // Final verdict
+    List<Judgment> individual,     // Individual judge results
+    Map<String, Double> weights    // Weights used in aggregation
+) {}
+----
+
+**Example**:
+
+[source,java]
+----
+Verdict verdict = jury.vote(context);
+
+// Aggregated result
+Judgment aggregated = verdict.aggregated();
+System.out.println("Final: " + aggregated.pass());
+
+// Individual results
+verdict.individual().forEach(judgment -> {
+    String name = (String) judgment.metadata().get("judgeName");
+    System.out.println(name + ": " + judgment.pass());
+});
+
+// Weights used
+verdict.weights().forEach((name, weight) -> {
+    System.out.println(name + " weight: " + weight);
+});
+----
+
+== Voting Strategies
+
+Voting strategies determine how individual judgments aggregate. See xref:voting-strategies.adoc[Voting Strategies] for complete details.
+
+=== Majority Voting
+
+Pass if more than 50% of judges pass:
+
+[source,java]
+----
+Jury jury = Juries.builder()
+    .addJudge("judge1", judge1)
+    .addJudge("judge2", judge2)
+    .addJudge("judge3", judge3)
+    .votingStrategy(VotingStrategies.majority())
+    .build();
+
+// Passes if 2 or 3 judges pass
+----
+
+=== Weighted Average
+
+Aggregate numerical scores with weights:
+
+[source,java]
+----
+Jury jury = Juries.builder()
+    .addJudge("build", buildJudge, 0.3)        // 30% weight
+    .addJudge("quality", qualityJudge, 0.7)    // 70% weight
+    .votingStrategy(VotingStrategies.weightedAverage())
+    .build();
+
+// Final score = 0.3 * build_score + 0.7 * quality_score
+----
+
+=== All Must Pass
+
+Strict evaluation—all judges must pass:
+
+[source,java]
+----
+Jury jury = Juries.builder()
+    .addJudge("build", buildJudge)
+    .addJudge("tests", testJudge)
+    .addJudge("security", securityJudge)
+    .votingStrategy(VotingStrategies.allMustPass())
+    .build();
+
+// Fails if any single judge fails
+----
+
+=== Consensus
+
+Unanimous agreement required:
+
+[source,java]
+----
+Jury jury = Juries.builder()
+    .addJudge("reviewer1", reviewer1)
+    .addJudge("reviewer2", reviewer2)
+    .addJudge("reviewer3", reviewer3)
+    .votingStrategy(VotingStrategies.consensus())
+    .build();
+
+// Passes only if ALL judges pass
+// Fails if ANY judge fails
+----
+
+== Production Patterns
+
+=== Pattern 1: Quality Gate
+
+Combine objective and subjective criteria:
+
+[source,java]
+----
+@Service
+public class QualityGate {
+
+    public void enforceStandards(Path projectRoot) {
+        Jury qualityJury = Juries.builder()
+            // Objective: build succeeds (40% weight)
+            .addJudge("build", new BuildSuccessJudge(), 0.4)
+
+            // Objective: tests pass (30% weight)
+            .addJudge("tests", new TestSuccessJudge(), 0.3)
+
+            // Subjective: code quality (30% weight)
+            .addJudge("quality", new CorrectnessJudge(chatClient), 0.3)
+
+            .votingStrategy(VotingStrategies.weightedAverage())
+            .build();
+
+        AgentClientResponse response = agentClientBuilder
+            .goal("Implement feature with high quality")
+            .workingDirectory(projectRoot)
+            .advisors(JudgeAdvisor.builder()
+                .judge(qualityJury)
+                .build())
+            .call();
+
+        Verdict verdict = qualityJury.getLastVerdict();
+
+        if (verdict.aggregated().pass()) {
+            deploy(projectRoot);
+        } else {
+            logFailures(verdict);
+            rollback();
+        }
+    }
+
+    private void logFailures(Verdict verdict) {
+        verdict.individual().forEach(judgment -> {
+            if (!judgment.pass()) {
+                String name = (String) judgment.metadata().get("judgeName");
+                logger.error("{} failed: {}", name, judgment.reasoning());
+            }
+        });
+    }
+}
+----
+
+=== Pattern 2: Hierarchical Evaluation
+
+Fast checks first, expensive checks later:
+
+[source,java]
+----
+public class HierarchicalEvaluation {
+
+    public void evaluate(Path projectRoot) {
+        // Stage 1: Fast deterministic checks
+        Jury fastChecks = Juries.builder()
+            .addJudge("compile", BuildSuccessJudge.maven("compile"))
+            .addJudge("files", new FileExistsJudge("README.md"))
+            .votingStrategy(VotingStrategies.allMustPass())
+            .build();
+
+        Verdict fastVerdict = fastChecks.vote(createContext(projectRoot));
+
+        if (!fastVerdict.aggregated().pass()) {
+            logger.error("Fast checks failed - skipping expensive evaluation");
+            return;
+        }
+
+        // Stage 2: Expensive LLM/Agent checks (only if stage 1 passed)
+        Jury expensiveChecks = Juries.builder()
+            .addJudge("correctness", new CorrectnessJudge(chatClient))
+            .addJudge("security", AgentJudge.securityAudit(agentClient))
+            .votingStrategy(VotingStrategies.majority())
+            .build();
+
+        Verdict expensiveVerdict = expensiveChecks.vote(createContext(projectRoot));
+
+        if (expensiveVerdict.aggregated().pass()) {
+            logger.info("All checks passed - ready for production");
+        }
+    }
+}
+----
+
+=== Pattern 3: Self-Consistency
+
+Run same judge multiple times and vote (inspired by https://github.com/explodinggradients/ragas[ragas]' self-consistency approach):
+
+[source,java]
+----
+public class SelfConsistentEvaluation {
+
+    public Verdict evaluateWithConsistency(JudgmentContext context, int runs) {
+        List<Judge> judges = new ArrayList<>();
+
+        // Create N instances of same judge
+        for (int i = 0; i < runs; i++) {
+            judges.add(new CorrectnessJudge(chatClientBuilder));
+        }
+
+        // Vote for consistency
+        Jury selfConsistentJury = Juries.fromJudges(
+            VotingStrategies.majority(),
+            judges.toArray(new Judge[0])
+        );
+
+        return selfConsistentJury.vote(context);
+    }
+}
+
+// Usage
+Verdict verdict = evaluateWithConsistency(context, 5);
+
+// Passes if 3+ out of 5 runs agree
+if (verdict.aggregated().pass()) {
+    System.out.println("Consistent PASS across multiple runs");
+}
+----
+
+=== Pattern 4: Multi-Perspective Review
+
+Get opinions from different judge types:
+
+[source,java]
+----
+@Service
+public class CodeReviewJury {
+
+    public void comprehensiveReview(Path projectRoot) {
+        Jury reviewJury = Juries.builder()
+            // Deterministic: build and tests
+            .addJudge("build", new BuildSuccessJudge(), 0.3)
+
+            // LLM: semantic correctness
+            .addJudge("correctness", new CorrectnessJudge(chatClient), 0.3)
+
+            // Agent: thorough code review
+            .addJudge("review", AgentJudge.codeReview(agentClient), 0.4)
+
+            .votingStrategy(VotingStrategies.weightedAverage())
+            .build();
+
+        AgentClientResponse response = agentClientBuilder
+            .goal("Implement payment processing")
+            .workingDirectory(projectRoot)
+            .advisors(JudgeAdvisor.builder()
+                .judge(reviewJury)
+                .build())
+            .call();
+
+        Verdict verdict = reviewJury.getLastVerdict();
+
+        printDetailedReport(verdict);
+    }
+
+    private void printDetailedReport(Verdict verdict) {
+        System.out.println("=== Code Review Report ===");
+        System.out.println("Overall: " + (verdict.aggregated().pass() ? "PASS" : "FAIL"));
+        System.out.println();
+
+        verdict.individual().forEach(judgment -> {
+            String name = (String) judgment.metadata().get("judgeName");
+            System.out.println("--- " + name + " ---");
+            System.out.println("Result: " + judgment.pass());
+            System.out.println("Reasoning: " + judgment.reasoning());
+            System.out.println();
+        });
+    }
+}
+----
+
+== Meta-Jury: Juries of Juries
+
+Combine multiple juries for hierarchical evaluation:
+
+[source,java]
+----
+// Create domain-specific juries
+Jury buildJury = Juries.builder()
+    .addJudge("compile", BuildSuccessJudge.maven("compile"))
+    .addJudge("test", BuildSuccessJudge.maven("test"))
+    .votingStrategy(VotingStrategies.allMustPass())
+    .build();
+
+Jury qualityJury = Juries.builder()
+    .addJudge("correctness", new CorrectnessJudge(chatClient))
+    .addJudge("maintainability", new CodeQualityJudge(chatClient))
+    .votingStrategy(VotingStrategies.majority())
+    .build();
+
+Jury securityJury = Juries.builder()
+    .addJudge("audit", AgentJudge.securityAudit(agentClient))
+    .addJudge("compliance", new ComplianceJudge(chatClient))
+    .votingStrategy(VotingStrategies.allMustPass())
+    .build();
+
+// Combine into meta-jury
+Jury metaJury = Juries.allOf(
+    VotingStrategies.weightedAverage(),
+    buildJury,      // 40% weight
+    qualityJury,    // 30% weight
+    securityJury    // 30% weight
+);
+
+// Meta-jury aggregates verdicts from sub-juries
+Verdict finalVerdict = metaJury.vote(context);
+----
+
+**Why use meta-juries?**
+
+- Logical grouping of related judges
+- Independent voting within each domain
+- Clear separation of concerns
+- Hierarchical decision-making
+
+== Parallel Execution
+
+Juries execute judges in parallel for performance:
+
+[source,java]
+----
+Jury jury = Juries.builder()
+    .addJudge("slow1", expensiveLLMJudge1)    // 5 seconds
+    .addJudge("slow2", expensiveLLMJudge2)    // 5 seconds
+    .addJudge("slow3", expensiveLLMJudge3)    // 5 seconds
+    .votingStrategy(VotingStrategies.majority())
+    .build();
+
+// Sequential: 15 seconds total
+// Parallel (jury): ~5 seconds total (all run concurrently)
+----
+
+**Performance benefit**: N judges executed in parallel complete in `max(judge_duration)` instead of `sum(judge_durations)`.
+
+== Best Practices
+
+=== 1. Mix Judge Types
+
+[source,java]
+----
+// ✅ Good: Hybrid approach
+Juries.builder()
+    .addJudge("build", new BuildSuccessJudge())           // Fast, objective
+    .addJudge("correctness", new CorrectnessJudge(...))   // Slow, subjective
+    .votingStrategy(VotingStrategies.majority())
+    .build();
+
+// ❌ Wasteful: All expensive LLM judges
+Juries.builder()
+    .addJudge("llm1", llmJudge1)
+    .addJudge("llm2", llmJudge2)
+    .addJudge("llm3", llmJudge3)  // High cost, redundant
+----
+
+=== 2. Appropriate Weights
+
+[source,java]
+----
+// ✅ Good: Critical criteria weighted higher
+Juries.builder()
+    .addJudge("security", securityJudge, 0.5)   // Most important
+    .addJudge("quality", qualityJudge, 0.3)
+    .addJudge("style", styleJudge, 0.2)         // Least important
+    .votingStrategy(VotingStrategies.weightedAverage())
+    .build();
+----
+
+=== 3. Log Individual Results
+
+[source,java]
+----
+Verdict verdict = jury.vote(context);
+
+// Log each judge's contribution
+verdict.individual().forEach(judgment -> {
+    String name = (String) judgment.metadata().get("judgeName");
+    logger.info("{}: {} ({})",
+        name,
+        judgment.pass() ? "PASS" : "FAIL",
+        judgment.reasoning()
+    );
+});
+
+// Log aggregated result
+logger.info("Final verdict: {}", verdict.aggregated().pass());
+----
+
+=== 4. Use Appropriate Strategy
+
+[source,java]
+----
+// Critical: All must pass
+VotingStrategies.allMustPass()  // Security, compliance
+
+// Balanced: Majority
+VotingStrategies.majority()     // Code reviews
+
+// Weighted: Different importance
+VotingStrategies.weightedAverage()  // Quality gates
+----
+
+== Common Pitfalls
+
+=== Pitfall 1: Too Many Judges
+
+[source,java]
+----
+// ❌ Poor: 10 judges, high cost, slow
+Juries.builder()
+    .addJudge("j1", judge1)
+    .addJudge("j2", judge2)
+    // ... 8 more judges
+    .votingStrategy(VotingStrategies.majority())
+    .build();
+
+// ✅ Better: 3-5 judges, diverse types
+Juries.builder()
+    .addJudge("deterministic", buildJudge)
+    .addJudge("llm", correctnessJudge)
+    .addJudge("agent", reviewJudge)
+    .votingStrategy(VotingStrategies.majority())
+    .build();
+----
+
+**Recommendation**: 3-5 judges is optimal. More judges increase cost/latency without proportional benefit.
+
+=== Pitfall 2: Mismatched Strategies
+
+[source,java]
+----
+// ❌ Poor: Boolean judges with weighted average
+Juries.builder()
+    .addJudge("file", new FileExistsJudge("..."))  // Boolean
+    .addJudge("build", new BuildSuccessJudge())     // Boolean
+    .votingStrategy(VotingStrategies.weightedAverage())  // Expects numerical
+    .build();
+
+// ✅ Better: Use majority for boolean judges
+Juries.builder()
+    .addJudge("file", new FileExistsJudge("..."))
+    .addJudge("build", new BuildSuccessJudge())
+    .votingStrategy(VotingStrategies.majority())
+    .build();
+----
+
+=== Pitfall 3: Ignoring Individual Results
+
+[source,java]
+----
+// ❌ Poor: Only check aggregated
+if (verdict.aggregated().pass()) {
+    deploy();
+}
+
+// ✅ Better: Examine individual failures
+if (verdict.aggregated().pass()) {
+    deploy();
+} else {
+    // Analyze which judges failed
+    verdict.individual().stream()
+        .filter(j -> !j.pass())
+        .forEach(j -> {
+            String name = (String) j.metadata().get("judgeName");
+            logger.error("{} failed: {}", name, j.reasoning());
+        });
+}
+----
+
+## Next Steps
+
+* **Voting Strategies**: xref:voting-strategies.adoc[Complete voting strategy reference]
+* **Judge API**: xref:../index.adoc[All judge types and patterns]
+* **JudgeAdvisor**: xref:../judge-advisor.adoc[Integration with AgentClient]
+* **Deterministic Judges**: xref:../deterministic/overview.adoc[Fast, objective evaluation]
+
+== Further Reading
+
+* xref:../index.adoc[Judge API Overview] - Complete Judge API documentation
+* xref:../../getting-started/first-judge.adoc[Your First Judge] - Practical introduction
+* https://github.com/UpstageAI/judges[judges framework] - Original Python jury pattern
+
+---
+
+The Jury pattern provides robust, consensus-based evaluation by combining multiple judges. Use it for production-critical decisions that benefit from diverse perspectives and voting strategies.

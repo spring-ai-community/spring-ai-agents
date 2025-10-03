@@ -1,0 +1,647 @@
+= Agent as Judge: Meta-Evaluation
+:page-title: Agent as Judge
+:toc: left
+:tabsize: 2
+:sectnums:
+
+`AgentJudge` uses an autonomous agent to evaluate another agent's work. This enables sophisticated evaluation that leverages the full capabilities of CLI agents: code analysis, security auditing, multi-step reasoning, and iterative refinement.
+
+== Overview
+
+Instead of using simple LLM prompts, Agent as Judge runs a complete agent task for evaluation. The judge agent can:
+
+* **Navigate code** - Read multiple files, follow references
+* **Run commands** - Execute linters, security scanners, tests
+* **Iterate** - Refine analysis through multiple steps
+* **Use tools** - Leverage grep, find, git for thorough inspection
+
+**When to use**:
+
+* Complex evaluation requires multiple steps
+* Need to analyze multiple files or entire codebase
+* Evaluation benefits from running tools (linters, scanners)
+* Subjective criteria benefit from deep code understanding
+
+**When NOT to use**:
+
+* Simple yes/no judgment (use `CorrectnessJudge` instead)
+* Objective criteria (use deterministic judges instead)
+* Cost/latency are major concerns
+
+== Basic Usage
+
+[source,java]
+----
+import org.springaicommunity.agents.judge.agent.AgentJudge;
+
+@Service
+public class CodeReviewService {
+
+    private final AgentClient agentClient;
+
+    public void reviewPullRequest(Path projectRoot) {
+        // Agent judge performs code review
+        Judge reviewJudge = AgentJudge.builder()
+            .agentClient(agentClient)
+            .criteria("""
+                Review the code for:
+                - Code quality and maintainability
+                - Potential bugs or logic errors
+                - Security vulnerabilities
+                - Best practices adherence
+                """)
+            .build();
+
+        // Use as any other judge
+        AgentClientResponse response = agentClientBuilder
+            .goal("Implement user authentication feature")
+            .workingDirectory(projectRoot)
+            .advisors(JudgeAdvisor.builder()
+                .judge(reviewJudge)
+                .build())
+            .call();
+
+        Judgment judgment = response.getJudgment();
+
+        if (judgment.pass()) {
+            System.out.println("✓ Code review passed");
+            approvePullRequest();
+        } else {
+            System.out.println("✗ Code review found issues");
+            System.out.println("Reasoning: " + judgment.reasoning());
+            requestChanges(judgment.reasoning());
+        }
+    }
+}
+----
+
+== How It Works
+
+=== 1. Judge Agent Receives Goal
+
+`AgentJudge` formats an evaluation goal for the judge agent:
+
+[source,text]
+----
+Evaluate the following agent execution:
+
+Original Goal: Implement user authentication feature
+Workspace: /projects/my-app
+Agent Output: Created UserController with login/logout endpoints
+Execution Status: COMPLETED
+
+Evaluation Criteria:
+Review the code for:
+- Code quality and maintainability
+- Potential bugs or logic errors
+- Security vulnerabilities
+- Best practices adherence
+
+Provide your judgment in the following format:
+PASS: true/false
+SCORE: X.X (0-10, optional)
+REASONING: Your detailed explanation
+
+Be thorough and specific in your reasoning.
+----
+
+=== 2. Judge Agent Executes
+
+The judge agent autonomously:
+
+1. Navigates to workspace
+2. Reads relevant files (`UserController.java`, tests, config)
+3. Analyzes code quality
+4. Checks for security issues
+5. Runs static analysis tools if needed
+6. Formulates judgment
+
+=== 3. Response Parsed into Judgment
+
+The judge agent responds:
+
+[source,text]
+----
+PASS: true
+SCORE: 8.5
+REASONING: The authentication implementation is well-structured with proper
+password hashing (BCrypt) and JWT token management. Code follows Spring Security
+best practices. Minor improvements suggested: add rate limiting on login endpoint
+and implement refresh token rotation. Overall, code quality is high and ready for
+production with the suggested enhancements.
+----
+
+This is parsed into:
+
+[source,java]
+----
+Judgment {
+    status = PASS
+    score = NumericalScore(8.5, 0, 10)
+    reasoning = "The authentication implementation is well-structured..."
+}
+----
+
+== Factory Methods
+
+Pre-configured judges for common tasks:
+
+=== Code Review
+
+[source,java]
+----
+Judge codeReview = AgentJudge.codeReview(agentClient);
+
+AgentClientResponse response = agentClientBuilder
+    .goal("Implement payment processing")
+    .advisors(JudgeAdvisor.builder()
+        .judge(codeReview)
+        .build())
+    .call();
+
+Judgment judgment = response.getJudgment();
+----
+
+**Evaluation criteria**:
+- Code quality and maintainability
+- Correctness and potential bugs
+- Best practices adherence
+- Performance considerations
+
+=== Security Audit
+
+[source,java]
+----
+Judge securityAudit = AgentJudge.securityAudit(agentClient);
+
+AgentClientResponse response = agentClientBuilder
+    .goal("Add user registration endpoint")
+    .advisors(JudgeAdvisor.builder()
+        .judge(securityAudit)
+        .build())
+    .call();
+
+Judgment judgment = response.getJudgment();
+
+if (!judgment.pass()) {
+    logger.error("Security vulnerabilities found: {}", judgment.reasoning());
+    alertSecurityTeam(judgment.reasoning());
+}
+----
+
+**Evaluation criteria**:
+- Security vulnerabilities (SQL injection, XSS, etc.)
+- Authentication and authorization flaws
+- Data exposure risks
+- Compliance issues
+
+== Custom Evaluation Criteria
+
+Create domain-specific agent judges:
+
+=== Example: API Design Review
+
+[source,java]
+----
+Judge apiDesignJudge = AgentJudge.builder()
+    .agentClient(agentClient)
+    .name("APIDesignReview")
+    .description("Evaluates REST API design quality")
+    .criteria("""
+        Evaluate the REST API design against these criteria:
+
+        1. RESTful principles:
+           - Proper HTTP methods (GET, POST, PUT, DELETE)
+           - Resource-oriented URLs
+           - Appropriate status codes
+
+        2. API design:
+           - Consistent naming conventions
+           - Proper error handling and responses
+           - Request/response structure
+
+        3. Documentation:
+           - OpenAPI/Swagger annotations
+           - Clear endpoint descriptions
+
+        4. Security:
+           - Authentication requirements
+           - Input validation
+           - Rate limiting considerations
+
+        Provide specific examples of issues found.
+        """)
+    .build();
+
+AgentClientResponse response = agentClientBuilder
+    .goal("Create REST API for Product management")
+    .workingDirectory(projectRoot)
+    .advisors(JudgeAdvisor.builder()
+        .judge(apiDesignJudge)
+        .build())
+    .call();
+----
+
+=== Example: Test Coverage Review
+
+[source,java]
+----
+Judge testCoverageJudge = AgentJudge.builder()
+    .agentClient(agentClient)
+    .name("TestCoverageReview")
+    .description("Evaluates test coverage and quality")
+    .criteria("""
+        Review test coverage:
+
+        1. Unit tests:
+           - All public methods tested
+           - Edge cases covered
+           - Proper assertions
+
+        2. Integration tests:
+           - API endpoints tested
+           - Database interactions tested
+
+        3. Test quality:
+           - Clear test names
+           - Arrange-Act-Assert pattern
+           - No test dependencies
+
+        4. Coverage metrics:
+           - Run 'mvn jacoco:report' and check coverage
+           - Minimum 80% line coverage expected
+
+        Report specific gaps in coverage.
+        """)
+    .build();
+----
+
+== Custom Goal Templates
+
+Override the default evaluation prompt:
+
+[source,java]
+----
+Judge customJudge = AgentJudge.builder()
+    .agentClient(agentClient)
+    .name("CustomEvaluation")
+    .criteria("Your evaluation criteria")
+    .goalTemplate("""
+        CUSTOM EVALUATION TASK:
+
+        The agent attempted to: {goal}
+        Working in: {workspace}
+        Result: {output}
+
+        Your task: {criteria}
+
+        Analyze thoroughly and respond with:
+        PASS: true/false
+        SCORE: 0-10
+        REASONING: Detailed findings with specific file references
+        """)
+    .build();
+----
+
+**Available placeholders**:
+- `{goal}` - Original agent goal
+- `{workspace}` - Workspace path
+- `{output}` - Agent output
+- `{status}` - Execution status
+- `{criteria}` - Evaluation criteria
+
+== Agent Judge vs LLM Judge
+
+Understanding the differences:
+
+[cols="1h,2,2"]
+|===
+|Aspect |LLM Judge |Agent Judge
+
+|**Execution**
+|Single LLM call
+|Full agent task (multi-step)
+
+|**Capabilities**
+|Text analysis only
+|File navigation, command execution, tool use
+
+|**Latency**
+|~3 seconds
+|~30-60 seconds
+
+|**Cost**
+|$0.01 per judgment
+|$0.10-0.50 per judgment
+
+|**Use Cases**
+|Simple semantic evaluation
+|Complex multi-file analysis
+
+|**Example**
+|"Is documentation helpful?"
+|"Audit codebase for security issues"
+|===
+
+**Best practice**: Use LLM judges for simple semantic checks, Agent judges for complex multi-step evaluation.
+
+== Production Patterns
+
+=== Pattern 1: Pre-Merge Code Review
+
+[source,java]
+----
+@Service
+public class PullRequestService {
+
+    private final AgentClient agentClient;
+    private final AgentClient.Builder agentClientBuilder;
+
+    public boolean approvePullRequest(Path projectRoot) {
+        // Run automated code review
+        Judge codeReview = AgentJudge.codeReview(agentClient);
+
+        AgentClientResponse response = agentClientBuilder
+            .goal("Review code changes in the pull request")
+            .workingDirectory(projectRoot)
+            .advisors(JudgeAdvisor.builder()
+                .judge(codeReview)
+                .build())
+            .call();
+
+        Judgment judgment = response.getJudgment();
+
+        if (judgment.pass()) {
+            // Auto-approve if high score
+            if (judgment.score() instanceof NumericalScore numerical) {
+                if (numerical.value() >= 9.0) {
+                    approvePR();
+                    return true;
+                }
+            }
+            // Request human review for medium scores
+            requestHumanReview(judgment.reasoning());
+            return false;
+        } else {
+            // Block PR if failed
+            rejectPR(judgment.reasoning());
+            return false;
+        }
+    }
+}
+----
+
+=== Pattern 2: Security-First Development
+
+[source,java]
+----
+@Service
+public class SecureDeployment {
+
+    public void deployWithSecurity(Path projectRoot) {
+        // Run security audit before deployment
+        Judge securityAudit = AgentJudge.securityAudit(agentClient);
+
+        AgentClientResponse response = agentClientBuilder
+            .goal("Prepare application for production deployment")
+            .workingDirectory(projectRoot)
+            .advisors(
+                // Build must succeed
+                JudgeAdvisor.builder()
+                    .judge(BuildSuccessJudge.maven("clean", "install"))
+                    .order(100)
+                    .build(),
+
+                // Security audit (expensive, runs last)
+                JudgeAdvisor.builder()
+                    .judge(securityAudit)
+                    .order(200)
+                    .build()
+            )
+            .call();
+
+        Judgment judgment = response.getJudgment();
+
+        if (!judgment.pass()) {
+            logger.error("Security audit failed: {}", judgment.reasoning());
+            alertSecurityTeam(judgment.reasoning());
+            throw new SecurityException("Deployment blocked due to security issues");
+        }
+
+        deploy(projectRoot);
+    }
+}
+----
+
+=== Pattern 3: Iterative Quality Improvement
+
+[source,java]
+----
+@Service
+public class QualityImprovement {
+
+    public void improveUntilQuality(Path projectRoot, double targetScore) {
+        int maxAttempts = 3;
+
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            // Run code review
+            Judge codeReview = AgentJudge.codeReview(agentClient);
+
+            AgentClientResponse response = agentClientBuilder
+                .goal("Improve code quality based on previous feedback")
+                .workingDirectory(projectRoot)
+                .advisors(JudgeAdvisor.builder()
+                    .judge(codeReview)
+                    .build())
+                .call();
+
+            Judgment judgment = response.getJudgment();
+
+            if (judgment.score() instanceof NumericalScore numerical) {
+                double score = numerical.value();
+
+                logger.info("Attempt {}: Quality score = {}", attempt, score);
+
+                if (score >= targetScore) {
+                    logger.info("✓ Target quality achieved");
+                    return;
+                }
+
+                // Use judgment reasoning to guide next iteration
+                logger.info("Feedback: {}", judgment.reasoning());
+            }
+        }
+
+        throw new QualityException("Failed to achieve target quality after " + maxAttempts + " attempts");
+    }
+}
+----
+
+== Cost and Performance
+
+Agent judges are more expensive than LLM judges:
+
+=== Typical Costs
+
+* **Agent execution**: $0.05-0.30 per judgment
+* **LLM judge**: $0.01 per judgment
+* **Deterministic**: Free
+
+=== Performance
+
+* **Latency**: 30-90 seconds (full agent task)
+* **Complexity**: Handles multi-file analysis, command execution
+* **Thoroughness**: Can review entire codebases
+
+=== Optimization Strategies
+
+==== 1. Use Sparingly
+
+[source,java]
+----
+// ✅ Good: Agent judge for complex review
+AgentJudge.codeReview(agentClient)
+
+// ❌ Wasteful: Agent judge for simple check
+AgentJudge.builder()
+    .criteria("Check if file exists")
+    .build()
+// Use FileExistsJudge instead
+----
+
+==== 2. Layer Checks
+
+[source,java]
+----
+// Fast checks first, expensive agent judge last
+.advisors(
+    JudgeAdvisor.builder()
+        .judge(BuildSuccessJudge.maven("test")) // ~60s
+        .order(100)
+        .build(),
+
+    JudgeAdvisor.builder()
+        .judge(AgentJudge.codeReview(agentClient)) // ~90s + $0.20
+        .order(200)
+        .build()
+)
+----
+
+==== 3. Cache Results
+
+[source,java]
+----
+@Service
+public class CachedAgentJudge implements Judge {
+
+    private final AgentJudge delegate;
+    private final ConcurrentHashMap<String, Judgment> cache = new ConcurrentHashMap<>();
+
+    @Override
+    public Judgment judge(JudgmentContext context) {
+        String key = computeHash(context.workspace());
+
+        return cache.computeIfAbsent(key, k -> {
+            logger.info("Cache miss - running agent judge");
+            return delegate.judge(context);
+        });
+    }
+}
+----
+
+== Best Practices
+
+=== 1. Clear, Specific Criteria
+
+[source,java]
+----
+// ✅ Good: Specific checklist
+.criteria("""
+    Check for:
+    1. SQL injection vulnerabilities
+    2. XSS prevention
+    3. CSRF token usage
+    4. Password hashing (BCrypt)
+    """)
+
+// ❌ Vague: Hard for agent to evaluate
+.criteria("Check security")
+----
+
+=== 2. Request Structured Output
+
+[source,java]
+----
+.criteria("""
+    Evaluate code quality and respond with:
+
+    PASS: true/false
+    SCORE: 0-10
+    REASONING: Detailed explanation with file references
+
+    Be specific about file names and line numbers.
+    """)
+----
+
+=== 3. Combine with Deterministic Judges
+
+[source,java]
+----
+// Hybrid approach: fast checks + thorough agent review
+.advisors(
+    JudgeAdvisor.builder().judge(BuildSuccessJudge.maven("test")).build(),
+    JudgeAdvisor.builder().judge(new FileExistsJudge("README.md")).build(),
+    JudgeAdvisor.builder().judge(AgentJudge.codeReview(agentClient)).build()
+)
+----
+
+=== 4. Log Detailed Reasoning
+
+[source,java]
+----
+Judgment judgment = response.getJudgment();
+
+logger.info("Agent Judge Result:");
+logger.info("  Status: {}", judgment.status());
+logger.info("  Score: {}", judgment.score());
+logger.info("  Reasoning:\n{}", judgment.reasoning());
+
+// Parse for specific issues if needed
+if (!judgment.pass()) {
+    String reasoning = judgment.reasoning();
+    if (reasoning.contains("security")) {
+        alertSecurityTeam(reasoning);
+    }
+}
+----
+
+== Limitations
+
+=== 1. Higher Cost
+
+Agent judges are 5-30x more expensive than LLM judges. Reserve for complex evaluation.
+
+=== 2. Longer Latency
+
+Full agent execution takes 30-90 seconds vs 3 seconds for LLM judges.
+
+=== 3. Non-Deterministic
+
+Like LLM judges, agent judges may vary in their assessments. Consider using voting/consensus for critical decisions.
+
+== Next Steps
+
+* **Jury Pattern**: xref:../jury/overview.adoc[Combine multiple judges for robust evaluation]
+* **LLM Judges**: xref:../llm-powered/overview.adoc[Simpler semantic evaluation]
+* **Deterministic Judges**: xref:../deterministic/overview.adoc[Fast, free rule-based checks]
+* **Judge Advisor**: xref:../judge-advisor.adoc[Integration with AgentClient]
+
+== Further Reading
+
+* xref:../index.adoc[Judge API Overview] - Complete Judge API documentation
+* xref:../../concepts/cli-agents.adoc[CLI Agents] - Understanding autonomous agents
+* xref:../../getting-started/first-judge.adoc[Your First Judge] - Practical introduction
+
+---
+
+Agent as Judge brings the full power of autonomous agents to evaluation tasks. Use it strategically for complex, multi-step analysis that simpler judges can't handle.
