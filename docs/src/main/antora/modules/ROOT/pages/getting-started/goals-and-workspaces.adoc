@@ -1,0 +1,353 @@
+= Goals and Workspaces
+:page-title: Designing Effective Goals and Workspaces
+:toc: left
+:tabsize: 2
+
+Goals and workspaces are the foundation of agent execution. A well-designed goal leads to successful agent outcomes, while a poorly designed goal leads to frustration.
+
+== What is a Goal?
+
+A goal is a clear, specific instruction for what you want the agent to achieve. It's the **what**, not the **how**.
+
+=== Characteristics of Good Goals
+
+Good goals are:
+
+* **Specific** - Clear about what needs to be done
+* **Measurable** - Success can be determined
+* **Well-scoped** - Achievable in a reasonable time
+* **Actionable** - The agent can actually do it
+
+=== Good Goal Examples
+
+[source,java]
+----
+// ✅ Specific and measurable
+agentClientBuilder
+    .goal("Create a file named report.txt containing today's date in ISO-8601 format")
+    .workingDirectory(Path.of("/tmp/reports"))
+    .call();
+
+// ✅ Clear success criteria
+agentClientBuilder
+    .goal("Run 'mvn test' and fix any failing unit tests in the UserService class")
+    .workingDirectory(projectRoot)
+    .call();
+
+// ✅ Well-scoped and actionable
+agentClientBuilder
+    .goal("Add a GET /users endpoint to UserController that returns a list of users as JSON")
+    .workingDirectory(projectRoot)
+    .call();
+
+// ✅ Specific file operations
+agentClientBuilder
+    .goal("Update application.properties to set server.port=8081")
+    .workingDirectory(projectRoot)
+    .call();
+----
+
+=== Poor Goal Examples
+
+[source,java]
+----
+// ❌ Too vague - what does "better" mean?
+agentClientBuilder
+    .goal("Make the code better")
+    .workingDirectory(projectRoot)
+    .call();
+
+// ❌ No clear completion - when is the agent done?
+agentClientBuilder
+    .goal("Think about the architecture")
+    .workingDirectory(projectRoot)
+    .call();
+
+// ❌ Too broad - this could take hours or days
+agentClientBuilder
+    .goal("Build the entire e-commerce application")
+    .workingDirectory(projectRoot)
+    .call();
+
+// ❌ Ambiguous - which files? What structure?
+agentClientBuilder
+    .goal("Organize the files better")
+    .workingDirectory(projectRoot)
+    .call();
+----
+
+== Goal Design Patterns
+
+=== File Creation Goals
+
+When creating files, be specific about names and content:
+
+[source,java]
+----
+// Good: Specific filename and content structure
+agentClientBuilder
+    .goal("Create a README.md file with sections for Installation, Usage, and License")
+    .workingDirectory(projectRoot)
+    .call();
+
+// Even better: Include content examples
+agentClientBuilder
+    .goal("Create a README.md with:\n" +
+          "- Project title: 'My Awesome API'\n" +
+          "- Installation section with Maven dependency\n" +
+          "- Usage section with curl example")
+    .workingDirectory(projectRoot)
+    .call();
+----
+
+=== Code Modification Goals
+
+Be specific about what to change and where:
+
+[source,java]
+----
+// Good: Specific class and change
+agentClientBuilder
+    .goal("Add error handling to the UserService.createUser() method")
+    .workingDirectory(projectRoot)
+    .call();
+
+// Good: Multiple related changes
+agentClientBuilder
+    .goal("Refactor UserController to use constructor injection instead of field injection")
+    .workingDirectory(projectRoot)
+    .call();
+----
+
+=== Build and Test Goals
+
+Include the specific command and success criteria:
+
+[source,java]
+----
+// Good: Specific command and outcome
+agentClientBuilder
+    .goal("Run 'mvn clean install' and ensure all tests pass")
+    .workingDirectory(projectRoot)
+    .call();
+
+// Good: Fix specific failures
+agentClientBuilder
+    .goal("Fix the failing test in UserServiceTest.testCreateUser")
+    .workingDirectory(projectRoot)
+    .call();
+----
+
+== Understanding Workspaces
+
+The working directory (workspace) is where the agent operates. All file operations are scoped to this directory.
+
+=== Workspace Isolation
+
+Each agent task operates in its own workspace:
+
+[source,java]
+----
+// Task 1: Operates in /tmp/project-a
+agentClientBuilder
+    .goal("Create a README.md")
+    .workingDirectory(Path.of("/tmp/project-a"))
+    .call();
+
+// Task 2: Operates in /tmp/project-b (completely isolated from Task 1)
+agentClientBuilder
+    .goal("Create a README.md")
+    .workingDirectory(Path.of("/tmp/project-b"))
+    .call();
+----
+
+Each task creates `README.md` in its own workspace without interfering with the other.
+
+=== Workspace Scope
+
+The agent can:
+
+* ✅ Read files within the workspace
+* ✅ Create, modify, delete files within the workspace
+* ✅ Execute commands within the workspace
+* ✅ Navigate subdirectories within the workspace
+
+The agent typically cannot:
+
+* ❌ Access files outside the workspace (unless explicitly granted permissions)
+* ❌ Make system-wide changes
+* ❌ Access network resources without tools
+
+[WARNING]
+====
+Agents have file system access within the working directory. For production environments or untrusted code, use xref:../concepts/sandboxes.adoc[Docker sandboxes] for isolation.
+====
+
+=== Workspace Best Practices
+
+==== Use Absolute Paths
+
+[source,java]
+----
+// ✅ Good: Absolute path
+Path.of("/home/user/projects/my-api")
+
+// ❌ Risky: Relative path (depends on current directory)
+Path.of("./my-api")
+----
+
+==== One Project Per Workspace
+
+[source,java]
+----
+// ✅ Good: Clear project boundary
+agentClientBuilder
+    .goal("Add a health check endpoint")
+    .workingDirectory(Path.of("/projects/user-service"))
+    .call();
+----
+
+==== Reuse Workspaces for Related Tasks
+
+[source,java]
+----
+Path projectRoot = Path.of("/projects/my-service");
+
+// Task 1: Generate project structure
+agentClientBuilder
+    .goal("Create a Spring Boot Maven project")
+    .workingDirectory(projectRoot)
+    .call();
+
+// Task 2: Add a feature (same workspace)
+agentClientBuilder
+    .goal("Add a GET /health endpoint")
+    .workingDirectory(projectRoot)
+    .call();
+
+// Task 3: Run tests (same workspace)
+agentClientBuilder
+    .goal("Run 'mvn test' and ensure all tests pass")
+    .workingDirectory(projectRoot)
+    .call();
+----
+
+== Combining Goals and Workspaces
+
+Here's a complete example showing goal design and workspace usage:
+
+[source,java]
+----
+import org.springframework.stereotype.Service;
+import org.springaicommunity.agents.client.AgentClient;
+import org.springaicommunity.agents.client.AgentClientResponse;
+
+import java.nio.file.Path;
+
+@Service
+public class ProjectSetupService {
+
+    private final AgentClient.Builder agentClientBuilder;
+
+    public ProjectSetupService(AgentClient.Builder agentClientBuilder) {
+        this.agentClientBuilder = agentClientBuilder;
+    }
+
+    public void setupNewMicroservice(String serviceName) {
+        Path serviceRoot = Path.of("/projects/" + serviceName);
+
+        // Step 1: Create project structure
+        AgentClientResponse response = agentClientBuilder
+            .goal("Create a Spring Boot Maven project with:\n" +
+                  "- groupId: com.example\n" +
+                  "- artifactId: " + serviceName + "\n" +
+                  "- Spring Boot 3.x\n" +
+                  "- Java 17")
+            .workingDirectory(serviceRoot)
+            .call();
+
+        System.out.println("Project structure created: " + response.getResult());
+
+        // Step 2: Add REST API endpoint
+        response = agentClientBuilder
+            .goal("Add a REST controller with:\n" +
+                  "- Path: /api/v1/" + serviceName + "\n" +
+                  "- GET endpoint that returns {'status': 'healthy'}\n" +
+                  "- Proper Spring annotations")
+            .workingDirectory(serviceRoot)
+            .call();
+
+        System.out.println("API endpoint added: " + response.getResult());
+
+        // Step 3: Add tests
+        response = agentClientBuilder
+            .goal("Create a test class for the REST controller with:\n" +
+                  "- @SpringBootTest annotation\n" +
+                  "- Test for GET endpoint\n" +
+                  "- Verify 200 status and JSON response")
+            .workingDirectory(serviceRoot)
+            .call();
+
+        System.out.println("Tests added: " + response.getResult());
+
+        // Step 4: Verify build
+        response = agentClientBuilder
+            .goal("Run 'mvn clean test' and ensure all tests pass")
+            .workingDirectory(serviceRoot)
+            .call();
+
+        System.out.println("Build verification: " + response.getResult());
+    }
+}
+----
+
+== Common Pitfalls
+
+=== Pitfall 1: Goals That Are Too Generic
+
+[source,java]
+----
+// ❌ Too generic
+.goal("Fix the code")
+
+// ✅ Specific
+.goal("Fix the NullPointerException in UserService.findById() on line 42")
+----
+
+=== Pitfall 2: Multiple Unrelated Goals
+
+[source,java]
+----
+// ❌ Too many unrelated things
+.goal("Create a README, fix the tests, update dependencies, and refactor the service layer")
+
+// ✅ One focused goal
+.goal("Create a README with Installation and Usage sections")
+
+// Then separate goals for other tasks
+.goal("Fix failing tests in UserServiceTest")
+.goal("Update Spring Boot to version 3.2.0")
+----
+
+=== Pitfall 3: Assuming Context the Agent Doesn't Have
+
+[source,java]
+----
+// ❌ Assumes agent knows what "the bug" is
+.goal("Fix the bug")
+
+// ✅ Provides context
+.goal("Fix the bug where UserService.createUser() throws NPE when email is null")
+----
+
+== Next Steps
+
+Now that you understand how to design effective goals and use workspaces, learn how to **verify** that your agent achieved its goal:
+
+→ xref:first-judge.adoc[Your First Judge]
+
+You can also explore:
+
+* xref:../concepts/cli-agents.adoc[CLI Agents] - Understanding agent architecture
+* xref:../concepts/context-engineering.adoc[Context Engineering] - Providing additional information to agents
+* xref:../api/agentclient.adoc[AgentClient API] - Full API reference

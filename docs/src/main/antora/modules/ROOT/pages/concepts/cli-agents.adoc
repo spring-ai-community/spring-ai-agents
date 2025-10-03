@@ -1,0 +1,407 @@
+= CLI Agents: The Foundation
+:page-title: Understanding CLI Agents
+:toc: left
+:tabsize: 2
+
+CLI agents are the foundation of Spring AI Agents. Understanding what they are and how they work is essential to using this framework effectively.
+
+== What Are CLI Agents?
+
+CLI (Command-Line Interface) agents are autonomous AI systems that interact with your development environment through command-line tools. Unlike chatbots or code completion tools, CLI agents can:
+
+* **Execute shell commands** - Run builds, tests, git operations, etc.
+* **Read and write files** - Navigate codebases, create/modify files
+* **Iterate until complete** - Keep working until the goal is achieved
+* **Make decisions** - Choose which commands to run based on results
+* **Operate autonomously** - No human intervention during execution
+
+Think of a CLI agent as a developer who works through the terminal—but powered by AI.
+
+== Anthropic's Vision: Building Agents with the Claude SDK
+
+In their engineering blog post https://www.anthropic.com/engineering/building-agents-with-the-claude-agent-sdk[Building Agents with the Claude Agent SDK], Anthropic describes the architecture and principles of production-ready CLI agents:
+
+[quote, Anthropic Engineering Blog]
+____
+The Claude Agent SDK provides a framework for building autonomous agents that can execute complex development tasks by iterating through cycles of planning, execution, and verification until the goal is achieved.
+____
+
+=== Key Principles from Anthropic
+
+The Anthropic blog outlines four foundational principles:
+
+==== 1. Tool-Calling Loop
+
+Agents iterate through a cycle:
+
+[source,text]
+----
+Think → Act → Observe → Repeat
+
+1. THINK: Agent analyzes the goal and current state
+2. ACT: Agent decides which tool/command to execute
+3. OBSERVE: Agent sees the result of the action
+4. REPEAT: Loop until goal is achieved
+----
+
+Example iteration:
+
+[source,text]
+----
+Goal: "Fix the failing test in UserServiceTest"
+
+Iteration 1:
+  THINK: Need to see what test is failing
+  ACT: Run "mvn test"
+  OBSERVE: UserServiceTest.testCreateUser fails with NPE
+
+Iteration 2:
+  THINK: NPE suggests null email field
+  ACT: Read UserService.java source
+  OBSERVE: createUser() doesn't validate email
+
+Iteration 3:
+  THINK: Add null check before using email
+  ACT: Modify UserService.java to add validation
+  OBSERVE: File modified successfully
+
+Iteration 4:
+  THINK: Verify the fix works
+  ACT: Run "mvn test" again
+  OBSERVE: All tests pass ✓
+
+Goal achieved!
+----
+
+==== 2. Workspace Isolation
+
+Agents operate in well-defined workspaces with clear boundaries:
+
+* **Sandboxed execution** - Agents don't have unrestricted system access
+* **Scoped file operations** - File operations are limited to the workspace
+* **Controlled permissions** - Explicit permissions for sensitive operations
+
+Spring AI Agents implements this through:
+
+[source,java]
+----
+agentClientBuilder
+    .goal("Create a REST API")
+    .workingDirectory(Path.of("/projects/my-api"))  // ← Workspace boundary
+    .call();
+----
+
+==== 3. Goal-Driven Execution
+
+Agents have **clear objectives** that guide their behavior:
+
+[source,java]
+----
+// ✅ Clear goal
+"Add a GET /users endpoint that returns JSON"
+
+// ❌ Vague instruction
+"Make the API better"
+----
+
+The goal is the **what**, not the **how**. The agent figures out the steps.
+
+==== 4. Built-in Verification
+
+Agents verify their own work:
+
+* Check if files were created
+* Run tests to validate changes
+* Verify build success
+* Confirm deployment readiness
+
+Spring AI Agents extends this with the **Judge API**:
+
+[source,java]
+----
+agentClientBuilder
+    .goal("Fix the failing tests")
+    .advisors(JudgeAdvisor.builder()
+        .judge(new BuildSuccessJudge())  // ← Verify tests pass
+        .build())
+    .call();
+----
+
+== Why Many CLI Agents Exist
+
+The CLI agent ecosystem is diverse, and Spring AI Agents embraces this diversity. Different agents excel at different tasks:
+
+[cols="1,2,2"]
+|===
+|Agent |Strengths |Use Cases
+
+|**Claude Code**
+|Advanced reasoning, multi-step planning, code understanding
+|Complex refactoring, architectural changes, bug fixes
+
+|**Gemini CLI**
+|Multimodal capabilities, fast execution, Google integration
+|Document analysis, image processing, quick tasks
+
+|**SWE-Agent**
+|Research-focused, benchmark-optimized, academic rigor
+|SWE-bench evaluation, research projects
+
+|**Custom Agents**
+|Domain-specific, hand-written logic, company-specific workflows
+|Internal tools, proprietary systems, specialized tasks
+|===
+
+[IMPORTANT]
+====
+Spring AI Agents is **not** a CLI agent implementation. It's a framework for **integrating** any CLI agent into Spring Boot applications with familiar Spring patterns.
+====
+
+== LLM as Workflow Engine
+
+This is a fundamental shift in how we think about automation.
+
+=== Traditional Workflow Engines
+
+Traditional approaches use **code** to define workflows:
+
+[source,java]
+----
+// ❌ Traditional: You write the workflow logic
+public void fixAndDeploy() {
+    boolean buildSucceeds = runBuild();
+    if (!buildSucceeds) {
+        return; // Give up
+    }
+
+    boolean testsPass = runTests();
+    if (!testsPass) {
+        return; // Give up
+    }
+
+    if (buildSucceeds && testsPass) {
+        deploy();
+    }
+}
+----
+
+Problems:
+
+* **Rigid** - Can't adapt to unexpected situations
+* **Limited** - Only handles predefined scenarios
+* **Brittle** - Breaks when environment changes
+
+=== LLM-Based Workflow Engines
+
+CLI agents use the **LLM as the workflow engine**:
+
+[source,text]
+----
+// ✅ Agent: LLM decides the workflow
+Goal: "Fix the failing tests and deploy"
+
+Agent reasoning (dynamic):
+1. Run tests → Some tests fail
+2. Analyze failures → NPE in UserService
+3. Read UserService code → Missing null check
+4. Fix the null check → Code modified
+5. Run tests again → Tests pass ✓
+6. Run build → Build succeeds ✓
+7. Deploy → Deployment successful ✓
+----
+
+The LLM **adapts** the workflow based on what it observes:
+
+* If tests fail → analyze and fix
+* If build breaks → investigate and repair
+* If deployment fails → retry with adjustments
+
+No predefined workflow—the agent figures it out.
+
+== Spring AI Integration
+
+Spring AI Agents provides a **Spring-idiomatic** way to work with CLI agents:
+
+=== Unified Abstraction
+
+The `AgentModel` interface abstracts any CLI agent:
+
+[source,text]
+----
+┌─────────────────────┐
+│   AgentClient       │  Your Spring Boot app
+│   (Fluent API)      │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│   AgentModel        │  Abstraction layer
+│   (Interface)       │
+└──────────┬──────────┘
+           │
+    ┌──────┴──────┬──────────────┬──────────────┐
+    ▼             ▼              ▼              ▼
+┌────────┐  ┌─────────┐  ┌──────────┐  ┌──────────┐
+│ Claude │  │ Gemini  │  │SWE-Agent │  │  Custom  │
+└────────┘  └─────────┘  └──────────┘  └──────────┘
+----
+
+You write code against `AgentClient`, not a specific agent.
+
+=== Fluent API
+
+Following Spring AI's `ChatClient` pattern:
+
+[source,java]
+----
+// Mirrors ChatClient fluent API
+AgentClientResponse response = agentClientBuilder
+    .goal("Create a REST API")           // Like ChatClient.prompt()
+    .workingDirectory(projectRoot)       // Workspace context
+    .advisors(judgeAdvisor)              // Like ChatClient.advisors()
+    .call();                             // Like ChatClient.call()
+----
+
+=== Spring Boot Auto-Configuration
+
+Zero-configuration for common agents:
+
+[source,java]
+----
+// Just add dependency + API key
+// Spring Boot auto-configures everything
+
+@Service
+public class MyService {
+
+    private final AgentClient.Builder agentClientBuilder;
+
+    // Auto-wired by Spring Boot ✓
+    public MyService(AgentClient.Builder agentClientBuilder) {
+        this.agentClientBuilder = agentClientBuilder;
+    }
+}
+----
+
+=== Production Patterns
+
+Built-in support for:
+
+* **Goals** - Clear, measurable objectives
+* **Context Engineering** - Providing information to agents
+* **Judges** - Automated verification
+* **Sandboxes** - Safe execution environments
+* **Advisors** - Extensible plugin architecture
+
+== CLI Agents vs Other AI Tools
+
+Understanding where CLI agents fit:
+
+[cols="1,2,2"]
+|===
+|Tool Type |What It Does |Example
+
+|**Code Completion**
+|Suggests next lines/blocks
+|GitHub Copilot, Cursor
+
+|**Chatbots**
+|Answers questions, generates code
+|ChatGPT, Claude Chat
+
+|**CLI Agents**
+|**Executes tasks autonomously**
+|**Claude Code, Gemini CLI**
+
+|**Workflow Engines**
+|Orchestrates predefined steps
+|Airflow, Temporal
+|===
+
+CLI agents are unique because they:
+
+* ✅ Execute real commands (not just generate code)
+* ✅ Iterate until complete (not one-shot responses)
+* ✅ Adapt dynamically (not predefined workflows)
+* ✅ Verify results (not assume success)
+
+== Example: CLI Agent in Action
+
+Let's see a CLI agent solve a real problem:
+
+**Goal**: "Upgrade Spring Boot from 2.7 to 3.2 and fix any breaking changes"
+
+**Agent execution** (Claude Code):
+
+[source,text]
+----
+Iteration 1:
+  $ grep -r "spring-boot" pom.xml
+  Found: <version>2.7.0</version>
+
+Iteration 2:
+  $ sed -i 's/2.7.0/3.2.0/g' pom.xml
+  Updated pom.xml
+
+Iteration 3:
+  $ mvn clean compile
+  ERROR: javax.* packages removed in Spring Boot 3
+
+Iteration 4:
+  $ find src/ -name "*.java" | xargs grep "javax\."
+  Found 15 files using javax.servlet.*
+
+Iteration 5:
+  $ find src/ -name "*.java" | xargs sed -i 's/javax.servlet/jakarta.servlet/g'
+  Updated imports in 15 files
+
+Iteration 6:
+  $ mvn clean test
+  All tests pass ✓
+
+Goal achieved!
+----
+
+The agent:
+
+1. Found the Spring Boot version
+2. Updated the version
+3. Discovered breaking changes
+4. Found affected files
+5. Fixed the imports
+6. Verified with tests
+
+**All autonomously.** No human intervention.
+
+== When to Use CLI Agents
+
+CLI agents excel at:
+
+* ✅ **Multi-step development tasks** - Refactoring, migrations, bug fixes
+* ✅ **Exploratory work** - "Find and fix all SQL injection vulnerabilities"
+* ✅ **Repetitive tasks** - "Update all deprecated API usages"
+* ✅ **Build/test automation** - "Fix failing tests and deploy"
+* ✅ **Code generation** - "Create CRUD API for User entity"
+
+CLI agents are less suitable for:
+
+* ❌ **Real-time interactions** - Use chatbots instead
+* ❌ **Code completion** - Use Copilot/Cursor instead
+* ❌ **Simple lookups** - Use vector search/RAG instead
+* ❌ **Predefined workflows** - Use workflow engines instead
+
+== Next Steps
+
+Now that you understand the foundation, explore how to use CLI agents effectively:
+
+* xref:goals.adoc[Goals] - Designing effective agent objectives
+* xref:context-engineering.adoc[Context Engineering] - Providing information to agents
+* xref:sandboxes.adoc[Sandboxes] - Safe execution environments
+* xref:../getting-started/hello-world.adoc[Hello World] - Build your first agent task
+* xref:../judges/index.adoc[Judges] - Automated verification
+
+== Further Reading
+
+* Anthropic Engineering Blog: https://www.anthropic.com/engineering/building-agents-with-the-claude-agent-sdk[Building Agents with the Claude Agent SDK]
+* xref:../api/agentclient-vs-chatclient.adoc[AgentClient vs ChatClient] - API comparison
+* xref:../api/claude-code-sdk.adoc[Claude Code SDK] - Deep dive into Claude integration

@@ -1,0 +1,448 @@
+= Your First Judge: Verifying Agent Success
+:page-title: Your First Judge
+:toc: left
+:tabsize: 2
+
+You've learned to execute agent tasks with goals and workspaces. But how do you **verify** that the agent actually succeeded?
+
+== The Problem
+
+Consider this agent task:
+
+[source,java]
+----
+AgentClientResponse response = agentClientBuilder
+    .goal("Create a file named hello.txt with content 'Hello World'")
+    .workingDirectory(Path.of("/tmp/test"))
+    .call();
+
+// ❓ Did it actually create the file?
+// ❓ Does the file have the right content?
+// ❓ What if the agent failed silently?
+// ❓ How do I know if it's safe to proceed to the next step?
+----
+
+**Agents are non-deterministic.** The same goal might succeed today and fail tomorrow due to:
+
+* Network issues
+* File permission problems
+* Resource constraints
+* LLM reasoning variations
+* Environmental differences
+
+You need **automated verification** instead of manual checking.
+
+== The Solution: JudgeAdvisor
+
+A `Judge` is a component that evaluates whether an agent achieved its goal. The `JudgeAdvisor` integrates judges into the agent execution pipeline.
+
+[source,java]
+----
+import org.springaicommunity.agents.advisors.judge.JudgeAdvisor;
+import org.springaicommunity.agents.judge.Judge;
+import org.springaicommunity.agents.judge.fs.FileExistsJudge;
+import org.springaicommunity.agents.judge.result.Judgment;
+
+// Step 1: Create a judge
+Judge fileJudge = new FileExistsJudge("hello.txt");
+
+// Step 2: Attach judge to agent task
+AgentClientResponse response = agentClientBuilder
+    .goal("Create a file named hello.txt with content 'Hello World'")
+    .workingDirectory(Path.of("/tmp/test"))
+    .advisors(JudgeAdvisor.builder()
+        .judge(fileJudge)
+        .build())  // ← Judge executes after agent task
+    .call();
+
+// Step 3: Check the judgment
+Judgment judgment = response.getJudgment();
+if (judgment.pass()) {
+    System.out.println("✓ File created successfully!");
+} else {
+    System.out.println("✗ Failed: " + judgment.reasoning());
+}
+----
+
+== How It Works
+
+`JudgeAdvisor` operates as a **post-processing step**:
+
+[source,text]
+----
+1. Agent executes goal
+   ↓
+2. JudgeAdvisor intercepts response
+   ↓
+3. Judge evaluates the result
+   ↓
+4. Judgment attached to response
+   ↓
+5. Your code checks judgment.pass()
+----
+
+The agent completes its work, then the judge evaluates whether it succeeded.
+
+== FileExistsJudge: Your First Judge
+
+The `FileExistsJudge` is the simplest judge—it checks if a file exists in the workspace:
+
+[source,java]
+----
+// Check if "output.txt" exists
+Judge judge = new FileExistsJudge("output.txt");
+
+// Check if a file in a subdirectory exists
+Judge judge = new FileExistsJudge("reports/summary.txt");
+----
+
+When the judge evaluates:
+
+* **PASS** - File exists
+* **FAIL** - File does not exist
+
+The reasoning field explains the result:
+
+[source,java]
+----
+Judgment judgment = response.getJudgment();
+
+System.out.println("Status: " + judgment.status());      // PASS or FAIL
+System.out.println("Reasoning: " + judgment.reasoning()); // "File output.txt exists"
+System.out.println("Score: " + judgment.score());        // BooleanScore(true/false)
+----
+
+== Complete Example
+
+Here's a complete example with error handling:
+
+[source,java]
+----
+import org.springframework.stereotype.Service;
+import org.springaicommunity.agents.advisors.judge.JudgeAdvisor;
+import org.springaicommunity.agents.client.AgentClient;
+import org.springaicommunity.agents.client.AgentClientResponse;
+import org.springaicommunity.agents.judge.fs.FileExistsJudge;
+import org.springaicommunity.agents.judge.result.Judgment;
+
+import java.nio.file.Path;
+
+@Service
+public class ReportGenerator {
+
+    private final AgentClient.Builder agentClientBuilder;
+
+    public ReportGenerator(AgentClient.Builder agentClientBuilder) {
+        this.agentClientBuilder = agentClientBuilder;
+    }
+
+    public void generateReport() {
+        // Define working directory
+        Path reportsDir = Path.of("/tmp/reports");
+
+        // Create judge
+        JudgeAdvisor reportJudge = JudgeAdvisor.builder()
+            .judge(new FileExistsJudge("monthly-report.txt"))
+            .build();
+
+        // Execute agent task with judge
+        AgentClientResponse response = agentClientBuilder
+            .goal("Create monthly-report.txt with a summary of system metrics")
+            .workingDirectory(reportsDir)
+            .advisors(reportJudge)
+            .call();
+
+        // Check judgment
+        Judgment judgment = response.getJudgment();
+
+        if (judgment.pass()) {
+            System.out.println("✓ Report generated successfully!");
+            processReport(reportsDir.resolve("monthly-report.txt"));
+        } else {
+            System.err.println("✗ Report generation failed!");
+            System.err.println("Reason: " + judgment.reasoning());
+            alertTeam("Report generation failed: " + judgment.reasoning());
+        }
+    }
+
+    private void processReport(Path reportPath) {
+        // Process the generated report...
+    }
+
+    private void alertTeam(String message) {
+        // Send alert to team...
+    }
+}
+----
+
+== Production Example: Build Verification
+
+Here's a real-world example using `BuildSuccessJudge`:
+
+[source,java]
+----
+import org.springaicommunity.agents.judge.exec.BuildSuccessJudge;
+
+@Service
+public class ContinuousIntegration {
+
+    private final AgentClient.Builder agentClientBuilder;
+
+    public ContinuousIntegration(AgentClient.Builder agentClientBuilder) {
+        this.agentClientBuilder = agentClientBuilder;
+    }
+
+    public boolean fixAndBuild(Path projectRoot) {
+        // Create a judge that verifies build success
+        JudgeAdvisor buildJudge = JudgeAdvisor.builder()
+            .judge(new BuildSuccessJudge())
+            .build();
+
+        // Ask agent to fix tests and build
+        AgentClientResponse response = agentClientBuilder
+            .goal("Fix the failing unit tests and run 'mvn clean install'")
+            .workingDirectory(projectRoot)
+            .advisors(buildJudge)
+            .call();
+
+        // Check if build succeeded
+        Judgment judgment = response.getJudgment();
+
+        if (judgment.pass()) {
+            System.out.println("✓ Build successful! Safe to deploy.");
+            return true;
+        } else {
+            System.out.println("✗ Build failed: " + judgment.reasoning());
+            return false;
+        }
+    }
+
+    public void deploy(Path projectRoot) {
+        if (fixAndBuild(projectRoot)) {
+            // Safe to deploy - build succeeded
+            System.out.println("Deploying...");
+        } else {
+            // Don't deploy - build failed
+            System.out.println("Deployment blocked due to build failure");
+        }
+    }
+}
+----
+
+== Multiple Judges
+
+You can attach multiple judges to verify different aspects:
+
+[source,java]
+----
+AgentClientResponse response = agentClientBuilder
+    .goal("Build the project and generate documentation")
+    .workingDirectory(projectRoot)
+    .advisors(
+        JudgeAdvisor.builder()
+            .judge(new BuildSuccessJudge())
+            .build(),
+        JudgeAdvisor.builder()
+            .judge(new FileExistsJudge("docs/README.md"))
+            .build()
+    )
+    .call();
+
+// Both judges must pass for the task to be considered successful
+Judgment buildJudgment = response.getJudgment(); // Last judgment
+boolean success = buildJudgment.pass();
+----
+
+[NOTE]
+====
+When using multiple `JudgeAdvisor` instances, each judge runs independently. For **ensemble evaluation** where you want to aggregate multiple judgments, use xref:../judges/jury/overview.adoc[Jury] instead.
+====
+
+== Why This Matters
+
+Judges enable production-ready agent systems:
+
+=== Automated Verification
+No more manual checking—judges verify automatically.
+
+[source,java]
+----
+// ❌ Manual verification (error-prone)
+agentClient.call();
+// ... hope it worked and manually check files
+
+// ✅ Automated verification (reliable)
+response = agentClient.advisors(judge).call();
+if (response.isJudgmentPassed()) {
+    // Guaranteed the agent succeeded
+}
+----
+
+=== Reliable Feedback
+Know immediately if the agent succeeded or failed.
+
+[source,java]
+----
+Judgment judgment = response.getJudgment();
+
+if (!judgment.pass()) {
+    logger.error("Agent failed: {}", judgment.reasoning());
+    metrics.increment("agent.failures");
+    alertTeam(judgment);
+}
+----
+
+=== Production Readiness
+Fail fast on errors instead of silently failing.
+
+[source,java]
+----
+// Deployment pipeline with judges
+boolean buildSuccess = buildAndTest(projectRoot);
+if (!buildSuccess) {
+    throw new DeploymentException("Build verification failed");
+}
+
+boolean securityPassed = runSecurityScan(projectRoot);
+if (!securityPassed) {
+    throw new DeploymentException("Security verification failed");
+}
+
+// Safe to deploy - all judges passed
+deploy(projectRoot);
+----
+
+=== Continuous Improvement
+Track agent success rates over time.
+
+[source,java]
+----
+Judgment judgment = response.getJudgment();
+
+// Record metrics
+metrics.record("agent.success", judgment.pass());
+metrics.record("agent.execution_time", judgment.elapsed());
+
+// Analyze patterns
+if (!judgment.pass()) {
+    analytics.recordFailure(judgment.reasoning());
+}
+----
+
+== Judgment API
+
+The `Judgment` record provides structured evaluation results:
+
+[cols="1,3"]
+|===
+|Method |Description
+
+|`status()`
+|`PASS`, `FAIL`, `ABSTAIN`, or `ERROR`
+
+|`pass()`
+|Convenience method: `true` if status is `PASS`
+
+|`score()`
+|`BooleanScore`, `NumericalScore`, or `CategoricalScore`
+
+|`reasoning()`
+|Explanation of the judgment
+
+|`elapsed()`
+|How long the judgment took (optional)
+
+|`error()`
+|Exception if status is `ERROR` (optional)
+|===
+
+Example usage:
+
+[source,java]
+----
+Judgment judgment = response.getJudgment();
+
+switch (judgment.status()) {
+    case PASS -> {
+        logger.info("Success: {}", judgment.reasoning());
+        deploy();
+    }
+    case FAIL -> {
+        logger.error("Failed: {}", judgment.reasoning());
+        rollback();
+    }
+    case ERROR -> {
+        logger.error("Judge error: {}", judgment.error());
+        alertOps();
+    }
+    case ABSTAIN -> {
+        logger.warn("Judge abstained: {}", judgment.reasoning());
+        manualReview();
+    }
+}
+----
+
+== Spring Bean Configuration
+
+The recommended approach is to define judges as Spring beans:
+
+[source,java]
+----
+@Configuration
+public class JudgeConfiguration {
+
+    @Bean
+    public JudgeAdvisor fileVerificationAdvisor() {
+        return JudgeAdvisor.builder()
+            .judge(new FileExistsJudge("output.txt"))
+            .build();
+    }
+
+    @Bean
+    public JudgeAdvisor buildVerificationAdvisor() {
+        return JudgeAdvisor.builder()
+            .judge(new BuildSuccessJudge())
+            .build();
+    }
+}
+
+// Inject and use
+@Service
+public class MyService {
+
+    private final AgentClient.Builder agentClientBuilder;
+    private final JudgeAdvisor fileVerificationAdvisor;
+    private final JudgeAdvisor buildVerificationAdvisor;
+
+    public MyService(AgentClient.Builder agentClientBuilder,
+                     JudgeAdvisor fileVerificationAdvisor,
+                     JudgeAdvisor buildVerificationAdvisor) {
+        this.agentClientBuilder = agentClientBuilder;
+        this.fileVerificationAdvisor = fileVerificationAdvisor;
+        this.buildVerificationAdvisor = buildVerificationAdvisor;
+    }
+
+    public void doWork() {
+        agentClientBuilder
+            .goal("...")
+            .advisors(fileVerificationAdvisor, buildVerificationAdvisor)
+            .call();
+    }
+}
+----
+
+== Next Steps
+
+Now that you understand judge basics, explore the full Judge API:
+
+* xref:../judges/index.adoc[Judge API Overview] - Complete evaluation system
+* xref:../judges/judge-advisor.adoc[JudgeAdvisor] - Integration patterns
+* xref:../judges/deterministic/file-judges.adoc[File Judges] - File verification (FileExists, FileContent)
+* xref:../judges/deterministic/command-judges.adoc[Command Judges] - Build and command verification
+* xref:../judges/llm-powered/overview.adoc[LLM Judges] - AI-powered evaluation
+* xref:../judges/jury/overview.adoc[Jury Pattern] - Ensemble evaluation
+
+[IMPORTANT]
+====
+This simple pattern—**agent task + judge**—is the foundation of production-ready agent systems. Every agent task in production should have at least one judge verifying its success.
+====

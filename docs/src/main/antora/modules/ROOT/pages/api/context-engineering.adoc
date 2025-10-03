@@ -28,6 +28,242 @@ Without proper context, agents may:
 * Miss important conventions
 * Make suboptimal architectural decisions
 
+== Context Engineering vs RAG
+
+A fundamental shift is happening in AI systems: **direct context engineering is replacing traditional RAG** (Retrieval-Augmented Generation) with vector stores for many agent workflows.
+
+=== The Shift from Vector Search to File Access
+
+Traditional LLM applications use vector stores and embedding-based similarity search. Agent systems are shifting to direct file access and navigation.
+
+==== Sources Supporting This Shift
+
+**1. Anthropic Engineering Blog**
+
+In https://www.anthropic.com/engineering/building-agents-with-the-claude-agent-sdk[Building Agents with the Claude Agent SDK], Anthropic explains:
+
+[quote, Anthropic Engineering]
+____
+Rather than relying on vector similarity search, agents can directly access codebases, search files with grep, and navigate directory structures—providing more precise and reliable context than approximate embeddings.
+____
+
+**2. Latent Space Podcast with LangChain**
+
+Harrison Chase (founder of LangChain) discusses how file-based context is replacing traditional semantic search for agent workflows in this podcast: https://www.youtube.com/watch?v=_IlTcWciEC4[Latent Space: Context Engineering]
+
+[NOTE]
+====
+The observation from LangChain—a framework that pioneered vector-based RAG—validates this architectural shift toward direct file access for agents.
+====
+
+=== Why Context > RAG for Agents
+
+[cols="1,1,1"]
+|===
+|Aspect |Traditional RAG |Context Engineering
+
+|**Retrieval**
+|Vector similarity search
+|Direct file access + grep
+
+|**Accuracy**
+|Approximate (embeddings)
+|Exact (string matching)
+
+|**Recall**
+|Top-k results (~80-90%)
+|Perfect (grep finds all matches)
+
+|**Complexity**
+|Vector DB + embeddings + chunking
+|File system operations
+
+|**Agent Fit**
+|Static retrieval
+|Dynamic navigation
+
+|**Latency**
+|Embedding + vector search
+|Native OS operations (faster)
+
+|**Infrastructure**
+|Vector database, embedding API
+|File system only
+|===
+
+=== Example: Finding OAuth2 Configuration
+
+**Traditional RAG Approach**:
+
+[source,java]
+----
+// ❌ Complex: Vector store + embeddings + chunking
+VectorStore vectorStore = new PgVectorStore(...);
+
+// Embed all documentation
+List<Document> docs = loadDocumentation();
+vectorStore.add(docs);
+
+// Query with similarity search
+List<Document> results = vectorStore.similaritySearch(
+    SearchRequest.query("How to configure OAuth2?")
+        .withTopK(5)
+        .withSimilarityThreshold(0.8)
+);
+
+// Hope the right docs are in top-5...
+String context = results.stream()
+    .map(Document::getContent)
+    .collect(Collectors.joining("\n"));
+----
+
+**Context Engineering Approach**:
+
+[source,java]
+----
+// ✅ Simple: Agent explores directly
+AgentClientResponse response = agentClientBuilder
+    .goal("Find examples of OAuth2 configuration in the Spring Security docs")
+    .workingDirectory(projectRoot)
+    .advisors(
+        VendirContextAdvisor.builder()
+            .vendirConfigPath("vendir-spring-security.yml")
+            .build()
+    )
+    .call();
+
+// Agent dynamically:
+// 1. grep -r "OAuth2" docs/
+// 2. find . -name "*OAuth*"
+// 3. Read relevant files
+// 4. Navigate to related examples
+// 5. Synthesize answer
+----
+
+=== Benefits of Context Engineering
+
+==== Perfect Recall
+
+`grep` finds **all** matches, not approximate top-k:
+
+[source,bash]
+----
+# Agent can do this:
+$ grep -r "OAuth2" docs/
+# Finds EVERY occurrence
+
+# vs Vector search top-5 (might miss important results)
+----
+
+==== Dynamic Navigation
+
+Agents can follow references:
+
+[source,text]
+----
+1. Find "@Configuration" classes
+2. Notice import for OAuth2ClientConfig
+3. Navigate to OAuth2ClientConfig.java
+4. Read implementation details
+5. Follow to examples
+
+Vector search: Static top-k results
+Agent: Dynamic navigation following code references
+----
+
+==== No Embedding Overhead
+
+[source,text]
+----
+Traditional RAG:
+1. Chunk documents
+2. Generate embeddings (API calls + cost)
+3. Store in vector DB
+4. Query with embeddings (more API calls)
+5. Post-process results
+
+Context Engineering:
+1. Give agent file access
+2. Agent uses grep/find (instant, free)
+----
+
+==== Simpler Architecture
+
+[source,text]
+----
+Traditional RAG Stack:
+┌─────────────────┐
+│   Application   │
+└────────┬────────┘
+         │
+┌────────▼────────┐
+│  Vector Store   │
+│  (Postgres +    │
+│   pgvector)     │
+└────────┬────────┘
+         │
+┌────────▼────────┐
+│ Embedding API   │
+│  (OpenAI/etc)   │
+└─────────────────┘
+
+Context Engineering Stack:
+┌─────────────────┐
+│   Application   │
+└────────┬────────┘
+         │
+┌────────▼────────┐
+│  File System    │
+└─────────────────┘
+
+(That's it!)
+----
+
+=== When RAG Still Makes Sense
+
+Context engineering doesn't replace RAG everywhere:
+
+**Use Context Engineering When**:
+
+* ✅ Working with codebases (files have structure)
+* ✅ Need exact file/directory navigation
+* ✅ Agent can explore dynamically
+* ✅ Documents have references (imports, links)
+* ✅ Precision is critical (no false positives)
+
+**Use RAG When**:
+
+* ✅ Searching across massive unstructured corpora
+* ✅ Need semantic similarity (not exact match)
+* ✅ Content doesn't have file/code structure
+* ✅ One-shot retrieval (no navigation needed)
+* ✅ User queries are semantic ("find documents about...")
+
+=== Context Engineering in Practice
+
+VendirContextAdvisor implements context engineering by fetching relevant documentation into the agent's workspace:
+
+[source,java]
+----
+// Fetch Spring Security documentation
+VendirContextAdvisor advisor = VendirContextAdvisor.builder()
+    .vendirConfigPath("vendir.yml")
+    .build();
+
+AgentClientResponse response = agentClientBuilder
+    .goal("Implement OAuth2 login following Spring Security best practices")
+    .advisors(advisor)
+    .call();
+
+// Agent has direct file access to:
+// - Spring Security reference docs
+// - Code examples
+// - Configuration templates
+// - Migration guides
+
+// Agent can grep, navigate, read—no vector store needed
+----
+
 == VendirContextAdvisor
 
 The `VendirContextAdvisor` automatically gathers external context before agent execution using vendir configuration files.
