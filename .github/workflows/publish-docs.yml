@@ -34,8 +34,11 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      - name: Install artifacts
+        run: ./mvnw clean install -DskipTests -Dfmt.skip=true
+
       - name: Build documentation
-        run: ./mvnw clean antora:antora -pl docs
+        run: ./mvnw antora:antora -pl docs
         continue-on-error: true
 
       - name: Setup Pages
