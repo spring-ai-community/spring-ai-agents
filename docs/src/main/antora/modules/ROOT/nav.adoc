@@ -1,13 +1,45 @@
 * xref:index.adoc[Overview]
-* xref:getting-started.adoc[Getting Started]
-* xref:jbang-runner.adoc[JBang Agent Runner]
-* xref:api/agentclient.adoc[AgentClient API]
+
+* Getting Started
+** xref:getting-started/hello-world.adoc[Hello World]
+** xref:getting-started/goals-and-workspaces.adoc[Goals and Workspaces]
+** xref:getting-started/first-judge.adoc[Your First Judge]
+
+* Core Concepts
+** xref:concepts/cli-agents.adoc[CLI Agents]
+
+* Judge API
+** xref:judges/index.adoc[Judge API Overview]
+** xref:judges/judge-advisor.adoc[JudgeAdvisor]
+** Deterministic Judges
+*** xref:judges/deterministic/overview.adoc[Overview]
+*** xref:judges/deterministic/file-judges.adoc[File Judges]
+*** xref:judges/deterministic/command-judges.adoc[Command Judges]
+** LLM-Powered Judges
+*** xref:judges/llm-powered/overview.adoc[Overview]
+*** xref:judges/llm-powered/correctness-judge.adoc[Correctness Judge]
+** Agent as Judge
+*** xref:judges/agent-as-judge/overview.adoc[Overview]
+** Jury Pattern
+*** xref:judges/jury/overview.adoc[Jury Overview]
+*** xref:judges/jury/voting-strategies.adoc[Voting Strategies]
+
+* AgentClient API
+** xref:api/agentclient.adoc[AgentClient]
 ** xref:api/advisors.adoc[Agent Advisors]
+** xref:api/context-engineering.adoc[Context Engineering]
 ** xref:api/agentclient-vs-chatclient.adoc[AgentClient vs ChatClient]
+
+* Provider SDKs
 ** xref:api/claude-code-sdk.adoc[Claude Code SDK]
 ** xref:api/gemini-cli-sdk.adoc[Gemini CLI SDK]
+
+* JBang Runner
+** xref:jbang-runner.adoc[Overview]
+
 * xref:samples.adoc[Sample Agents]
+
 * Future Concepts
 ** xref:future/judge-concept.adoc[Judge Concept]
-** xref:future/context-engineering.adoc[Context Engineering]
+
 * xref:contribution-guidelines.adoc[Contribution Guidelines]
