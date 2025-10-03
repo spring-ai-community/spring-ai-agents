@@ -129,7 +129,24 @@ agentClientBuilder
 
 == Why Many CLI Agents Exist
 
-The CLI agent ecosystem is diverse, and Spring AI Agents embraces this diversity. Different agents excel at different tasks:
+We are in the **age of agent exploration**. The CLI agent ecosystem is diverse because there isn't a single right answer for all use cases—and Spring AI Agents embraces this reality.
+
+=== The Agent Landscape is Maturing
+
+Right now, the question is: **"Can an agent achieve my goal?"**
+
+As the landscape matures, the question will shift to: **"What's the cheapest way to achieve my goal?"**
+
+This means considering:
+
+* **Model selection** - Different models have different costs and capabilities
+* **Vendor independence** - Avoid lock-in, have a Plan B if your preferred model becomes unavailable
+* **Simple hand-coded agents** - Sometimes a custom script using your preferred stack is the right answer
+* **Hybrid approaches** - Use LLM agents for complex tasks, simple automation for routine ones
+
+=== Agent Diversity
+
+Different agents excel at different tasks:
 
 [cols="1,2,2"]
 |===
@@ -154,7 +171,7 @@ The CLI agent ecosystem is diverse, and Spring AI Agents embraces this diversity
 
 [IMPORTANT]
 ====
-Spring AI Agents is **not** a CLI agent implementation. It's a framework for **integrating** any CLI agent into Spring Boot applications with familiar Spring patterns.
+Spring AI Agents is **not** a CLI agent implementation. It's a framework for **integrating** any CLI agent into Spring Boot applications with familiar Spring patterns. This gives you the flexibility to choose the right agent for each task and switch between them as the landscape evolves.
 ====
 
 == LLM as Workflow Engine

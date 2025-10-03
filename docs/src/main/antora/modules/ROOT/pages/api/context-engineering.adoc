@@ -91,7 +91,7 @@ The observation from LangChain—a framework that pioneered vector-based RAG—v
 |File system only
 |===
 
-=== Example: Finding OAuth2 Configuration
+=== Example: Testing Spring Data JPA
 
 **Traditional RAG Approach**:
 
@@ -101,20 +101,18 @@ The observation from LangChain—a framework that pioneered vector-based RAG—v
 VectorStore vectorStore = new PgVectorStore(...);
 
 // Embed all documentation
-List<Document> docs = loadDocumentation();
+List<Document> docs = loadSpringDocs();
 vectorStore.add(docs);
 
 // Query with similarity search
 List<Document> results = vectorStore.similaritySearch(
-    SearchRequest.query("How to configure OAuth2?")
+    SearchRequest.query("How to test Spring Data JPA repositories?")
         .withTopK(5)
         .withSimilarityThreshold(0.8)
 );
 
 // Hope the right docs are in top-5...
-String context = results.stream()
-    .map(Document::getContent)
-    .collect(Collectors.joining("\n"));
+// Might get generic testing docs, might miss @DataJpaTest specifics
 ----
 
 **Context Engineering Approach**:
@@ -123,21 +121,21 @@ String context = results.stream()
 ----
 // ✅ Simple: Agent explores directly
 AgentClientResponse response = agentClientBuilder
-    .goal("Find examples of OAuth2 configuration in the Spring Security docs")
+    .goal("Write tests for UserRepository using Spring Data JPA best practices")
     .workingDirectory(projectRoot)
     .advisors(
         VendirContextAdvisor.builder()
-            .vendirConfigPath("vendir-spring-security.yml")
+            .vendirConfigPath("vendir-spring-boot.yml")
             .build()
     )
     .call();
 
 // Agent dynamically:
-// 1. grep -r "OAuth2" docs/
-// 2. find . -name "*OAuth*"
-// 3. Read relevant files
-// 4. Navigate to related examples
-// 5. Synthesize answer
+// 1. grep -r "@DataJpaTest" docs/
+// 2. Find test examples in fetched Spring Boot repo
+// 3. Read UserRepository.java to understand entity
+// 4. Navigate to Spring Data JPA testing docs
+// 5. Write tests following discovered patterns
 ----
 
 === Benefits of Context Engineering
