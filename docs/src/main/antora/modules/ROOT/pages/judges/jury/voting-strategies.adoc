@@ -1,0 +1,863 @@
+= Voting Strategies: Aggregating Judge Opinions
+:page-title: Voting Strategies
+:toc: left
+:tabsize: 2
+:sectnums:
+
+Voting strategies determine how a jury aggregates individual judge opinions into a single verdict. Spring AI Agents provides five built-in strategies, each optimized for different evaluation scenarios.
+
+== Overview
+
+A `VotingStrategy` implements the aggregation logic:
+
+[source,java]
+----
+public interface VotingStrategy {
+    Judgment aggregate(List<Judgment> judgments, Map<String, Double> weights);
+    String getName();
+}
+----
+
+**Key responsibilities**:
+
+* Convert scores to common format (boolean, numerical)
+* Apply weights if provided
+* Handle edge cases (ties, errors, abstentions)
+* Return aggregated `Judgment` with reasoning
+
+== Built-in Strategies
+
+Spring AI Agents provides five voting strategies:
+
+[cols="1,2,2"]
+|===
+|Strategy |Use Case |Pass Condition
+
+|**Majority**
+|Binary decisions
+|More than 50% judges pass
+
+|**Average**
+|Equal importance
+|Average score >= 0.5
+
+|**Weighted Average**
+|Unequal importance
+|Weighted average >= 0.5
+
+|**Median**
+|Outlier resistance
+|Median score >= 0.5
+
+|**Consensus**
+|Strict agreement
+|All judges must agree
+|===
+
+== Majority Voting
+
+**Purpose**: Democratic voting where the majority opinion wins.
+
+=== Basic Usage
+
+[source,java]
+----
+import org.springaicommunity.agents.judge.jury.MajorityVotingStrategy;
+
+VotingStrategy strategy = new MajorityVotingStrategy();
+
+Jury jury = Juries.builder()
+    .addJudge("build", new BuildSuccessJudge())
+    .addJudge("files", new FileExistsJudge("README.md"))
+    .addJudge("quality", new CorrectnessJudge(chatClient))
+    .votingStrategy(strategy)
+    .build();
+
+Verdict verdict = jury.vote(context);
+
+// Verdict passes if 2 out of 3 judges pass
+----
+
+=== How It Works
+
+[source,java]
+----
+// From MajorityVotingStrategy.java
+@Override
+public Judgment aggregate(List<Judgment> judgments, Map<String, Double> weights) {
+    // Count pass/fail (excluding abstentions)
+    long passCount = judgments.stream()
+        .filter(j -> j.status() == JudgmentStatus.PASS)
+        .count();
+
+    long failCount = judgments.stream()
+        .filter(j -> j.status() == JudgmentStatus.FAIL)
+        .count();
+
+    // Check for tie
+    if (passCount == failCount) {
+        return applyTiePolicy(passCount, failCount);
+    }
+
+    // Determine majority
+    boolean majorityPass = passCount > failCount;
+
+    return Judgment.builder()
+        .score(new BooleanScore(majorityPass))
+        .status(majorityPass ? JudgmentStatus.PASS : JudgmentStatus.FAIL)
+        .reasoning(String.format("Majority vote: %d passed, %d failed",
+            passCount, failCount))
+        .build();
+}
+----
+
+**Score conversion**:
+
+* `BooleanScore(true)` → PASS
+* `BooleanScore(false)` → FAIL
+* `NumericalScore >= 0.5` → PASS
+* `NumericalScore < 0.5` → FAIL
+
+=== Tie and Error Policies
+
+Majority voting supports configurable policies:
+
+[source,java]
+----
+// Default: ties fail, errors treated as failures
+VotingStrategy defaultStrategy = new MajorityVotingStrategy();
+
+// Custom: ties pass, errors ignored
+VotingStrategy optimistic = new MajorityVotingStrategy(
+    TiePolicy.PASS,
+    ErrorPolicy.IGNORE
+);
+
+// Custom: ties abstain, errors treated as abstentions
+VotingStrategy neutral = new MajorityVotingStrategy(
+    TiePolicy.ABSTAIN,
+    ErrorPolicy.TREAT_AS_ABSTAIN
+);
+----
+
+**TiePolicy options**:
+
+* `PASS` - Optimistic (benefit of the doubt)
+* `FAIL` - Pessimistic (safest, default)
+* `ABSTAIN` - Neutral (defer decision)
+
+**ErrorPolicy options**:
+
+* `TREAT_AS_FAIL` - Safest (default)
+* `TREAT_AS_ABSTAIN` - Neutral (ignore in vote)
+* `IGNORE` - Skip errored judgments entirely
+
+=== When to Use
+
+[source,java]
+----
+// ✅ Good: Binary decisions
+Jury deploymentGate = Juries.builder()
+    .addJudge("build", new BuildSuccessJudge())
+    .addJudge("tests", new CommandJudge("npm test"))
+    .addJudge("security", new CommandJudge("npm audit"))
+    .votingStrategy(new MajorityVotingStrategy())
+    .build();
+
+// ❌ Poor: When judges have unequal importance
+// Use WeightedAverage instead
+----
+
+== Average Voting
+
+**Purpose**: Simple average of all scores (equal importance).
+
+=== Basic Usage
+
+[source,java]
+----
+import org.springaicommunity.agents.judge.jury.AverageVotingStrategy;
+
+VotingStrategy strategy = new AverageVotingStrategy();
+
+Jury jury = Juries.builder()
+    .addJudge("quality", new CodeQualityJudge(chatClient))  // Returns 8.0/10
+    .addJudge("maintainability", new CustomJudge())         // Returns 7.0/10
+    .addJudge("performance", new CustomJudge())             // Returns 6.0/10
+    .votingStrategy(strategy)
+    .build();
+
+// Average: (0.8 + 0.7 + 0.6) / 3 = 0.7 (PASS)
+----
+
+=== How It Works
+
+[source,java]
+----
+// From AverageVotingStrategy.java
+@Override
+public Judgment aggregate(List<Judgment> judgments, Map<String, Double> weights) {
+    double sum = judgments.stream()
+        .mapToDouble(j -> toNumerical(j.score()))
+        .sum();
+
+    double average = sum / judgments.size();
+
+    boolean pass = average >= 0.5;  // Threshold: 0.5
+
+    return Judgment.builder()
+        .score(new NumericalScore(average, 0.0, 1.0))
+        .status(pass ? JudgmentStatus.PASS : JudgmentStatus.FAIL)
+        .reasoning(String.format("Average score: %.2f (threshold: 0.5)", average))
+        .build();
+}
+
+private double toNumerical(Score score) {
+    if (score instanceof BooleanScore bs) {
+        return bs.value() ? 1.0 : 0.0;
+    }
+    else if (score instanceof NumericalScore ns) {
+        return ns.normalized();  // Normalized to [0.0, 1.0]
+    }
+    return 0.0;
+}
+----
+
+**Score normalization**:
+
+* `BooleanScore(true)` → 1.0
+* `BooleanScore(false)` → 0.0
+* `NumericalScore(8.0, 0, 10)` → 0.8
+* `NumericalScore(3.5, 0, 5)` → 0.7
+
+=== When to Use
+
+[source,java]
+----
+// ✅ Good: All judges equally important
+Jury qualityJury = Juries.builder()
+    .addJudge("readability", new ReadabilityJudge(chatClient))
+    .addJudge("maintainability", new MaintainabilityJudge(chatClient))
+    .addJudge("testability", new TestabilityJudge(chatClient))
+    .votingStrategy(new AverageVotingStrategy())
+    .build();
+
+// ❌ Poor: Judges have different importance
+// Use WeightedAverage instead
+----
+
+== Weighted Average
+
+**Purpose**: Average with configurable importance per judge.
+
+=== Basic Usage
+
+[source,java]
+----
+import org.springaicommunity.agents.judge.jury.WeightedAverageStrategy;
+
+Jury jury = Juries.builder()
+    .addJudge("build", new BuildSuccessJudge(), 0.5)           // 50% weight
+    .addJudge("quality", new CorrectnessJudge(chatClient), 0.3) // 30% weight
+    .addJudge("docs", new CustomJudge(), 0.2)                   // 20% weight
+    .votingStrategy(new WeightedAverageStrategy())
+    .build();
+
+// Weighted average: (1.0 * 0.5) + (0.8 * 0.3) + (0.6 * 0.2) = 0.86 (PASS)
+----
+
+=== How It Works
+
+[source,java]
+----
+// From WeightedAverageStrategy.java
+@Override
+public Judgment aggregate(List<Judgment> judgments, Map<String, Double> weights) {
+    // If no weights, fall back to simple average
+    if (weights == null || weights.isEmpty()) {
+        return new AverageVotingStrategy().aggregate(judgments, weights);
+    }
+
+    double weightedSum = 0.0;
+    double weightSum = 0.0;
+
+    for (int i = 0; i < judgments.size(); i++) {
+        String key = String.valueOf(i);
+        double weight = weights.getOrDefault(key, 1.0);
+        double score = toNumerical(judgments.get(i).score());
+
+        weightedSum += score * weight;
+        weightSum += weight;
+    }
+
+    double weightedAverage = weightedSum / weightSum;
+    boolean pass = weightedAverage >= 0.5;
+
+    return Judgment.builder()
+        .score(new NumericalScore(weightedAverage, 0.0, 1.0))
+        .status(pass ? JudgmentStatus.PASS : JudgmentStatus.FAIL)
+        .reasoning(String.format("Weighted average: %.2f", weightedAverage))
+        .build();
+}
+----
+
+**Weight normalization**:
+
+Weights do NOT need to sum to 1.0—they are normalized automatically:
+
+[source,java]
+----
+// These are equivalent:
+.addJudge("a", judgeA, 0.5)
+.addJudge("b", judgeB, 0.3)
+.addJudge("c", judgeC, 0.2)
+
+// Same as:
+.addJudge("a", judgeA, 5.0)
+.addJudge("b", judgeB, 3.0)
+.addJudge("c", judgeC, 2.0)
+
+// Both normalize to 50%, 30%, 20%
+----
+
+=== Production Example
+
+[source,java]
+----
+@Service
+public class ProductionDeploymentService {
+
+    public void validateDeployment(Path projectRoot) {
+        Jury deploymentJury = Juries.builder()
+            // Critical: Build must succeed (50%)
+            .addJudge("build", BuildSuccessJudge.maven("clean", "install"), 0.5)
+
+            // Important: Tests must pass (30%)
+            .addJudge("tests", BuildSuccessJudge.maven("test"), 0.3)
+
+            // Nice-to-have: Documentation exists (20%)
+            .addJudge("docs", new FileExistsJudge("README.md"), 0.2)
+
+            .votingStrategy(new WeightedAverageStrategy())
+            .build();
+
+        AgentClientResponse response = agentClientBuilder
+            .goal("Prepare application for production")
+            .workingDirectory(projectRoot)
+            .advisors(JuryAdvisor.builder()
+                .jury(deploymentJury)
+                .build())
+            .call();
+
+        Verdict verdict = response.getVerdict();
+
+        if (verdict.aggregated().pass()) {
+            deploy(projectRoot);
+        } else {
+            logger.error("Deployment blocked: {}",
+                verdict.aggregated().reasoning());
+        }
+    }
+}
+----
+
+=== When to Use
+
+[source,java]
+----
+// ✅ Good: Critical vs nice-to-have checks
+Jury prioritizedJury = Juries.builder()
+    .addJudge("security", AgentJudge.securityAudit(agentClient), 0.6)  // Critical
+    .addJudge("quality", new CorrectnessJudge(chatClient), 0.3)        // Important
+    .addJudge("style", new CustomJudge(), 0.1)                          // Minor
+    .votingStrategy(new WeightedAverageStrategy())
+    .build();
+
+// ❌ Poor: All judges equally important
+// Use AverageVotingStrategy instead
+----
+
+== Median Voting
+
+**Purpose**: Robust to outliers and extreme scores.
+
+=== Basic Usage
+
+[source,java]
+----
+import org.springaicommunity.agents.judge.jury.MedianVotingStrategy;
+
+VotingStrategy strategy = new MedianVotingStrategy();
+
+Jury jury = Juries.builder()
+    .addJudge("judge1", judgeA)  // Returns 9.0/10
+    .addJudge("judge2", judgeB)  // Returns 8.0/10
+    .addJudge("judge3", judgeC)  // Returns 2.0/10 (outlier)
+    .votingStrategy(strategy)
+    .build();
+
+// Average would be: (0.9 + 0.8 + 0.2) / 3 = 0.63
+// Median is: 0.8 (middle value, outlier ignored)
+----
+
+=== How It Works
+
+[source,java]
+----
+// From MedianVotingStrategy.java
+@Override
+public Judgment aggregate(List<Judgment> judgments, Map<String, Double> weights) {
+    List<Double> scores = judgments.stream()
+        .map(j -> toNumerical(j.score()))
+        .sorted()
+        .toList();
+
+    double median;
+    int size = scores.size();
+
+    if (size % 2 == 0) {
+        // Even number: average of two middle values
+        median = (scores.get(size / 2 - 1) + scores.get(size / 2)) / 2.0;
+    } else {
+        // Odd number: middle value
+        median = scores.get(size / 2);
+    }
+
+    boolean pass = median >= 0.5;
+
+    return Judgment.builder()
+        .score(new NumericalScore(median, 0.0, 1.0))
+        .status(pass ? JudgmentStatus.PASS : JudgmentStatus.FAIL)
+        .reasoning(String.format("Median score: %.2f", median))
+        .build();
+}
+----
+
+**Median calculation examples**:
+
+[source,java]
+----
+// Odd number of judges (3)
+Scores: [0.2, 0.8, 0.9]
+Median: 0.8 (middle value)
+
+// Even number of judges (4)
+Scores: [0.3, 0.7, 0.8, 0.9]
+Median: (0.7 + 0.8) / 2 = 0.75 (average of two middle values)
+----
+
+=== When to Use
+
+[NOTE]
+====
+Median voting is inspired by statistical robustness techniques used in evaluation frameworks like https://github.com/explodinggradients/ragas[ragas]. When combining multiple LLM judges, median aggregation prevents a single outlier judgment (due to model hallucination or prompt misinterpretation) from skewing the entire verdict.
+====
+
+[source,java]
+----
+// ✅ Good: Multiple LLM judges (outlier risk)
+Jury llmJury = Juries.builder()
+    .addJudge("gpt4", new CorrectnessJudge(gpt4Client))
+    .addJudge("claude", new CorrectnessJudge(claudeClient))
+    .addJudge("gemini", new CorrectnessJudge(geminiClient))
+    .votingStrategy(new MedianVotingStrategy())  // Robust to outliers
+    .build();
+
+// ✅ Good: Self-consistency with multiple runs
+Jury selfConsistentJury = Juries.builder()
+    .addJudge("run1", new CorrectnessJudge(chatClient))
+    .addJudge("run2", new CorrectnessJudge(chatClient))
+    .addJudge("run3", new CorrectnessJudge(chatClient))
+    .addJudge("run4", new CorrectnessJudge(chatClient))
+    .addJudge("run5", new CorrectnessJudge(chatClient))
+    .votingStrategy(new MedianVotingStrategy())
+    .build();
+
+// ❌ Poor: All judges deterministic (no outliers)
+// Use AverageVotingStrategy instead
+----
+
+== Consensus Voting
+
+**Purpose**: Strictest strategy requiring unanimous agreement.
+
+=== Basic Usage
+
+[source,java]
+----
+import org.springaicommunity.agents.judge.jury.ConsensusStrategy;
+
+VotingStrategy strategy = new ConsensusStrategy();
+
+Jury securityJury = Juries.builder()
+    .addJudge("sql_injection", new CustomJudge())
+    .addJudge("xss", new CustomJudge())
+    .addJudge("csrf", new CustomJudge())
+    .votingStrategy(strategy)
+    .build();
+
+// Passes only if ALL judges pass (unanimous)
+----
+
+=== How It Works
+
+[source,java]
+----
+// From ConsensusStrategy.java
+@Override
+public Judgment aggregate(List<Judgment> judgments, Map<String, Double> weights) {
+    long passCount = judgments.stream()
+        .filter(j -> toBoolean(j.score()))
+        .count();
+
+    long failCount = judgments.size() - passCount;
+
+    // Consensus requires all judges to agree
+    boolean consensus = (passCount == judgments.size())
+        || (failCount == judgments.size());
+
+    boolean pass = consensus && passCount == judgments.size();
+
+    String reasoning;
+    if (!consensus) {
+        reasoning = String.format("No consensus: %d passed, %d failed",
+            passCount, failCount);
+    } else {
+        reasoning = String.format("Unanimous consensus: all %d judges %s",
+            judgments.size(), pass ? "passed" : "failed");
+    }
+
+    return Judgment.builder()
+        .score(new BooleanScore(pass))
+        .status(pass ? JudgmentStatus.PASS : JudgmentStatus.FAIL)
+        .reasoning(reasoning)
+        .build();
+}
+----
+
+**Consensus logic**:
+
+[source,java]
+----
+// Scenario 1: All pass → PASS
+Judges: [PASS, PASS, PASS]
+Result: PASS (unanimous consensus)
+
+// Scenario 2: All fail → FAIL
+Judges: [FAIL, FAIL, FAIL]
+Result: FAIL (unanimous consensus)
+
+// Scenario 3: Mixed → FAIL
+Judges: [PASS, PASS, FAIL]
+Result: FAIL (no consensus)
+
+// Scenario 4: Mixed → FAIL
+Judges: [PASS, FAIL, FAIL]
+Result: FAIL (no consensus)
+----
+
+=== When to Use
+
+[source,java]
+----
+// ✅ Good: Security checks (zero tolerance)
+Jury securityGate = Juries.builder()
+    .addJudge("sql_injection", new SecurityJudge("SQL Injection"))
+    .addJudge("xss", new SecurityJudge("XSS"))
+    .addJudge("csrf", new SecurityJudge("CSRF"))
+    .addJudge("secrets", new SecurityJudge("Hardcoded Secrets"))
+    .votingStrategy(new ConsensusStrategy())
+    .build();
+
+// All security checks must pass (no exceptions)
+
+// ✅ Good: Compliance requirements
+Jury complianceJury = Juries.builder()
+    .addJudge("gdpr", new ComplianceJudge("GDPR"))
+    .addJudge("hipaa", new ComplianceJudge("HIPAA"))
+    .addJudge("sox", new ComplianceJudge("SOX"))
+    .votingStrategy(new ConsensusStrategy())
+    .build();
+
+// ❌ Poor: Most situations (too strict)
+// Use MajorityVotingStrategy instead
+----
+
+== Choosing a Strategy
+
+Decision tree for selecting the right voting strategy:
+
+[source]
+----
+Do all judges have equal importance?
+├─ Yes: Are you concerned about outliers?
+│   ├─ Yes: MedianVotingStrategy
+│   └─ No: AverageVotingStrategy
+└─ No: WeightedAverageStrategy
+
+Is unanimous agreement required?
+└─ Yes: ConsensusStrategy
+
+Is it a binary decision (pass/fail)?
+└─ Yes: MajorityVotingStrategy
+----
+
+=== Strategy Comparison
+
+[cols="1,2,2,2,2"]
+|===
+|Strategy |Sensitivity |Outlier Handling |Best For |Avoid For
+
+|**Majority**
+|Medium
+|Not applicable
+|Binary decisions
+|Numerical scores
+
+|**Average**
+|High
+|Sensitive
+|Equal importance
+|Outliers present
+
+|**Weighted Average**
+|High
+|Sensitive
+|Unequal importance
+|Outliers present
+
+|**Median**
+|Low
+|Robust
+|Outlier resistance
+|Need every opinion
+
+|**Consensus**
+|Extreme
+|Not applicable
+|Zero tolerance
+|Most situations
+|===
+
+== Production Patterns
+
+=== Pattern 1: Layered Evaluation
+
+Combine strategies for different criteria:
+
+[source,java]
+----
+@Service
+public class LayeredEvaluation {
+
+    public void evaluateFeature(Path workspace) {
+        // Layer 1: Security (consensus required)
+        Jury securityLayer = Juries.builder()
+            .addJudge("sql", new SecurityJudge("SQL"))
+            .addJudge("xss", new SecurityJudge("XSS"))
+            .votingStrategy(new ConsensusStrategy())
+            .build();
+
+        // Layer 2: Quality (weighted)
+        Jury qualityLayer = Juries.builder()
+            .addJudge("build", BuildSuccessJudge.maven("test"), 0.5)
+            .addJudge("quality", new CorrectnessJudge(chatClient), 0.5)
+            .votingStrategy(new WeightedAverageStrategy())
+            .build();
+
+        AgentClientResponse response = agentClientBuilder
+            .goal("Implement new feature")
+            .advisors(
+                // Security must pass (consensus)
+                JuryAdvisor.builder()
+                    .jury(securityLayer)
+                    .order(100)
+                    .build(),
+
+                // Quality evaluated after (weighted)
+                JuryAdvisor.builder()
+                    .jury(qualityLayer)
+                    .order(200)
+                    .build()
+            )
+            .call();
+    }
+}
+----
+
+=== Pattern 2: Self-Consistency
+
+Multiple runs with median aggregation:
+
+[source,java]
+----
+@Service
+public class SelfConsistentEvaluation {
+
+    public Verdict evaluateWithConsistency(JudgmentContext context, int runs) {
+        // Run same judge N times
+        Juries.Builder juryBuilder = Juries.builder()
+            .votingStrategy(new MedianVotingStrategy());
+
+        for (int i = 0; i < runs; i++) {
+            juryBuilder.addJudge("run" + i, new CorrectnessJudge(chatClientBuilder));
+        }
+
+        Jury jury = juryBuilder.build();
+
+        return jury.vote(context);
+    }
+}
+----
+
+This pattern is used in https://github.com/explodinggradients/ragas[ragas] for robust LLM evaluation.
+
+=== Pattern 3: Progressive Strictness
+
+Start lenient, get stricter over time:
+
+[source,java]
+----
+@Service
+public class ProgressiveEvaluation {
+
+    public void evaluateWithProgress(Path workspace, int iteration) {
+        VotingStrategy strategy = switch(iteration) {
+            case 1 -> new MajorityVotingStrategy();          // Lenient (iteration 1)
+            case 2 -> new AverageVotingStrategy();           // Moderate (iteration 2)
+            case 3 -> new WeightedAverageStrategy();         // Stricter (iteration 3)
+            default -> new ConsensusStrategy();              // Strictest (final)
+        };
+
+        Jury jury = Juries.builder()
+            .addJudge("build", new BuildSuccessJudge())
+            .addJudge("quality", new CorrectnessJudge(chatClient))
+            .addJudge("security", AgentJudge.securityAudit(agentClient))
+            .votingStrategy(strategy)
+            .build();
+
+        AgentClientResponse response = agentClientBuilder
+            .goal("Improve code quality")
+            .advisors(JuryAdvisor.builder()
+                .jury(jury)
+                .build())
+            .call();
+    }
+}
+----
+
+=== Pattern 4: Dynamic Weight Adjustment
+
+Adjust weights based on context:
+
+[source,java]
+----
+@Service
+public class DynamicWeightEvaluation {
+
+    public Verdict evaluate(Path workspace, Environment env) {
+        // Production: security critical (70%)
+        // Development: speed critical (30%)
+        double securityWeight = env == Environment.PRODUCTION ? 0.7 : 0.3;
+        double speedWeight = 1.0 - securityWeight;
+
+        Jury jury = Juries.builder()
+            .addJudge("security", AgentJudge.securityAudit(agentClient), securityWeight)
+            .addJudge("speed", new CommandJudge("time npm test"), speedWeight)
+            .votingStrategy(new WeightedAverageStrategy())
+            .build();
+
+        return jury.vote(JudgmentContext.builder()
+            .goal("Deploy application")
+            .workspace(workspace)
+            .build());
+    }
+}
+----
+
+== Best Practices
+
+=== 1. Match Strategy to Use Case
+
+[source,java]
+----
+// ✅ Good: Security → Consensus
+new ConsensusStrategy()
+
+// ✅ Good: Quality → Weighted Average
+new WeightedAverageStrategy()
+
+// ✅ Good: Multiple LLMs → Median
+new MedianVotingStrategy()
+
+// ❌ Poor: Security → Average (too lenient)
+new AverageVotingStrategy()
+----
+
+=== 2. Handle Edge Cases
+
+[source,java]
+----
+// Configure policies for robustness
+VotingStrategy robust = new MajorityVotingStrategy(
+    TiePolicy.FAIL,              // Conservative on ties
+    ErrorPolicy.TREAT_AS_FAIL    // Conservative on errors
+);
+
+VotingStrategy optimistic = new MajorityVotingStrategy(
+    TiePolicy.PASS,              // Optimistic on ties
+    ErrorPolicy.IGNORE           // Ignore errors
+);
+----
+
+=== 3. Document Weight Rationale
+
+[source,java]
+----
+Jury jury = Juries.builder()
+    // Critical: Must compile (40%)
+    .addJudge("compile", BuildSuccessJudge.maven("compile"), 0.4)
+
+    // Critical: Tests must pass (40%)
+    .addJudge("tests", BuildSuccessJudge.maven("test"), 0.4)
+
+    // Nice-to-have: Documentation exists (20%)
+    .addJudge("docs", new FileExistsJudge("README.md"), 0.2)
+
+    .votingStrategy(new WeightedAverageStrategy())
+    .build();
+----
+
+=== 4. Log Detailed Reasoning
+
+[source,java]
+----
+Verdict verdict = jury.vote(context);
+
+logger.info("Voting Strategy: {}", jury.getVotingStrategy().getName());
+logger.info("Aggregated: {}", verdict.aggregated().reasoning());
+logger.info("Individual judgments:");
+
+verdict.individual().forEach(j -> {
+    logger.info("  - Judge: {} → {} (score: {})",
+        j.metadata().get("judge_name"),
+        j.status(),
+        j.score());
+});
+----
+
+== Next Steps
+
+* **Jury Overview**: xref:overview.adoc[Ensemble evaluation pattern]
+* **JudgeAdvisor**: xref:../judge-advisor.adoc[Integration with AgentClient]
+* **LLM Judges**: xref:../llm-powered/overview.adoc[AI-powered evaluation]
+* **Agent as Judge**: xref:../agent-as-judge/overview.adoc[Agent evaluating agent]
+
+== Further Reading
+
+* xref:../index.adoc[Judge API Overview] - Complete Judge API documentation
+* xref:../../getting-started/first-judge.adoc[Your First Judge] - Practical introduction
+
+---
+
+Voting strategies provide flexible aggregation logic for combining multiple judge opinions. Choose the strategy that matches your evaluation requirements for optimal results.
