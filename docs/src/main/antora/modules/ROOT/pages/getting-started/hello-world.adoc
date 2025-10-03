@@ -111,28 +111,6 @@ The agent figures out the steps needed to achieve your goal. It might:
 
 You don't write the steps—the agent does.
 
-== A More Complex Example
-
-Let's try something more ambitious:
-
-[source,java]
-----
-AgentClientResponse response = agentClientBuilder
-    .goal("Create a Maven project for a Spring Boot REST API with a /hello endpoint")
-    .workingDirectory(Path.of("/tmp/my-api"))
-    .call();
-----
-
-The agent will autonomously:
-
-* Create the Maven directory structure (`src/main/java`, `src/test/java`, etc.)
-* Generate a `pom.xml` with Spring Boot dependencies
-* Create a `@RestController` with a `/hello` endpoint
-* Add a Spring Boot main class
-* Include necessary Spring Boot configuration
-
-All from a single goal statement!
-
 == Understanding the AgentClient.Builder
 
 The `AgentClient.Builder` provides a fluent API for configuring agent tasks:
@@ -153,23 +131,40 @@ The `AgentClient.Builder` provides a fluent API for configuring agent tasks:
 
 More advanced options (advisors, context engineering) will be covered in later guides.
 
-== Spring Boot Auto-Configuration
+== Creating AgentClient.Builder
 
-Spring AI Agents auto-configures the `AgentClient.Builder` for you when using Claude Code:
+You need to manually create the `AgentClient.Builder` by configuring an `AgentModel`:
 
 [source,java]
 ----
+import org.springaicommunity.agents.claude.ClaudeAgentModel;
+import org.springaicommunity.agents.claude.ClaudeAgentOptions;
+import org.springaicommunity.agents.claude.sdk.ClaudeClient;
+
 @Configuration
 public class AgentConfiguration {
 
-    // No manual configuration needed!
-    // Spring Boot auto-configures based on:
-    // - Presence of spring-ai-claude-agent dependency
-    // - ANTHROPIC_API_KEY environment variable or claude auth session
+    @Bean
+    public AgentClient.Builder agentClientBuilder() {
+        // Create Claude client
+        ClaudeClient claudeClient = ClaudeClient.create();
+
+        // Configure options
+        ClaudeAgentOptions options = ClaudeAgentOptions.builder()
+            .model("claude-sonnet-4-20250514")
+            .yoloMode(true)  // Allow agent to make changes
+            .build();
+
+        // Create agent model
+        ClaudeAgentModel agentModel = new ClaudeAgentModel(claudeClient, options);
+
+        // Return builder
+        return AgentClient.builder(agentModel);
+    }
 }
 ----
 
-You can inject `AgentClient.Builder` directly:
+Then inject the builder into your components:
 
 [source,java]
 ----
