@@ -1,0 +1,723 @@
+= JudgeAdvisor: Integrating Judges with AgentClient
+:page-title: JudgeAdvisor Integration
+:toc: left
+:tabsize: 2
+:sectnums:
+
+`JudgeAdvisor` is the bridge between the Judge API and `AgentClient`. It integrates automated evaluation into the agent execution pipeline, allowing you to verify agent success programmatically.
+
+== Overview
+
+`JudgeAdvisor` is an implementation of the `AgentAdvisor` interface that executes judges after agent task completion. It intercepts the agent response, evaluates it using the configured judge, and attaches the judgment to the response.
+
+[source,text]
+----
+1. Agent executes task
+   ↓
+2. JudgeAdvisor intercepts response
+   ↓
+3. Judge evaluates result
+   ↓
+4. Judgment attached to response
+   ↓
+5. Your code checks judgment.pass()
+----
+
+== Basic Usage
+
+=== Single Judge
+
+The simplest pattern uses one judge:
+
+[source,java]
+----
+import org.springaicommunity.agents.advisors.judge.JudgeAdvisor;
+import org.springaicommunity.agents.judge.fs.FileExistsJudge;
+import org.springaicommunity.agents.judge.result.Judgment;
+
+// Create a judge
+Judge fileJudge = new FileExistsJudge("output.txt");
+
+// Attach to agent execution
+AgentClientResponse response = agentClientBuilder
+    .goal("Create output.txt with system metrics")
+    .workingDirectory(Path.of("/tmp/reports"))
+    .advisors(JudgeAdvisor.builder()
+        .judge(fileJudge)
+        .build())
+    .call();
+
+// Check judgment
+Judgment judgment = response.getJudgment();
+
+if (judgment.pass()) {
+    System.out.println("✓ Success: " + judgment.reasoning());
+} else {
+    System.out.println("✗ Failed: " + judgment.reasoning());
+}
+----
+
+=== Multiple Judges
+
+You can attach multiple `JudgeAdvisor` instances for comprehensive evaluation:
+
+[source,java]
+----
+AgentClientResponse response = agentClientBuilder
+    .goal("Build project and generate documentation")
+    .workingDirectory(projectRoot)
+    .advisors(
+        // Judge 1: Verify build
+        JudgeAdvisor.builder()
+            .judge(new BuildSuccessJudge())
+            .build(),
+
+        // Judge 2: Verify documentation
+        JudgeAdvisor.builder()
+            .judge(new FileExistsJudge("docs/README.md"))
+            .build(),
+
+        // Judge 3: Verify quality
+        JudgeAdvisor.builder()
+            .judge(new CorrectnessJudge(chatClient))
+            .build()
+    )
+    .call();
+
+// Get the final judgment (last advisor)
+Judgment judgment = response.getJudgment();
+boolean allPassed = judgment.pass();
+----
+
+[NOTE]
+====
+When using multiple `JudgeAdvisor` instances, each executes independently. The final `response.getJudgment()` returns the last judgment.
+
+For **ensemble evaluation** where you want to aggregate multiple judgments into a single verdict, use xref:jury/overview.adoc[Jury] instead.
+====
+
+== JudgeAdvisor Builder
+
+The `JudgeAdvisor.Builder` provides a fluent API for configuration:
+
+[source,java]
+----
+JudgeAdvisor advisor = JudgeAdvisor.builder()
+    .judge(myJudge)                    // Required
+    .order(100)                        // Optional: execution order
+    .name("build-verification")        // Optional: advisor name
+    .build();
+----
+
+=== Configuration Options
+
+[cols="1,2,2"]
+|===
+|Method |Purpose |Default
+
+|`judge(Judge)`
+|**Required.** The judge to execute
+|None (required)
+
+|`order(int)`
+|Execution order relative to other advisors
+|`Ordered.LOWEST_PRECEDENCE - 100`
+
+|`name(String)`
+|Human-readable advisor name
+|`"JudgeAdvisor-" + judgeType`
+|===
+
+=== Execution Order
+
+JudgeAdvisor executes **after** the agent task completes. The `order()` value controls when it runs relative to other advisors:
+
+[source,java]
+----
+import org.springframework.core.Ordered;
+
+// Run early (higher priority)
+JudgeAdvisor earlyJudge = JudgeAdvisor.builder()
+    .judge(new FileExistsJudge("config.yml"))
+    .order(Ordered.HIGHEST_PRECEDENCE + 100)
+    .build();
+
+// Run late (lower priority)
+JudgeAdvisor lateJudge = JudgeAdvisor.builder()
+    .judge(new CorrectnessJudge(chatClient))
+    .order(Ordered.LOWEST_PRECEDENCE - 100)
+    .build();
+----
+
+**Default order**: `Ordered.LOWEST_PRECEDENCE - 100` (runs near the end of advisor chain)
+
+== Production Patterns
+
+=== Pattern 1: Fail Fast on Critical Checks
+
+Stop execution if critical checks fail:
+
+[source,java]
+----
+@Service
+public class DeploymentService {
+
+    private final AgentClient.Builder agentClientBuilder;
+
+    public void deploy(Path projectRoot) {
+        // Step 1: Fix and build
+        AgentClientResponse buildResponse = agentClientBuilder
+            .goal("Fix any failing tests and run 'mvn clean install'")
+            .workingDirectory(projectRoot)
+            .advisors(JudgeAdvisor.builder()
+                .judge(new BuildSuccessJudge())
+                .build())
+            .call();
+
+        if (!buildResponse.getJudgment().pass()) {
+            throw new DeploymentException(
+                "Build failed: " + buildResponse.getJudgment().reasoning()
+            );
+        }
+
+        // Step 2: Security scan
+        AgentClientResponse securityResponse = agentClientBuilder
+            .goal("Run security scan and fix critical vulnerabilities")
+            .workingDirectory(projectRoot)
+            .advisors(JudgeAdvisor.builder()
+                .judge(new SecurityScanJudge())
+                .build())
+            .call();
+
+        if (!securityResponse.getJudgment().pass()) {
+            throw new DeploymentException(
+                "Security scan failed: " + securityResponse.getJudgment().reasoning()
+            );
+        }
+
+        // Both checks passed - safe to deploy
+        performDeployment(projectRoot);
+    }
+}
+----
+
+=== Pattern 2: Conditional Logic Based on Judgment
+
+Make decisions based on evaluation results:
+
+[source,java]
+----
+AgentClientResponse response = agentClientBuilder
+    .goal("Refactor UserService for better maintainability")
+    .workingDirectory(projectRoot)
+    .advisors(
+        JudgeAdvisor.builder()
+            .judge(new BuildSuccessJudge())
+            .build(),
+        JudgeAdvisor.builder()
+            .judge(new CodeQualityJudge(chatClient, 0.8))
+            .build()
+    )
+    .call();
+
+Judgment judgment = response.getJudgment();
+
+if (judgment.pass()) {
+    // Quality threshold met - commit changes
+    gitCommit("Refactor UserService");
+    createPullRequest();
+} else if (judgment.score() instanceof NumericalScore numerical) {
+    double quality = numerical.normalized();
+
+    if (quality >= 0.6) {
+        // Partial success - flag for review
+        createDraftPullRequest("Needs review: quality score " + quality);
+    } else {
+        // Poor quality - retry
+        logger.warn("Refactoring quality too low: {}. Retrying...", quality);
+        retryRefactoring();
+    }
+}
+----
+
+=== Pattern 3: Detailed Logging and Metrics
+
+Track judge results for observability:
+
+[source,java]
+----
+@Service
+public class ObservableAgentService {
+
+    private final AgentClient.Builder agentClientBuilder;
+    private final MeterRegistry meterRegistry;
+
+    public void executeTask(String goal, Path workspace) {
+        long startTime = System.currentTimeMillis();
+
+        AgentClientResponse response = agentClientBuilder
+            .goal(goal)
+            .workingDirectory(workspace)
+            .advisors(JudgeAdvisor.builder()
+                .judge(new BuildSuccessJudge())
+                .build())
+            .call();
+
+        Judgment judgment = response.getJudgment();
+
+        // Record metrics
+        meterRegistry.counter("agent.executions.total").increment();
+
+        if (judgment.pass()) {
+            meterRegistry.counter("agent.executions.success").increment();
+        } else {
+            meterRegistry.counter("agent.executions.failed").increment();
+        }
+
+        long duration = System.currentTimeMillis() - startTime;
+        meterRegistry.timer("agent.execution.duration").record(duration, TimeUnit.MILLISECONDS);
+
+        // Detailed logging
+        logger.info("Agent task completed: goal={}, status={}, duration={}ms",
+            goal,
+            judgment.status(),
+            duration
+        );
+
+        if (judgment.pass()) {
+            logger.debug("Success reasoning: {}", judgment.reasoning());
+        } else {
+            logger.error("Failure reasoning: {}", judgment.reasoning());
+
+            // Log individual checks
+            judgment.checks().forEach(check -> {
+                logger.error("Check '{}' failed: {}", check.name(), check.message());
+            });
+        }
+    }
+}
+----
+
+=== Pattern 4: Retry with Judgment Feedback
+
+Use judgment reasoning to improve retry attempts:
+
+[source,java]
+----
+public class RetryableAgentService {
+
+    private final AgentClient.Builder agentClientBuilder;
+    private static final int MAX_RETRIES = 3;
+
+    public AgentClientResponse executeWithRetry(String goal, Path workspace) {
+        AgentClientResponse response = null;
+        Judgment judgment = null;
+
+        for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+            String enhancedGoal = goal;
+
+            // Enhance goal with previous failure reasoning
+            if (judgment != null && !judgment.pass()) {
+                enhancedGoal = goal + "\n\n" +
+                    "Previous attempt failed:\n" +
+                    judgment.reasoning() + "\n\n" +
+                    "Please address these issues in this attempt.";
+            }
+
+            response = agentClientBuilder
+                .goal(enhancedGoal)
+                .workingDirectory(workspace)
+                .advisors(JudgeAdvisor.builder()
+                    .judge(new BuildSuccessJudge())
+                    .build())
+                .call();
+
+            judgment = response.getJudgment();
+
+            if (judgment.pass()) {
+                logger.info("Task succeeded on attempt {}", attempt);
+                return response;
+            }
+
+            logger.warn("Attempt {} failed: {}", attempt, judgment.reasoning());
+        }
+
+        throw new MaxRetriesExceededException(
+            "Task failed after " + MAX_RETRIES + " attempts. Last error: " + judgment.reasoning()
+        );
+    }
+}
+----
+
+== Spring Boot Integration
+
+Define judges and advisors as Spring beans:
+
+[source,java]
+----
+@Configuration
+public class JudgeConfiguration {
+
+    @Bean
+    public JudgeAdvisor buildVerificationAdvisor() {
+        return JudgeAdvisor.builder()
+            .judge(new BuildSuccessJudge())
+            .name("build-verification")
+            .build();
+    }
+
+    @Bean
+    public JudgeAdvisor fileVerificationAdvisor() {
+        return JudgeAdvisor.builder()
+            .judge(new FileExistsJudge("output.txt"))
+            .name("file-verification")
+            .build();
+    }
+
+    @Bean
+    public JudgeAdvisor correctnessAdvisor(ChatClient.Builder chatClientBuilder) {
+        return JudgeAdvisor.builder()
+            .judge(new CorrectnessJudge(chatClientBuilder.build()))
+            .name("correctness-check")
+            .build();
+    }
+}
+
+// Inject and use
+@Service
+public class MyService {
+
+    private final AgentClient.Builder agentClientBuilder;
+    private final JudgeAdvisor buildVerificationAdvisor;
+    private final JudgeAdvisor correctnessAdvisor;
+
+    public MyService(
+            AgentClient.Builder agentClientBuilder,
+            JudgeAdvisor buildVerificationAdvisor,
+            JudgeAdvisor correctnessAdvisor) {
+        this.agentClientBuilder = agentClientBuilder;
+        this.buildVerificationAdvisor = buildVerificationAdvisor;
+        this.correctnessAdvisor = correctnessAdvisor;
+    }
+
+    public void buildAndVerify(Path projectRoot) {
+        agentClientBuilder
+            .goal("Build and test the application")
+            .workingDirectory(projectRoot)
+            .advisors(buildVerificationAdvisor, correctnessAdvisor)
+            .call();
+    }
+}
+----
+
+== Accessing Judgment Results
+
+=== Via AgentClientResponse
+
+The primary way to access judgment results:
+
+[source,java]
+----
+AgentClientResponse response = agentClientBuilder
+    .goal("Create a REST API")
+    .advisors(JudgeAdvisor.builder().judge(myJudge).build())
+    .call();
+
+// Get judgment
+Judgment judgment = response.getJudgment();
+
+// Check status
+if (judgment.pass()) {
+    System.out.println("✓ " + judgment.reasoning());
+}
+
+// Access score
+Score score = judgment.score();
+if (score instanceof NumericalScore numerical) {
+    System.out.println("Quality: " + numerical.normalized());
+}
+
+// Examine checks
+judgment.checks().forEach(check -> {
+    System.out.println(check.name() + ": " + check.passed());
+});
+----
+
+=== Convenience Methods
+
+`AgentClientResponse` provides convenience methods:
+
+[source,java]
+----
+AgentClientResponse response = agentClientBuilder
+    .goal("Build project")
+    .advisors(JudgeAdvisor.builder().judge(myJudge).build())
+    .call();
+
+// Convenience method
+if (response.isJudgmentPassed()) {
+    deploy();
+}
+
+// Equivalent to:
+if (response.getJudgment() != null && response.getJudgment().pass()) {
+    deploy();
+}
+----
+
+=== No Judgment Case
+
+If no `JudgeAdvisor` is used, `getJudgment()` returns `null`:
+
+[source,java]
+----
+AgentClientResponse response = agentClientBuilder
+    .goal("Create a file")
+    .call(); // No judge
+
+Judgment judgment = response.getJudgment(); // null
+
+// Safe checking
+if (response.getJudgment() != null && response.getJudgment().pass()) {
+    // Handle success
+}
+----
+
+== Error Handling
+
+=== Judge Execution Errors
+
+If a judge throws an exception during evaluation, the judgment has `ERROR` status:
+
+[source,java]
+----
+AgentClientResponse response = agentClientBuilder
+    .goal("Complex task")
+    .advisors(JudgeAdvisor.builder()
+        .judge(myJudge)
+        .build())
+    .call();
+
+Judgment judgment = response.getJudgment();
+
+switch (judgment.status()) {
+    case PASS -> {
+        deploy();
+    }
+    case FAIL -> {
+        logger.error("Task failed: {}", judgment.reasoning());
+        rollback();
+    }
+    case ERROR -> {
+        logger.error("Judge error: {}", judgment.error());
+        alertOps("Judge execution failed");
+    }
+    case ABSTAIN -> {
+        logger.warn("Judge abstained: {}", judgment.reasoning());
+        requestManualReview();
+    }
+}
+----
+
+=== Handling Missing Context
+
+Judges may abstain if required context is missing:
+
+[source,java]
+----
+// Judge expects agent output
+Judge correctnessJudge = new CorrectnessJudge(chatClient);
+
+AgentClientResponse response = agentClientBuilder
+    .goal("Some task")
+    .advisors(JudgeAdvisor.builder()
+        .judge(correctnessJudge)
+        .build())
+    .call();
+
+Judgment judgment = response.getJudgment();
+
+if (judgment.status() == JudgmentStatus.ABSTAIN) {
+    // Judge couldn't evaluate - missing output or context
+    logger.warn("Judge abstained: {}", judgment.reasoning());
+}
+----
+
+== JudgeAdvisor vs Jury
+
+Understanding when to use each:
+
+[cols="1,2,2"]
+|===
+|Aspect |JudgeAdvisor |Jury
+
+|**Use Case**
+|Single judge or independent judges
+|Ensemble evaluation with aggregation
+
+|**Result**
+|Individual `Judgment`
+|Aggregated `Verdict` + individual judgments
+
+|**Aggregation**
+|No aggregation - each judge independent
+|Multiple voting strategies (majority, weighted, etc.)
+
+|**Composition**
+|Multiple advisors execute sequentially
+|Single jury executes judges in parallel
+
+|**Integration**
+|`.advisors(JudgeAdvisor.builder()...)`
+|`.advisors(JudgeAdvisor.builder().judge(jury)...)`
+|===
+
+**Example comparison**:
+
+[source,java]
+----
+// Multiple JudgeAdvisors - independent judgments
+AgentClientResponse response1 = agentClientBuilder
+    .goal("Task")
+    .advisors(
+        JudgeAdvisor.builder().judge(judgeA).build(),
+        JudgeAdvisor.builder().judge(judgeB).build(),
+        JudgeAdvisor.builder().judge(judgeC).build()
+    )
+    .call();
+
+// Each judge runs, but only last judgment accessible via response.getJudgment()
+
+// Jury - aggregated verdict
+Jury jury = Juries.builder()
+    .addJudge("A", judgeA)
+    .addJudge("B", judgeB)
+    .addJudge("C", judgeC)
+    .votingStrategy(VotingStrategies.majority())
+    .build();
+
+AgentClientResponse response2 = agentClientBuilder
+    .goal("Task")
+    .advisors(JudgeAdvisor.builder().judge(jury).build())
+    .call();
+
+// Get aggregated verdict
+Judgment aggregated = response2.getJudgment();
+
+// Access jury-specific result
+if (jury.getLastVerdict() != null) {
+    Verdict verdict = jury.getLastVerdict();
+    verdict.individual().forEach(System.out::println); // All judgments
+}
+----
+
+See xref:jury/overview.adoc[Jury Pattern] for ensemble evaluation details.
+
+== Best Practices
+
+=== 1. Always Use Judges in Production
+
+[source,java]
+----
+// ❌ No verification - dangerous
+agentClientBuilder
+    .goal("Deploy to production")
+    .call();
+
+// ✅ Verified deployment - safe
+agentClientBuilder
+    .goal("Deploy to production")
+    .advisors(JudgeAdvisor.builder()
+        .judge(new BuildSuccessJudge())
+        .build())
+    .call();
+----
+
+=== 2. Choose the Right Judge Type
+
+[source,java]
+----
+// Fast deterministic check for build
+JudgeAdvisor buildCheck = JudgeAdvisor.builder()
+    .judge(new BuildSuccessJudge())
+    .build();
+
+// Expensive LLM check for correctness
+JudgeAdvisor correctnessCheck = JudgeAdvisor.builder()
+    .judge(new CorrectnessJudge(chatClient))
+    .build();
+
+// Use deterministic first, then LLM if needed
+agentClientBuilder
+    .goal("Implement feature")
+    .advisors(buildCheck) // Fast fail if build breaks
+    .call();
+----
+
+=== 3. Log Judgment Details
+
+[source,java]
+----
+Judgment judgment = response.getJudgment();
+
+logger.info("Judgment status: {}", judgment.status());
+logger.info("Reasoning: {}", judgment.reasoning());
+logger.info("Score: {}", judgment.score());
+
+if (!judgment.pass()) {
+    judgment.checks().forEach(check -> {
+        logger.error("Failed check: {}", check.name());
+        logger.error("  Message: {}", check.message());
+    });
+}
+----
+
+=== 4. Use Appropriate Error Handling
+
+[source,java]
+----
+try {
+    AgentClientResponse response = agentClientBuilder
+        .goal("Critical task")
+        .advisors(JudgeAdvisor.builder()
+            .judge(new BuildSuccessJudge())
+            .build())
+        .call();
+
+    Judgment judgment = response.getJudgment();
+
+    if (judgment.status() == JudgmentStatus.ERROR) {
+        throw new JudgeExecutionException(
+            "Judge failed to execute",
+            judgment.error().orElse(null)
+        );
+    }
+
+    if (!judgment.pass()) {
+        throw new TaskFailedException(judgment.reasoning());
+    }
+
+} catch (JudgeExecutionException | TaskFailedException e) {
+    // Handle errors appropriately
+    logger.error("Task failed", e);
+    alertTeam(e);
+}
+----
+
+== Next Steps
+
+* **Deterministic Judges**: xref:deterministic/overview.adoc[File, Command, and Build judges]
+* **LLM-Powered Judges**: xref:llm-powered/overview.adoc[AI-based evaluation]
+* **Agent as Judge**: xref:agent-as-judge/overview.adoc[Agents evaluating agents]
+* **Jury Pattern**: xref:jury/overview.adoc[Ensemble evaluation]
+* **Judge API Overview**: xref:index.adoc[Complete Judge API documentation]
+
+== Further Reading
+
+* xref:../getting-started/first-judge.adoc[Your First Judge] - Practical introduction
+* xref:../api/advisors.adoc[Agent Advisors] - Complete advisor pattern documentation
+* xref:../api/agentclient.adoc[AgentClient] - High-level client API
+
+---
+
+`JudgeAdvisor` is the primary integration point for automated agent evaluation. Every production agent task should use at least one judge to verify success.

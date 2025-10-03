@@ -1,0 +1,511 @@
+= Judge API: Automated Agent Evaluation
+:page-title: Judge API Overview
+:toc: left
+:tabsize: 2
+:sectnums:
+
+The Judge API provides automated evaluation and verification of agent task execution. Instead of manually checking if your agent succeeded, judges provide programmatic verification with detailed feedback.
+
+== Why Evaluate Agent Execution?
+
+Agents are **non-deterministic**. The same goal might succeed today and fail tomorrow due to:
+
+* Network issues, file permissions, resource constraints
+* LLM reasoning variations across runs
+* Environmental differences (dependencies, configuration)
+* Complexity of multi-step tasks
+
+Manual verification doesn't scale. You need **automated, reliable evaluation** built into your agent workflow.
+
+== The Judge Pattern
+
+A `Judge` evaluates whether an agent achieved its goal by examining the agent's output, workspace state, and execution context.
+
+[source,java]
+----
+// Without judge - manual checking
+AgentClientResponse response = agentClientBuilder
+    .goal("Create a REST API")
+    .call();
+
+// ❓ Did it work? Check manually?
+// ❓ Are tests passing?
+// ❓ Is the code correct?
+
+// With judge - automated verification
+AgentClientResponse response = agentClientBuilder
+    .goal("Create a REST API")
+    .advisors(JudgeAdvisor.builder()
+        .judge(new BuildSuccessJudge())
+        .build())
+    .call();
+
+Judgment judgment = response.getJudgment();
+if (judgment.pass()) {
+    deploy(); // Safe - judge verified success
+} else {
+    alert("Agent failed: " + judgment.reasoning());
+}
+----
+
+== Core Abstractions
+
+The Judge API consists of four primary abstractions:
+
+=== Judge Interface
+
+The core evaluation interface:
+
+[source,java]
+----
+public interface Judge {
+    Judgment judge(JudgmentContext context);
+
+    default CompletableFuture<Judgment> judgeAsync(JudgmentContext context) {
+        return CompletableFuture.supplyAsync(() -> judge(context));
+    }
+}
+----
+
+**Key characteristics**:
+
+* **Single responsibility** - One method: `judge()`
+* **Async support** - Default async implementation via `CompletableFuture`
+* **Stateless** - Judges don't maintain state between calls
+* **Composable** - Judges can be combined (see xref:jury/overview.adoc[Jury Pattern])
+
+=== JudgmentContext
+
+Contains all information needed for evaluation:
+
+[source,java]
+----
+public record JudgmentContext(
+    String goal,                          // What the agent was asked to do
+    Path workspace,                       // Where the agent worked
+    Optional<AgentOutput> agentOutput,    // What the agent produced
+    Optional<AgentOutput> expectedOutput, // Expected result (if known)
+    Optional<List<String>> referenceData, // Context documents
+    Instant startedAt,                    // Execution start time
+    Duration executionTime,               // How long execution took
+    Map<String, Object> metadata          // Additional context
+) {}
+----
+
+=== Judgment
+
+The evaluation result:
+
+[source,java]
+----
+public record Judgment(
+    JudgmentStatus status,  // PASS, FAIL, ABSTAIN, ERROR
+    Score score,            // Detailed score (boolean, numerical, categorical)
+    String reasoning,       // Explanation of judgment
+    List<Check> checks,     // Individual verification checks
+    Optional<Duration> elapsed,  // Judgment duration
+    Map<String, Object> metadata // Additional metadata
+) {
+    public boolean pass() {
+        return status == JudgmentStatus.PASS;
+    }
+}
+----
+
+**Convenience methods**:
+
+[source,java]
+----
+// Quick checks
+if (judgment.pass()) { /* ... */ }
+if (judgment.fail()) { /* ... */ }
+if (judgment.abstain()) { /* ... */ }
+
+// Score access
+if (judgment.score() instanceof NumericalScore numerical) {
+    double value = numerical.normalized(); // 0.0 to 1.0
+}
+----
+
+=== Score Types
+
+Type-safe scoring with sealed interfaces:
+
+[source,java]
+----
+public sealed interface Score permits BooleanScore, NumericalScore, CategoricalScore {
+    Object value();
+    ScoreType type();
+}
+
+// Boolean: pass/fail
+BooleanScore pass = new BooleanScore(true);
+
+// Numerical: scored metrics
+NumericalScore quality = new NumericalScore(8.5, 0, 10);
+double normalized = quality.normalized(); // 0.85
+
+// Categorical: classification
+CategoricalScore level = new CategoricalScore(
+    "excellent",
+    List.of("poor", "good", "excellent")
+);
+----
+
+== Judge Types
+
+Judges fall into three main categories:
+
+=== Deterministic Judges
+
+Rule-based evaluation using file system checks, command execution, or assertions:
+
+[cols="1,2,2"]
+|===
+|Judge |Purpose |Example
+
+|`FileExistsJudge`
+|Verify file creation
+|`new FileExistsJudge("report.txt")`
+
+|`FileContentJudge`
+|Verify file contents
+|`new FileContentJudge("pom.xml", content -> content.contains("<artifactId>my-app</artifactId>"))`
+
+|`CommandJudge`
+|Verify command success
+|`new CommandJudge("mvn test")`
+
+|`BuildSuccessJudge`
+|Verify build success
+|`new BuildSuccessJudge()`
+
+|`AssertJJudge`
+|Custom assertions
+|`judge.assertThat(output).contains("Hello")`
+|===
+
+See xref:deterministic/overview.adoc[Deterministic Judges] for details.
+
+=== LLM-Powered Judges
+
+AI-based evaluation using language models:
+
+[cols="1,2,2"]
+|===
+|Judge |Purpose |Example
+
+|`CorrectnessJudge`
+|Semantic correctness
+|`new CorrectnessJudge(chatClient)`
+
+|`GEvalJudge`
+|Custom criteria evaluation
+|`new GEvalJudge(chatClient, "Code follows SOLID principles")`
+
+|`FaithfulnessJudge`
+|Ground output in context
+|`new FaithfulnessJudge(chatClient)`
+
+|`SimpleCriteriaJudge`
+|Simple yes/no criteria
+|`new SimpleCriteriaJudge(chatClient, "API returns valid JSON")`
+|===
+
+See xref:llm-powered/overview.adoc[LLM-Powered Judges] for details.
+
+=== Agent as Judge
+
+Use an agent to evaluate another agent's work:
+
+[source,java]
+----
+AgentJudge codeReviewer = AgentJudge.builder()
+    .agentClient(agentClient)
+    .goal("Review the code for bugs, security issues, and code quality")
+    .build();
+
+Judgment review = codeReviewer.judge(context);
+----
+
+See xref:agent-as-judge/overview.adoc[Agent as Judge] for details.
+
+== Integration with AgentClient
+
+Judges integrate via the `JudgeAdvisor`:
+
+[source,java]
+----
+// Single judge
+AgentClientResponse response = agentClientBuilder
+    .goal("Build and test the application")
+    .workingDirectory(projectRoot)
+    .advisors(JudgeAdvisor.builder()
+        .judge(new BuildSuccessJudge())
+        .build())
+    .call();
+
+// Multiple judges
+AgentClientResponse response = agentClientBuilder
+    .goal("Generate documentation")
+    .advisors(
+        JudgeAdvisor.builder()
+            .judge(new FileExistsJudge("README.md"))
+            .build(),
+        JudgeAdvisor.builder()
+            .judge(new CorrectnessJudge(chatClient))
+            .build()
+    )
+    .call();
+----
+
+See xref:judge-advisor.adoc[JudgeAdvisor] for integration details.
+
+== Ensemble Evaluation: The Jury Pattern
+
+Combine multiple judges for robust evaluation:
+
+[source,java]
+----
+Jury qualityJury = Juries.builder()
+    .addJudge("build", new BuildSuccessJudge())
+    .addJudge("correctness", new CorrectnessJudge(chatClient))
+    .addJudge("quality", new CodeQualityJudge(chatClient))
+    .votingStrategy(VotingStrategies.weightedAverage(Map.of(
+        "build", 0.5,
+        "correctness", 0.3,
+        "quality", 0.2
+    )))
+    .build();
+
+Verdict verdict = qualityJury.vote(context);
+
+// Examine overall result
+if (verdict.aggregated().pass()) {
+    System.out.println("Quality bar met!");
+}
+
+// Examine individual judges
+verdict.individual().forEach(judgment -> {
+    System.out.println(judgment.score());
+});
+----
+
+See xref:jury/overview.adoc[Jury Pattern] for ensemble evaluation.
+
+== Research Foundations
+
+The Spring AI Agents Judge API synthesizes design patterns from leading AI evaluation frameworks. This ensures production-grade architecture informed by real-world usage.
+
+=== Framework Influences
+
+[cols="1,2,2,2"]
+|===
+|Framework |Language |Key Contribution |GitHub
+
+|**judges**
+|Python
+|Core abstraction, jury ensemble pattern
+|https://github.com/UpstageAI/judges[UpstageAI/judges]
+
+|**deepeval**
+|Python
+|G-Eval, threshold-based success, metrics
+|https://github.com/confident-ai/deepeval[confident-ai/deepeval]
+
+|**ragas**
+|Python
+|Multi-step evaluation, faithfulness, self-consistency
+|https://github.com/explodinggradients/ragas[explodinggradients/ragas]
+
+|**evals**
+|Python
+|Systematic evaluation, reproducibility, recording
+|https://github.com/openai/evals[openai/evals]
+
+|**JudgeLM**
+|Python
+|Judge type taxonomy, pairwise comparison, prompt templates
+|https://github.com/baaivision/JudgeLM[baaivision/JudgeLM]
+
+|**langfuse**
+|TypeScript
+|Observability as cross-cutting concern
+|https://github.com/langfuse/langfuse[langfuse/langfuse]
+|===
+
+=== Key Patterns Adopted
+
+From these frameworks, we adopted:
+
+**1. Clean Core Interface** (from **judges**)::
+Single `judge()` method with async support. A jury is itself a judge, enabling recursive composition.
+
+**2. Flexible Scoring** (from **judges**, **deepeval**)::
+Type-safe score variants (boolean, numerical, categorical) with normalization support.
+
+**3. Ensemble Pattern** (from **judges**)::
+`Jury extends Judge` with multiple voting strategies and parallel execution.
+
+**4. Multi-Step Evaluation** (from **ragas**)::
+Break complex evaluation into stages: Decompose → Verify → Aggregate (e.g., FaithfulnessJudge).
+
+**5. Self-Consistency** (from **ragas**)::
+Run judgment N times with majority voting for robustness (SimpleCriteriaJudge with strictness parameter).
+
+**6. G-Eval Pattern** (from **deepeval**)::
+Auto-generate evaluation steps from criteria using LLM, then execute structured chain-of-thought reasoning.
+
+**7. Threshold-Based Success** (from **deepeval**)::
+Metrics have configurable thresholds determining pass/fail (e.g., `new CorrectnessJudge(chatClient, 0.8)`).
+
+**8. Pairwise Comparison** (from **JudgeLM**)::
+Compare two agent outputs to determine which is better (PairwiseJudge).
+
+**9. Reproducibility** (from **evals**)::
+Deterministic evaluation via timestamps, metadata, and structured recording.
+
+**10. Observability as Cross-Cutting** (from **langfuse**)::
+Don't couple judge interface to observability—use decorator pattern or AOP for tracing.
+
+=== Unique Spring AI Agents Contributions
+
+Beyond synthesizing existing patterns, we added:
+
+**1. AssertJ Integration**::
+Leverage 2000+ AssertJ assertions with `AssertJJudge` and `SoftAssertions` for declarative testing.
++
+[source,java]
+----
+AssertJJudge.create(context -> judge -> {
+    String output = context.agentOutput().get().asText();
+    judge.assertThat(output).contains("Hello");
+    judge.assertThat(output).hasLineCount(5);
+});
+----
+
+**2. Agent-as-Judge**::
+Use `AgentClient` for judgment—agents evaluate other agents with structured reasoning.
+
+**3. Workspace-Centric Context**::
+Agent-specific evaluation with `Path workspace`, file system operations, and build integration.
+
+**4. Rich Agent Output**::
+Beyond string output—sealed `AgentOutput` interface with `TextOutput`, `StructuredOutput`, `MultimodalOutput`.
+
+**5. Spring Integration**::
+Native Spring Boot integration with `ChatClient` from Spring AI, bean-based configuration, and future auto-configuration support.
+
+=== Research Deep Dive
+
+For detailed analysis of how each framework influenced specific design decisions, see:
+
+* xref:research-foundations.adoc[Research Foundations] - Complete design rationale with code examples from each framework
+
+== Production Patterns
+
+=== Pattern 1: CI/CD Integration
+
+Verify builds and tests before deployment:
+
+[source,java]
+----
+@Service
+public class ContinuousIntegration {
+
+    private final AgentClient.Builder agentClientBuilder;
+
+    public boolean fixAndDeploy(Path projectRoot) {
+        AgentClientResponse response = agentClientBuilder
+            .goal("Fix failing tests and run 'mvn clean install'")
+            .workingDirectory(projectRoot)
+            .advisors(JudgeAdvisor.builder()
+                .judge(new BuildSuccessJudge())
+                .build())
+            .call();
+
+        Judgment judgment = response.getJudgment();
+
+        if (judgment.pass()) {
+            deploy(projectRoot);
+            return true;
+        } else {
+            alertTeam("Build failed: " + judgment.reasoning());
+            return false;
+        }
+    }
+}
+----
+
+=== Pattern 2: Quality Gates
+
+Enforce quality standards:
+
+[source,java]
+----
+Jury qualityGate = Juries.builder()
+    .addJudge("build", new BuildSuccessJudge())
+    .addJudge("coverage", new CoverageJudge(80.0))
+    .addJudge("correctness", new CorrectnessJudge(chatClient))
+    .votingStrategy(VotingStrategies.allMustPass())
+    .build();
+
+Verdict verdict = qualityGate.vote(context);
+
+if (!verdict.aggregated().pass()) {
+    throw new QualityGateException("Quality standards not met");
+}
+----
+
+=== Pattern 3: Self-Healing Systems
+
+Agents verify and retry:
+
+[source,java]
+----
+int maxRetries = 3;
+Judgment judgment = null;
+
+for (int attempt = 0; attempt < maxRetries; attempt++) {
+    AgentClientResponse response = agentClientBuilder
+        .goal("Fix the failing tests")
+        .advisors(JudgeAdvisor.builder()
+            .judge(new BuildSuccessJudge())
+            .build())
+        .call();
+
+    judgment = response.getJudgment();
+
+    if (judgment.pass()) {
+        break; // Success!
+    }
+
+    logger.warn("Attempt {} failed: {}", attempt + 1, judgment.reasoning());
+}
+
+if (!judgment.pass()) {
+    escalateToHuman(judgment);
+}
+----
+
+== Next Steps
+
+Explore the Judge API in depth:
+
+* **Start here**: xref:judge-advisor.adoc[JudgeAdvisor] - Integration with AgentClient (primary entry point)
+* **Deterministic**: xref:deterministic/overview.adoc[Deterministic Judges] - Rule-based evaluation
+* **LLM-Powered**: xref:llm-powered/overview.adoc[LLM-Powered Judges] - AI-based evaluation
+* **Agent as Judge**: xref:agent-as-judge/overview.adoc[Agent as Judge] - Agents evaluating agents
+* **Ensemble**: xref:jury/overview.adoc[Jury Pattern] - Combine judges for robust evaluation
+* **Research**: xref:research-foundations.adoc[Research Foundations] - Complete design rationale
+
+== Further Reading
+
+* **Anthropic SDK Blog**: https://www.anthropic.com/engineering/building-agents-with-the-claude-agent-sdk[Building Agents with the Claude Agent SDK] - Agent architecture foundations
+* **GitHub Research**: https://github.com/UpstageAI/judges[judges], https://github.com/confident-ai/deepeval[deepeval], https://github.com/explodinggradients/ragas[ragas], https://github.com/openai/evals[evals], https://github.com/baaivision/JudgeLM[JudgeLM]
+* xref:../getting-started/first-judge.adoc[Your First Judge] - Practical introduction
+* xref:../concepts/cli-agents.adoc[CLI Agents] - Understanding autonomous agents
+
+---
+
+The Judge API transforms agents from "fire and forget" tools into **production-grade, self-verifying systems** with automated quality assurance built into every execution.

@@ -1,0 +1,751 @@
+= File Judges: File System Verification
+:page-title: File Judges
+:toc: left
+:tabsize: 2
+:sectnums:
+
+File judges verify file and directory operations in the agent's workspace. They provide fast, deterministic checks for file creation, content validation, and file system state.
+
+== FileExistsJudge
+
+Verifies that a file or directory exists in the workspace.
+
+=== Basic Usage
+
+[source,java]
+----
+import org.springaicommunity.agents.judge.fs.FileExistsJudge;
+
+// Check if file exists
+Judge judge = new FileExistsJudge("output.txt");
+
+AgentClientResponse response = agentClientBuilder
+    .goal("Create output.txt with system metrics")
+    .workingDirectory(Path.of("/tmp/reports"))
+    .advisors(JudgeAdvisor.builder()
+        .judge(judge)
+        .build())
+    .call();
+
+Judgment judgment = response.getJudgment();
+
+if (judgment.pass()) {
+    System.out.println("✓ File created: output.txt");
+} else {
+    System.out.println("✗ File not found: output.txt");
+}
+----
+
+=== Path Resolution
+
+File paths are resolved relative to the workspace:
+
+[source,java]
+----
+// Workspace: /tmp/project
+// File path: src/main/java/App.java
+// Resolved: /tmp/project/src/main/java/App.java
+
+Judge judge = new FileExistsJudge("src/main/java/App.java");
+
+AgentClientResponse response = agentClientBuilder
+    .goal("Create Spring Boot application class")
+    .workingDirectory(Path.of("/tmp/project"))
+    .advisors(JudgeAdvisor.builder().judge(judge).build())
+    .call();
+----
+
+=== Directory Checks
+
+`FileExistsJudge` works for both files and directories:
+
+[source,java]
+----
+// Check if directory exists
+Judge directoryJudge = new FileExistsJudge("src/main/resources");
+
+// Check if file exists
+Judge fileJudge = new FileExistsJudge("src/main/resources/application.properties");
+----
+
+=== Multiple File Checks
+
+Verify multiple files were created:
+
+[source,java]
+----
+AgentClientResponse response = agentClientBuilder
+    .goal("Generate Spring Boot project structure")
+    .workingDirectory(projectRoot)
+    .advisors(
+        JudgeAdvisor.builder()
+            .judge(new FileExistsJudge("pom.xml"))
+            .build(),
+        JudgeAdvisor.builder()
+            .judge(new FileExistsJudge("src/main/java/Application.java"))
+            .build(),
+        JudgeAdvisor.builder()
+            .judge(new FileExistsJudge("src/main/resources/application.properties"))
+            .build(),
+        JudgeAdvisor.builder()
+            .judge(new FileExistsJudge("src/test/java/ApplicationTests.java"))
+            .build()
+    )
+    .call();
+
+boolean allFilesCreated = response.isJudgmentPassed();
+----
+
+=== Judgment Structure
+
+When the file exists:
+
+[source,java]
+----
+Judgment {
+    status = PASS
+    score = BooleanScore(true)
+    reasoning = "File exists at output.txt"
+    checks = [
+        Check(name="file_exists", passed=true, message="File found at output.txt")
+    ]
+}
+----
+
+When the file does not exist:
+
+[source,java]
+----
+Judgment {
+    status = FAIL
+    score = BooleanScore(false)
+    reasoning = "File not found at output.txt"
+    checks = [
+        Check(name="file_exists", passed=false, message="File not found at output.txt")
+    ]
+}
+----
+
+=== Spring Boot Integration
+
+Define as a Spring bean:
+
+[source,java]
+----
+@Configuration
+public class JudgeConfiguration {
+
+    @Bean
+    public JudgeAdvisor readmeVerificationAdvisor() {
+        return JudgeAdvisor.builder()
+            .judge(new FileExistsJudge("README.md"))
+            .name("readme-verification")
+            .build();
+    }
+
+    @Bean
+    public JudgeAdvisor docVerificationAdvisor() {
+        return JudgeAdvisor.builder()
+            .judge(new FileExistsJudge("docs/installation.md"))
+            .name("doc-verification")
+            .build();
+    }
+}
+
+// Inject and use
+@Service
+public class DocumentationService {
+
+    private final AgentClient.Builder agentClientBuilder;
+    private final JudgeAdvisor readmeVerificationAdvisor;
+
+    public DocumentationService(
+            AgentClient.Builder agentClientBuilder,
+            JudgeAdvisor readmeVerificationAdvisor) {
+        this.agentClientBuilder = agentClientBuilder;
+        this.readmeVerificationAdvisor = readmeVerificationAdvisor;
+    }
+
+    public void generateDocs(Path projectRoot) {
+        agentClientBuilder
+            .goal("Generate project documentation")
+            .workingDirectory(projectRoot)
+            .advisors(readmeVerificationAdvisor)
+            .call();
+    }
+}
+----
+
+== FileContentJudge
+
+Verifies that file content matches expected criteria using exact match, substring contains, or regex pattern.
+
+=== Match Modes
+
+`FileContentJudge` supports three matching modes:
+
+[cols="1,2,2"]
+|===
+|Mode |Behavior |Use Case
+
+|`EXACT`
+|Content must match exactly
+|Verify specific output format
+
+|`CONTAINS`
+|Content must contain substring
+|Check for required text
+
+|`REGEX`
+|Content must match regex pattern
+|Flexible pattern matching
+|===
+
+=== Exact Match
+
+Content must match exactly (whitespace-sensitive):
+
+[source,java]
+----
+import org.springaicommunity.agents.judge.fs.FileContentJudge;
+import org.springaicommunity.agents.judge.fs.FileContentJudge.MatchMode;
+
+Judge judge = new FileContentJudge(
+    "greeting.txt",
+    "Hello World",
+    MatchMode.EXACT
+);
+
+// Default mode is EXACT
+Judge simpleJudge = new FileContentJudge("greeting.txt", "Hello World");
+----
+
+**Passes when**:
+[source,text]
+----
+File content: "Hello World"
+Expected:     "Hello World"
+Result:       ✓ PASS
+----
+
+**Fails when**:
+[source,text]
+----
+File content: "Hello World\n"  (extra newline)
+Expected:     "Hello World"
+Result:       ✗ FAIL
+----
+
+=== Contains Match
+
+Content must contain the expected substring:
+
+[source,java]
+----
+Judge judge = new FileContentJudge(
+    "log.txt",
+    "SUCCESS",
+    MatchMode.CONTAINS
+);
+
+AgentClientResponse response = agentClientBuilder
+    .goal("Run tests and log results")
+    .workingDirectory(projectRoot)
+    .advisors(JudgeAdvisor.builder().judge(judge).build())
+    .call();
+----
+
+**Passes when**:
+[source,text]
+----
+File content: "Test execution: SUCCESS\nAll tests passed"
+Expected:     "SUCCESS"
+Result:       ✓ PASS (substring found)
+----
+
+=== Regex Match
+
+Content must match a regular expression pattern:
+
+[source,java]
+----
+// Check for JSON structure
+Judge jsonJudge = new FileContentJudge(
+    "output.json",
+    "\\{.*\"status\"\\s*:\\s*\"success\".*\\}",
+    MatchMode.REGEX
+);
+
+// Check for version number pattern
+Judge versionJudge = new FileContentJudge(
+    "pom.xml",
+    "<version>\\d+\\.\\d+\\.\\d+</version>",
+    MatchMode.REGEX
+);
+
+// Check for email address
+Judge emailJudge = new FileContentJudge(
+    "contacts.txt",
+    "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}",
+    MatchMode.REGEX
+);
+----
+
+**Example - JSON pattern**:
+[source,text]
+----
+File content: {"status": "success", "message": "OK"}
+Pattern:      \{.*"status"\s*:\s*"success".*\}
+Result:       ✓ PASS
+----
+
+=== Common Patterns
+
+==== Verify Maven Artifact ID
+
+[source,java]
+----
+Judge judge = new FileContentJudge(
+    "pom.xml",
+    "<artifactId>my-service</artifactId>",
+    MatchMode.CONTAINS
+);
+----
+
+==== Verify Application Properties
+
+[source,java]
+----
+Judge judge = new FileContentJudge(
+    "src/main/resources/application.properties",
+    "server.port=8080",
+    MatchMode.CONTAINS
+);
+----
+
+==== Verify Java Class Structure
+
+[source,java]
+----
+// Check for Spring Boot main class
+Judge judge = new FileContentJudge(
+    "src/main/java/com/example/Application.java",
+    "@SpringBootApplication.*public class Application",
+    MatchMode.REGEX
+);
+----
+
+==== Verify README Sections
+
+[source,java]
+----
+Judge judge = new FileContentJudge(
+    "README.md",
+    "# Installation",
+    MatchMode.CONTAINS
+);
+
+// Multiple section checks
+AgentClientResponse response = agentClientBuilder
+    .goal("Generate README with standard sections")
+    .advisors(
+        JudgeAdvisor.builder()
+            .judge(new FileContentJudge("README.md", "# Installation", MatchMode.CONTAINS))
+            .build(),
+        JudgeAdvisor.builder()
+            .judge(new FileContentJudge("README.md", "# Usage", MatchMode.CONTAINS))
+            .build(),
+        JudgeAdvisor.builder()
+            .judge(new FileContentJudge("README.md", "# License", MatchMode.CONTAINS))
+            .build()
+    )
+    .call();
+----
+
+=== Judgment Structure
+
+When file exists and content matches:
+
+[source,java]
+----
+Judgment {
+    status = PASS
+    score = BooleanScore(true)
+    reasoning = "Content contains match in log.txt"
+    checks = [
+        Check(name="file_exists", passed=true, message="File found"),
+        Check(name="file_readable", passed=true, message="File readable"),
+        Check(name="content_match", passed=true, message="CONTAINS match successful")
+    ]
+}
+----
+
+When file exists but content doesn't match:
+
+[source,java]
+----
+Judgment {
+    status = FAIL
+    score = BooleanScore(false)
+    reasoning = "Content does not contains match in log.txt"
+    checks = [
+        Check(name="file_exists", passed=true, message="File found"),
+        Check(name="file_readable", passed=true, message="File readable"),
+        Check(name="content_match", passed=false, message="CONTAINS match failed")
+    ]
+}
+----
+
+When file doesn't exist:
+
+[source,java]
+----
+Judgment {
+    status = FAIL
+    score = BooleanScore(false)
+    reasoning = "File not found at log.txt"
+    checks = [
+        Check(name="file_exists", passed=false, message="File not found: log.txt")
+    ]
+}
+----
+
+When file read error occurs:
+
+[source,java]
+----
+Judgment {
+    status = FAIL
+    score = BooleanScore(false)
+    reasoning = "Failed to read file: Permission denied"
+    checks = [
+        Check(name="file_exists", passed=true, message="File exists"),
+        Check(name="file_readable", passed=false, message="Failed to read: Permission denied")
+    ]
+}
+----
+
+=== Production Patterns
+
+==== Verify Configuration Files
+
+[source,java]
+----
+@Service
+public class ConfigVerificationService {
+
+    private final AgentClient.Builder agentClientBuilder;
+
+    public void generateAndVerifyConfig(Path projectRoot) {
+        AgentClientResponse response = agentClientBuilder
+            .goal("Create application.properties with database config")
+            .workingDirectory(projectRoot)
+            .advisors(
+                // Check file exists
+                JudgeAdvisor.builder()
+                    .judge(new FileExistsJudge("src/main/resources/application.properties"))
+                    .build(),
+
+                // Check database URL
+                JudgeAdvisor.builder()
+                    .judge(new FileContentJudge(
+                        "src/main/resources/application.properties",
+                        "spring.datasource.url",
+                        MatchMode.CONTAINS
+                    ))
+                    .build(),
+
+                // Check database driver
+                JudgeAdvisor.builder()
+                    .judge(new FileContentJudge(
+                        "src/main/resources/application.properties",
+                        "spring.datasource.driver-class-name",
+                        MatchMode.CONTAINS
+                    ))
+                    .build()
+            )
+            .call();
+
+        if (!response.isJudgmentPassed()) {
+            throw new ConfigException("Database configuration incomplete");
+        }
+    }
+}
+----
+
+==== Verify Generated Code
+
+[source,java]
+----
+public class CodeGenerationService {
+
+    public void generateRestController(Path projectRoot, String entityName) {
+        String controllerPath = String.format(
+            "src/main/java/com/example/controller/%sController.java",
+            entityName
+        );
+
+        AgentClientResponse response = agentClientBuilder
+            .goal(String.format("Create REST controller for %s entity", entityName))
+            .workingDirectory(projectRoot)
+            .advisors(
+                // File exists
+                JudgeAdvisor.builder()
+                    .judge(new FileExistsJudge(controllerPath))
+                    .build(),
+
+                // Has @RestController
+                JudgeAdvisor.builder()
+                    .judge(new FileContentJudge(
+                        controllerPath,
+                        "@RestController",
+                        MatchMode.CONTAINS
+                    ))
+                    .build(),
+
+                // Has @RequestMapping
+                JudgeAdvisor.builder()
+                    .judge(new FileContentJudge(
+                        controllerPath,
+                        "@RequestMapping",
+                        MatchMode.CONTAINS
+                    ))
+                    .build(),
+
+                // Has CRUD methods (regex)
+                JudgeAdvisor.builder()
+                    .judge(new FileContentJudge(
+                        controllerPath,
+                        "@GetMapping|@PostMapping|@PutMapping|@DeleteMapping",
+                        MatchMode.REGEX
+                    ))
+                    .build()
+            )
+            .call();
+
+        if (!response.isJudgmentPassed()) {
+            throw new CodeGenerationException(
+                "Controller generation incomplete for " + entityName
+            );
+        }
+    }
+}
+----
+
+== Combining File Judges
+
+=== Pattern: File Creation → Content Verification
+
+[source,java]
+----
+// Step 1: Verify file created
+Judge existsJudge = new FileExistsJudge("output.txt");
+
+// Step 2: Verify content correct
+Judge contentJudge = new FileContentJudge(
+    "output.txt",
+    "Expected content",
+    MatchMode.CONTAINS
+);
+
+AgentClientResponse response = agentClientBuilder
+    .goal("Create output.txt with specific content")
+    .advisors(
+        JudgeAdvisor.builder().judge(existsJudge).build(),
+        JudgeAdvisor.builder().judge(contentJudge).build()
+    )
+    .call();
+----
+
+=== Pattern: Multiple File + Content Checks
+
+[source,java]
+----
+AgentClientResponse response = agentClientBuilder
+    .goal("Create Spring Boot project with documentation")
+    .workingDirectory(projectRoot)
+    .advisors(
+        // Structure checks
+        JudgeAdvisor.builder()
+            .judge(new FileExistsJudge("pom.xml"))
+            .build(),
+        JudgeAdvisor.builder()
+            .judge(new FileExistsJudge("README.md"))
+            .build(),
+        JudgeAdvisor.builder()
+            .judge(new FileExistsJudge("src/main/java/Application.java"))
+            .build(),
+
+        // Content checks
+        JudgeAdvisor.builder()
+            .judge(new FileContentJudge(
+                "pom.xml",
+                "<artifactId>my-app</artifactId>",
+                MatchMode.CONTAINS
+            ))
+            .build(),
+        JudgeAdvisor.builder()
+            .judge(new FileContentJudge(
+                "README.md",
+                "# Installation",
+                MatchMode.CONTAINS
+            ))
+            .build(),
+        JudgeAdvisor.builder()
+            .judge(new FileContentJudge(
+                "src/main/java/Application.java",
+                "@SpringBootApplication",
+                MatchMode.CONTAINS
+            ))
+            .build()
+    )
+    .call();
+----
+
+== Error Handling
+
+=== File Not Found
+
+[source,java]
+----
+Judge judge = new FileExistsJudge("missing.txt");
+Judgment judgment = judge.judge(context);
+
+// Status: FAIL
+// Reasoning: "File not found at missing.txt"
+assertThat(judgment.pass()).isFalse();
+assertThat(judgment.checks()).hasSize(1);
+assertThat(judgment.checks().get(0).passed()).isFalse();
+----
+
+=== File Read Error
+
+[source,java]
+----
+// File exists but can't be read (permissions, binary file, etc.)
+Judge judge = new FileContentJudge("protected.txt", "content", MatchMode.CONTAINS);
+Judgment judgment = judge.judge(context);
+
+// Status: FAIL
+// Check "file_exists": PASS
+// Check "file_readable": FAIL
+assertThat(judgment.checks())
+    .anySatisfy(check -> {
+        assertThat(check.name()).isEqualTo("file_readable");
+        assertThat(check.passed()).isFalse();
+    });
+----
+
+=== Regex Compilation Error
+
+[source,java]
+----
+// Invalid regex pattern
+Judge judge = new FileContentJudge(
+    "file.txt",
+    "[invalid(regex",  // Invalid pattern
+    MatchMode.REGEX
+);
+
+// Judge will fail with pattern compilation error
+Judgment judgment = judge.judge(context);
+assertThat(judgment.pass()).isFalse();
+----
+
+== Performance Considerations
+
+File judges are extremely fast:
+
+[cols="1,2,2"]
+|===
+|Operation |Typical Duration |Notes
+
+|`FileExistsJudge`
+|< 5ms
+|Simple file system check
+
+|`FileContentJudge` (small file)
+|< 10ms
+|Read + string operation
+
+|`FileContentJudge` (large file)
+|< 100ms
+|Depends on file size
+
+|`FileContentJudge` (REGEX)
+|< 50ms
+|Regex compilation + match
+|===
+
+**Best practice**: Use file judges liberally—they're fast and deterministic.
+
+== Best Practices
+
+=== 1. Use Appropriate Match Mode
+
+[source,java]
+----
+// ✅ Good: CONTAINS for flexible matching
+new FileContentJudge("log.txt", "SUCCESS", MatchMode.CONTAINS)
+
+// ❌ Fragile: EXACT with whitespace sensitivity
+new FileContentJudge("log.txt", "Test: SUCCESS\n", MatchMode.EXACT)
+----
+
+=== 2. Verify File Exists Before Content Check
+
+[source,java]
+----
+// FileContentJudge already checks existence internally
+Judge judge = new FileContentJudge("file.txt", "content", MatchMode.CONTAINS);
+
+// No need for separate FileExistsJudge unless you want explicit check
+----
+
+=== 3. Use Regex for Complex Patterns
+
+[source,java]
+----
+// ✅ Good: Regex for flexible matching
+new FileContentJudge(
+    "version.txt",
+    "\\d+\\.\\d+\\.\\d+",  // Match any semantic version
+    MatchMode.REGEX
+)
+
+// ❌ Rigid: EXACT for version check
+new FileContentJudge("version.txt", "1.0.0", MatchMode.EXACT)
+----
+
+=== 4. Escape Regex Special Characters
+
+[source,java]
+----
+// ✅ Good: Escaped regex
+new FileContentJudge(
+    "file.txt",
+    "\\{.*\\}",  // Match JSON braces
+    MatchMode.REGEX
+)
+
+// ❌ Wrong: Unescaped (treats { } as regex metacharacters)
+new FileContentJudge("file.txt", "{.*}", MatchMode.REGEX)
+----
+
+== Next Steps
+
+* **Command Judges**: xref:command-judges.adoc[Build and test verification]
+* **Custom Judges**: xref:custom-judges.adoc[Creating your own file judges]
+* **Judge Advisor**: xref:../judge-advisor.adoc[Integration with AgentClient]
+* **Deterministic Overview**: xref:overview.adoc[All deterministic judge types]
+
+== Further Reading
+
+* xref:../index.adoc[Judge API Overview] - Complete Judge API documentation
+* xref:../../getting-started/first-judge.adoc[Your First Judge] - Practical introduction
+* Java NIO File API: https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/nio/file/package-summary.html[java.nio.file]
+* Java Regex Pattern: https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/regex/Pattern.html[java.util.regex.Pattern]
+
+---
+
+File judges provide fast, deterministic verification of file system operations. They're the foundation of agent file creation and modification workflows.

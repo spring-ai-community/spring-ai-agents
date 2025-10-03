@@ -1,0 +1,500 @@
+= Deterministic Judges
+:page-title: Deterministic Judge Overview
+:toc: left
+:tabsize: 2
+:sectnums:
+
+Deterministic judges use rule-based evaluation without AI. They provide fast, reliable, and cost-free verification of agent execution through file system checks, command execution, and assertions.
+
+== What Are Deterministic Judges?
+
+Deterministic judges evaluate agent outcomes using **predefined rules** rather than AI inference. They:
+
+* ✅ **Are fast** - No LLM inference overhead (milliseconds vs seconds)
+* ✅ **Are predictable** - Same input always produces same output
+* ✅ **Are free** - No API costs
+* ✅ **Are reliable** - No rate limits, no API downtime
+* ✅ **Are precise** - Exact checks, no hallucinations
+
+**When to use deterministic judges**:
+
+* File creation/modification verification
+* Build and test execution
+* Command success checking
+* Structured output validation
+* Boolean pass/fail criteria
+
+== Judge Categories
+
+Spring AI Agents provides three categories of deterministic judges:
+
+=== 1. File System Judges
+
+Verify file and directory operations:
+
+[cols="1,2,2"]
+|===
+|Judge |Purpose |Example
+
+|`FileExistsJudge`
+|Verify file/directory exists
+|`new FileExistsJudge("report.txt")`
+
+|`FileContentJudge`
+|Verify file contents
+|`new FileContentJudge("pom.xml", content → content.contains("<version>1.0</version>"))`
+
+|`FileNotExistsJudge`
+|Verify file/directory does NOT exist
+|`new FileNotExistsJudge("temp.log")`
+|===
+
+See xref:file-judges.adoc[File Judges] for complete details.
+
+=== 2. Command Execution Judges
+
+Verify command success and output:
+
+[cols="1,2,2"]
+|===
+|Judge |Purpose |Example
+
+|`CommandJudge`
+|Verify command exits successfully
+|`new CommandJudge("mvn test")`
+
+|`BuildSuccessJudge`
+|Verify build command success
+|`new BuildSuccessJudge()`
+
+|`TestSuccessJudge`
+|Verify test execution success
+|`new TestSuccessJudge()`
+|===
+
+See xref:command-judges.adoc[Command Judges] for complete details.
+
+=== 3. Assertion-Based Judges
+
+Leverage AssertJ for rich validation:
+
+[source,java]
+----
+AssertJJudge judge = AssertJJudge.create(context -> assertions -> {
+    String output = context.agentOutput().get().asText();
+
+    assertions.assertThat(output)
+        .contains("Hello")
+        .hasLineCount(10)
+        .startsWith("Success:");
+});
+----
+
+AssertJ provides 2000+ assertions covering strings, collections, files, dates, JSON, XML, and more.
+
+== Basic Usage Pattern
+
+All deterministic judges follow the same pattern:
+
+[source,java]
+----
+// 1. Create judge
+Judge judge = new FileExistsJudge("output.txt");
+
+// 2. Attach to agent execution
+AgentClientResponse response = agentClientBuilder
+    .goal("Create output.txt with system metrics")
+    .workingDirectory(Path.of("/tmp/reports"))
+    .advisors(JudgeAdvisor.builder()
+        .judge(judge)
+        .build())
+    .call();
+
+// 3. Check judgment
+Judgment judgment = response.getJudgment();
+
+if (judgment.pass()) {
+    System.out.println("✓ Success");
+} else {
+    System.out.println("✗ Failed: " + judgment.reasoning());
+}
+----
+
+== Comparison with LLM Judges
+
+Understanding when to use deterministic vs LLM judges:
+
+[cols="1,2,2"]
+|===
+|Aspect |Deterministic Judges |LLM Judges
+
+|**Speed**
+|Milliseconds
+|Seconds (LLM inference)
+
+|**Cost**
+|Free
+|API costs per judgment
+
+|**Reliability**
+|100% deterministic
+|Non-deterministic (variance)
+
+|**Use Cases**
+|File checks, build success, exact validation
+|Semantic correctness, quality assessment, subjective criteria
+
+|**Precision**
+|Exact matches only
+|Semantic understanding
+
+|**Setup**
+|Simple - no API keys
+|Requires LLM API access
+
+|**Examples**
+|File exists, tests pass, output matches regex
+|Code quality, correctness, naturalness
+|===
+
+**Best practice**: Start with deterministic judges for objective criteria, add LLM judges for subjective evaluation.
+
+== Common Patterns
+
+=== Pattern 1: Build Verification
+
+Verify build and tests pass before proceeding:
+
+[source,java]
+----
+AgentClientResponse response = agentClientBuilder
+    .goal("Fix failing tests in UserServiceTest")
+    .workingDirectory(projectRoot)
+    .advisors(JudgeAdvisor.builder()
+        .judge(new BuildSuccessJudge())
+        .build())
+    .call();
+
+if (response.isJudgmentPassed()) {
+    deploy();
+} else {
+    alert("Build still failing after agent fix attempt");
+}
+----
+
+=== Pattern 2: File Creation Verification
+
+Verify required files were created:
+
+[source,java]
+----
+AgentClientResponse response = agentClientBuilder
+    .goal("Generate project documentation")
+    .workingDirectory(projectRoot)
+    .advisors(
+        JudgeAdvisor.builder()
+            .judge(new FileExistsJudge("README.md"))
+            .build(),
+        JudgeAdvisor.builder()
+            .judge(new FileExistsJudge("docs/installation.md"))
+            .build(),
+        JudgeAdvisor.builder()
+            .judge(new FileExistsJudge("docs/api.md"))
+            .build()
+    )
+    .call();
+
+boolean allFilesCreated = response.isJudgmentPassed();
+----
+
+=== Pattern 3: Multi-Criteria Validation
+
+Combine multiple deterministic checks:
+
+[source,java]
+----
+// Check 1: Build succeeds
+Judge buildJudge = new BuildSuccessJudge();
+
+// Check 2: README created
+Judge readmeJudge = new FileExistsJudge("README.md");
+
+// Check 3: README has required content
+Judge contentJudge = new FileContentJudge("README.md", content ->
+    content.contains("# Installation") &&
+    content.contains("# Usage") &&
+    content.contains("# License")
+);
+
+AgentClientResponse response = agentClientBuilder
+    .goal("Create Spring Boot project with documentation")
+    .workingDirectory(projectRoot)
+    .advisors(
+        JudgeAdvisor.builder().judge(buildJudge).build(),
+        JudgeAdvisor.builder().judge(readmeJudge).build(),
+        JudgeAdvisor.builder().judge(contentJudge).build()
+    )
+    .call();
+----
+
+=== Pattern 4: Hybrid Deterministic + LLM
+
+Fast deterministic checks first, then expensive LLM evaluation:
+
+[source,java]
+----
+// Fast check: Build must succeed
+Judge buildJudge = new BuildSuccessJudge();
+
+// Expensive check: Code quality assessment
+Judge qualityJudge = new CodeQualityJudge(chatClient);
+
+AgentClientResponse response = agentClientBuilder
+    .goal("Refactor UserService for better maintainability")
+    .workingDirectory(projectRoot)
+    .advisors(
+        // Fast fail if build breaks
+        JudgeAdvisor.builder()
+            .judge(buildJudge)
+            .order(100) // Run first
+            .build(),
+
+        // Only run if build passed
+        JudgeAdvisor.builder()
+            .judge(qualityJudge)
+            .order(200) // Run second
+            .build()
+    )
+    .call();
+----
+
+== Performance Characteristics
+
+Deterministic judges are extremely fast:
+
+[cols="1,2,2"]
+|===
+|Judge Type |Typical Duration |Notes
+
+|`FileExistsJudge`
+|< 5ms
+|File system check
+
+|`FileContentJudge`
+|< 50ms
+|File read + predicate
+
+|`CommandJudge`
+|Varies
+|Command execution time
+
+|`BuildSuccessJudge`
+|Varies (10s - 60s)
+|Build/test duration
+
+|`AssertJJudge`
+|< 10ms
+|In-memory assertions
+|===
+
+**Recommendation**: Use deterministic judges liberally—they're fast and free.
+
+== Error Handling
+
+Deterministic judges handle common error cases:
+
+=== File Not Found
+
+[source,java]
+----
+Judge judge = new FileExistsJudge("missing.txt");
+
+Judgment judgment = judge.judge(context);
+
+// Status: FAIL
+// Reasoning: "File 'missing.txt' does not exist in workspace"
+assertThat(judgment.pass()).isFalse();
+----
+
+=== Command Execution Failure
+
+[source,java]
+----
+Judge judge = new CommandJudge("mvn test");
+
+Judgment judgment = judge.judge(context);
+
+if (!judgment.pass()) {
+    // Command failed
+    System.out.println("Build failed: " + judgment.reasoning());
+
+    // Check metadata for exit code
+    Integer exitCode = (Integer) judgment.metadata().get("exitCode");
+    System.out.println("Exit code: " + exitCode);
+}
+----
+
+=== Permission Errors
+
+[source,java]
+----
+Judge judge = new FileContentJudge("/etc/passwd", content -> true);
+
+Judgment judgment = judge.judge(context);
+
+if (judgment.status() == JudgmentStatus.ERROR) {
+    // Permission denied or other I/O error
+    System.err.println("Error: " + judgment.error());
+}
+----
+
+== Creating Custom Deterministic Judges
+
+Extend `DeterministicJudge` for custom rules:
+
+[source,java]
+----
+import org.springaicommunity.agents.judge.DeterministicJudge;
+import org.springaicommunity.agents.judge.result.Judgment;
+import org.springaicommunity.agents.judge.result.JudgmentContext;
+import org.springaicommunity.agents.judge.result.Score;
+
+public class CustomFileCountJudge extends DeterministicJudge {
+
+    private final int expectedCount;
+
+    public CustomFileCountJudge(int expectedCount) {
+        this.expectedCount = expectedCount;
+    }
+
+    @Override
+    public Judgment judge(JudgmentContext context) {
+        Path workspace = context.workspace();
+
+        try (var files = Files.list(workspace)) {
+            long count = files.filter(Files::isRegularFile).count();
+
+            boolean pass = count == expectedCount;
+
+            return Judgment.builder()
+                .status(pass ? JudgmentStatus.PASS : JudgmentStatus.FAIL)
+                .score(new BooleanScore(pass))
+                .reasoning(String.format(
+                    "Expected %d files, found %d files in workspace",
+                    expectedCount, count
+                ))
+                .metadata(Map.of("fileCount", count))
+                .build();
+
+        } catch (IOException e) {
+            return Judgment.error(e, "Failed to count files in workspace");
+        }
+    }
+}
+----
+
+Usage:
+
+[source,java]
+----
+Judge judge = new CustomFileCountJudge(5);
+
+AgentClientResponse response = agentClientBuilder
+    .goal("Create 5 data files in workspace")
+    .workingDirectory(Path.of("/tmp/data"))
+    .advisors(JudgeAdvisor.builder().judge(judge).build())
+    .call();
+
+boolean correctFileCount = response.isJudgmentPassed();
+----
+
+== Best Practices
+
+=== 1. Use Deterministic Judges for Objective Criteria
+
+[source,java]
+----
+// ✅ Good: Objective check
+new BuildSuccessJudge()
+
+// ❌ Overkill: LLM for simple check
+new LLMJudge(chatClient, "Did the build succeed?")
+----
+
+=== 2. Combine Multiple Checks
+
+[source,java]
+----
+// Verify build, tests, and documentation
+agentClientBuilder
+    .goal("Complete feature implementation")
+    .advisors(
+        JudgeAdvisor.builder().judge(new BuildSuccessJudge()).build(),
+        JudgeAdvisor.builder().judge(new TestSuccessJudge()).build(),
+        JudgeAdvisor.builder().judge(new FileExistsJudge("docs/feature.md")).build()
+    )
+    .call();
+----
+
+=== 3. Fail Fast with Deterministic Checks
+
+[source,java]
+----
+// Fast deterministic check first
+Judge buildJudge = new BuildSuccessJudge();
+
+AgentClientResponse response = agentClientBuilder
+    .goal("Implement new feature")
+    .advisors(JudgeAdvisor.builder().judge(buildJudge).build())
+    .call();
+
+if (!response.isJudgmentPassed()) {
+    // Stop here - don't proceed to expensive LLM evaluation
+    return;
+}
+
+// Only run expensive LLM judge if build passed
+Judge qualityJudge = new CodeQualityJudge(chatClient);
+// ... continue with LLM evaluation
+----
+
+=== 4. Use Meaningful Error Messages
+
+[source,java]
+----
+// ✅ Good: Clear reasoning
+return Judgment.builder()
+    .status(JudgmentStatus.FAIL)
+    .reasoning("Expected file 'output.txt' but found 'output.csv'")
+    .build();
+
+// ❌ Poor: Vague reasoning
+return Judgment.builder()
+    .status(JudgmentStatus.FAIL)
+    .reasoning("Failed")
+    .build();
+----
+
+== Detailed Judge Documentation
+
+Explore specific deterministic judge types:
+
+* xref:file-judges.adoc[File Judges] - FileExists, FileContent, FileNotExists
+* xref:command-judges.adoc[Command Judges] - Command, BuildSuccess, TestSuccess
+* xref:custom-judges.adoc[Custom Judges] - Creating your own deterministic judges
+
+== Next Steps
+
+* **File Judges**: xref:file-judges.adoc[Complete file system verification]
+* **Command Judges**: xref:command-judges.adoc[Build and test verification]
+* **LLM Judges**: xref:../llm-powered/overview.adoc[AI-based evaluation]
+* **Judge Advisor**: xref:../judge-advisor.adoc[Integration with AgentClient]
+
+== Further Reading
+
+* xref:../index.adoc[Judge API Overview] - Complete Judge API documentation
+* xref:../../getting-started/first-judge.adoc[Your First Judge] - Practical introduction
+
+---
+
+Deterministic judges provide fast, reliable, cost-free verification of agent execution. They should be the first line of defense in any production agent evaluation strategy.
