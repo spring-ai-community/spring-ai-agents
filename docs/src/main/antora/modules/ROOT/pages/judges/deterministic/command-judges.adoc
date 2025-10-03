@@ -1,0 +1,725 @@
+= Command Judges: Build and Command Verification
+:page-title: Command Judges
+:toc: left
+:tabsize: 2
+:sectnums:
+
+Command judges verify command execution and build success. They provide deterministic evaluation of shell commands, build tools, and test suites.
+
+== CommandJudge
+
+Executes a shell command and judges success based on exit code.
+
+=== Basic Usage
+
+[source,java]
+----
+import org.springaicommunity.agents.judge.exec.CommandJudge;
+
+// Simple command - expects exit code 0
+Judge judge = new CommandJudge("mvn compile");
+
+AgentClientResponse response = agentClientBuilder
+    .goal("Fix compilation errors in UserService")
+    .workingDirectory(projectRoot)
+    .advisors(JudgeAdvisor.builder()
+        .judge(judge)
+        .build())
+    .call();
+
+Judgment judgment = response.getJudgment();
+
+if (judgment.pass()) {
+    System.out.println("✓ Compilation successful");
+} else {
+    System.out.println("✗ Compilation failed");
+    System.out.println("Output: " + judgment.metadata().get("output"));
+}
+----
+
+=== Constructor Options
+
+[source,java]
+----
+// Default: exit code 0, 2-minute timeout
+new CommandJudge("mvn test");
+
+// Custom exit code and timeout
+new CommandJudge("my-script.sh", 0, Duration.ofMinutes(5));
+----
+
+**Parameters:**
+- `command` - Shell command to execute
+- `expectedExitCode` - Expected exit code for success (default: `0`)
+- `timeout` - Maximum execution duration (default: `2 minutes`)
+
+=== Exit Code Evaluation
+
+Commands pass when exit code matches expected:
+
+[source,java]
+----
+// Expect success (exit code 0)
+Judge successJudge = new CommandJudge("mvn clean install", 0, Duration.ofMinutes(10));
+
+// Expect failure (exit code 1) - useful for negative tests
+Judge failureJudge = new CommandJudge("grep 'ERROR' build.log", 1, Duration.ofSeconds(30));
+----
+
+=== Common Commands
+
+==== Maven
+
+[source,java]
+----
+// Compile
+new CommandJudge("mvn compile")
+
+// Run tests
+new CommandJudge("mvn test")
+
+// Full build
+new CommandJudge("mvn clean install", 0, Duration.ofMinutes(10))
+
+// Verify phase
+new CommandJudge("mvn verify")
+----
+
+==== Gradle
+
+[source,java]
+----
+// Build
+new CommandJudge("gradle build")
+
+// Run tests
+new CommandJudge("gradle test")
+
+// Clean build
+new CommandJudge("gradle clean build", 0, Duration.ofMinutes(10))
+----
+
+==== npm/Node.js
+
+[source,java]
+----
+// Install dependencies
+new CommandJudge("npm install", 0, Duration.ofMinutes(5))
+
+// Run tests
+new CommandJudge("npm test")
+
+// Build
+new CommandJudge("npm run build", 0, Duration.ofMinutes(5))
+
+// Lint
+new CommandJudge("npm run lint")
+----
+
+==== Custom Scripts
+
+[source,java]
+----
+// Shell script
+new CommandJudge("./scripts/verify-deployment.sh", 0, Duration.ofMinutes(3))
+
+// Python script
+new CommandJudge("python validate.py")
+
+// Docker build
+new CommandJudge("docker build -t myapp:latest .", 0, Duration.ofMinutes(15))
+----
+
+=== Judgment Structure
+
+When command succeeds:
+
+[source,java]
+----
+Judgment {
+    status = PASS
+    score = BooleanScore(true)
+    reasoning = "Command succeeded with exit code 0"
+    checks = [
+        Check(name="command_execution", passed=true, message="Command executed successfully")
+    ]
+    metadata = {
+        "command": "mvn test",
+        "exitCode": 0,
+        "expectedExitCode": 0,
+        "output": "[maven output...]",
+        "duration": "PT45.2S"
+    }
+}
+----
+
+When command fails:
+
+[source,java]
+----
+Judgment {
+    status = FAIL
+    score = BooleanScore(false)
+    reasoning = "Command failed. Expected exit code 0 but got 1"
+    checks = [
+        Check(name="command_execution", passed=false, message="Command execution failed")
+    ]
+    metadata = {
+        "command": "mvn test",
+        "exitCode": 1,
+        "expectedExitCode": 0,
+        "output": "[maven error output...]",
+        "duration": "PT12.5S"
+    }
+}
+----
+
+=== Accessing Command Output
+
+The judgment metadata includes command output:
+
+[source,java]
+----
+Judgment judgment = response.getJudgment();
+
+if (!judgment.pass()) {
+    // Get command output for debugging
+    String output = (String) judgment.metadata().get("output");
+    Integer exitCode = (Integer) judgment.metadata().get("exitCode");
+
+    logger.error("Command failed with exit code {}", exitCode);
+    logger.error("Output:\n{}", output);
+
+    // Parse output for specific errors
+    if (output.contains("BUILD FAILURE")) {
+        logger.error("Maven build failed");
+    }
+}
+----
+
+=== Timeout Handling
+
+Commands that exceed timeout are terminated:
+
+[source,java]
+----
+// Long-running command with appropriate timeout
+Judge judge = new CommandJudge(
+    "npm install",
+    0,
+    Duration.ofMinutes(10) // Allow sufficient time
+);
+
+Judgment judgment = judge.judge(context);
+
+if (judgment.status() == JudgmentStatus.FAIL) {
+    String output = (String) judgment.metadata().get("output");
+    if (output.contains("timeout") || output.contains("killed")) {
+        logger.error("Command timed out after 10 minutes");
+    }
+}
+----
+
+== BuildSuccessJudge
+
+Specialized judge for build verification with smart wrapper detection and longer default timeout.
+
+=== Maven Build Verification
+
+`BuildSuccessJudge.maven()` auto-detects Maven wrapper:
+
+[source,java]
+----
+import org.springaicommunity.agents.judge.exec.BuildSuccessJudge;
+
+// Auto-detects ./mvnw or falls back to mvn
+Judge judge = BuildSuccessJudge.maven("clean", "install");
+
+AgentClientResponse response = agentClientBuilder
+    .goal("Fix failing tests and build the project")
+    .workingDirectory(projectRoot)
+    .advisors(JudgeAdvisor.builder()
+        .judge(judge)
+        .build())
+    .call();
+
+if (response.isJudgmentPassed()) {
+    System.out.println("✓ Build successful - safe to deploy");
+    deploy();
+} else {
+    System.out.println("✗ Build failed");
+}
+----
+
+**Wrapper Detection:**
+
+1. Checks for `./mvnw` in workspace
+2. Uses `./mvnw` if found and executable
+3. Falls back to `mvn` on PATH otherwise
+
+[source,text]
+----
+Workspace contains mvnw → executes: ./mvnw clean install
+Workspace lacks mvnw    → executes: mvn clean install
+----
+
+=== Gradle Build Verification
+
+`BuildSuccessJudge.gradle()` auto-detects Gradle wrapper:
+
+[source,java]
+----
+// Auto-detects ./gradlew or falls back to gradle
+Judge judge = BuildSuccessJudge.gradle("build");
+
+AgentClientResponse response = agentClientBuilder
+    .goal("Build the Gradle project")
+    .workingDirectory(projectRoot)
+    .advisors(JudgeAdvisor.builder()
+        .judge(judge)
+        .build())
+    .call();
+----
+
+**Wrapper Detection:**
+
+1. Checks for `./gradlew` in workspace
+2. Uses `./gradlew` if found and executable
+3. Falls back to `gradle` on PATH otherwise
+
+=== Custom Build Commands
+
+For non-Maven/Gradle builds:
+
+[source,java]
+----
+// npm build
+Judge npmJudge = new BuildSuccessJudge("npm run build");
+
+// Cargo (Rust)
+Judge cargoJudge = new BuildSuccessJudge("cargo build --release");
+
+// Make
+Judge makeJudge = new BuildSuccessJudge("make all");
+
+// Custom script
+Judge customJudge = new BuildSuccessJudge("./build.sh");
+----
+
+=== Build-Specific Timeout
+
+`BuildSuccessJudge` uses 10-minute default timeout (vs 2-minute for `CommandJudge`):
+
+[source,java]
+----
+// BuildSuccessJudge - 10 minute timeout (default)
+BuildSuccessJudge.maven("clean", "install");
+// Allows time for dependency downloads, compilation, tests
+
+// CommandJudge - 2 minute timeout (default)
+new CommandJudge("mvn clean install");
+// May timeout on large builds
+----
+
+**Recommendation**: Use `BuildSuccessJudge` for build commands, `CommandJudge` for quick verifications.
+
+=== Common Maven Goals
+
+[source,java]
+----
+// Compile only
+BuildSuccessJudge.maven("compile");
+
+// Run tests
+BuildSuccessJudge.maven("test");
+
+// Clean and compile
+BuildSuccessJudge.maven("clean", "compile");
+
+// Full build with tests
+BuildSuccessJudge.maven("clean", "install");
+
+// Verify (includes integration tests)
+BuildSuccessJudge.maven("verify");
+
+// Skip tests
+BuildSuccessJudge.maven("clean", "install", "-DskipTests");
+----
+
+=== Common Gradle Tasks
+
+[source,java]
+----
+// Build
+BuildSuccessJudge.gradle("build");
+
+// Test
+BuildSuccessJudge.gradle("test");
+
+// Clean build
+BuildSuccessJudge.gradle("clean", "build");
+
+// Assemble (no tests)
+BuildSuccessJudge.gradle("assemble");
+----
+
+== Production Patterns
+
+=== Pattern 1: CI/CD Build Verification
+
+Verify builds before deployment:
+
+[source,java]
+----
+@Service
+public class ContinuousDeployment {
+
+    private final AgentClient.Builder agentClientBuilder;
+
+    public void fixAndDeploy(Path projectRoot) {
+        // Step 1: Fix failing tests
+        AgentClientResponse fixResponse = agentClientBuilder
+            .goal("Fix all failing unit tests")
+            .workingDirectory(projectRoot)
+            .advisors(JudgeAdvisor.builder()
+                .judge(BuildSuccessJudge.maven("test"))
+                .build())
+            .call();
+
+        if (!fixResponse.isJudgmentPassed()) {
+            throw new CIException("Tests still failing after fix attempt");
+        }
+
+        // Step 2: Full build
+        AgentClientResponse buildResponse = agentClientBuilder
+            .goal("Build the project")
+            .workingDirectory(projectRoot)
+            .advisors(JudgeAdvisor.builder()
+                .judge(BuildSuccessJudge.maven("clean", "install"))
+                .build())
+            .call();
+
+        if (!buildResponse.isJudgmentPassed()) {
+            throw new CIException("Build failed");
+        }
+
+        // Safe to deploy
+        deploy(projectRoot);
+    }
+}
+----
+
+=== Pattern 2: Multi-Stage Build Verification
+
+Verify each build stage independently:
+
+[source,java]
+----
+public class MultiStageBuild {
+
+    public void buildProject(Path projectRoot) {
+        // Stage 1: Compilation
+        verifyStage(
+            projectRoot,
+            "Fix compilation errors",
+            BuildSuccessJudge.maven("compile")
+        );
+
+        // Stage 2: Unit tests
+        verifyStage(
+            projectRoot,
+            "Fix unit test failures",
+            BuildSuccessJudge.maven("test")
+        );
+
+        // Stage 3: Integration tests
+        verifyStage(
+            projectRoot,
+            "Fix integration test failures",
+            BuildSuccessJudge.maven("verify")
+        );
+
+        System.out.println("✓ All build stages passed");
+    }
+
+    private void verifyStage(Path projectRoot, String goal, Judge judge) {
+        AgentClientResponse response = agentClientBuilder
+            .goal(goal)
+            .workingDirectory(projectRoot)
+            .advisors(JudgeAdvisor.builder().judge(judge).build())
+            .call();
+
+        if (!response.isJudgmentPassed()) {
+            throw new BuildException("Build stage failed: " + goal);
+        }
+    }
+}
+----
+
+=== Pattern 3: Quality Gates
+
+Combine build with quality checks:
+
+[source,java]
+----
+public class QualityGate {
+
+    public void enforceQuality(Path projectRoot) {
+        AgentClientResponse response = agentClientBuilder
+            .goal("Ensure code meets quality standards")
+            .workingDirectory(projectRoot)
+            .advisors(
+                // Build must succeed
+                JudgeAdvisor.builder()
+                    .judge(BuildSuccessJudge.maven("clean", "install"))
+                    .build(),
+
+                // Code coverage check
+                JudgeAdvisor.builder()
+                    .judge(new CommandJudge("mvn jacoco:check"))
+                    .build(),
+
+                // Code style check
+                JudgeAdvisor.builder()
+                    .judge(new CommandJudge("mvn checkstyle:check"))
+                    .build(),
+
+                // Security scan
+                JudgeAdvisor.builder()
+                    .judge(new CommandJudge("mvn dependency:check"))
+                    .build()
+            )
+            .call();
+
+        if (!response.isJudgmentPassed()) {
+            throw new QualityException("Quality gate failed");
+        }
+    }
+}
+----
+
+=== Pattern 4: Build Output Analysis
+
+Parse build output for specific issues:
+
+[source,java]
+----
+public class BuildAnalyzer {
+
+    public void analyzeAndFix(Path projectRoot) {
+        AgentClientResponse response = agentClientBuilder
+            .goal("Build the project")
+            .workingDirectory(projectRoot)
+            .advisors(JudgeAdvisor.builder()
+                .judge(BuildSuccessJudge.maven("clean", "install"))
+                .build())
+            .call();
+
+        Judgment judgment = response.getJudgment();
+
+        if (!judgment.pass()) {
+            String output = (String) judgment.metadata().get("output");
+
+            // Analyze output for specific issues
+            if (output.contains("compilation error")) {
+                logger.error("Compilation errors detected");
+                handleCompilationErrors(output);
+            }
+            else if (output.contains("test failures")) {
+                logger.error("Test failures detected");
+                handleTestFailures(output);
+            }
+            else if (output.contains("dependency resolution failed")) {
+                logger.error("Dependency issues detected");
+                handleDependencyIssues(output);
+            }
+
+            throw new BuildException("Build failed - see analysis above");
+        }
+    }
+}
+----
+
+=== Pattern 5: Incremental Build Verification
+
+Verify builds incrementally during development:
+
+[source,java]
+----
+public class IncrementalBuild {
+
+    public void developFeature(Path projectRoot, String featureName) {
+        // Quick compile check
+        quickCheck(projectRoot, "Ensure code compiles",
+            BuildSuccessJudge.maven("compile"));
+
+        // Unit test check
+        quickCheck(projectRoot, "Ensure unit tests pass",
+            BuildSuccessJudge.maven("test"));
+
+        // Full verification before commit
+        AgentClientResponse response = agentClientBuilder
+            .goal("Complete " + featureName + " feature")
+            .workingDirectory(projectRoot)
+            .advisors(JudgeAdvisor.builder()
+                .judge(BuildSuccessJudge.maven("clean", "verify"))
+                .build())
+            .call();
+
+        if (response.isJudgmentPassed()) {
+            gitCommit(featureName);
+            createPullRequest(featureName);
+        }
+    }
+
+    private void quickCheck(Path projectRoot, String goal, Judge judge) {
+        AgentClientResponse response = agentClientBuilder
+            .goal(goal)
+            .workingDirectory(projectRoot)
+            .advisors(JudgeAdvisor.builder().judge(judge).build())
+            .call();
+
+        if (!response.isJudgmentPassed()) {
+            throw new BuildException("Quick check failed: " + goal);
+        }
+    }
+}
+----
+
+== Error Handling
+
+=== Command Not Found
+
+[source,java]
+----
+Judge judge = new CommandJudge("nonexistent-command");
+Judgment judgment = judge.judge(context);
+
+// Status: FAIL
+// Reasoning: "Command execution failed: command not found"
+assertThat(judgment.pass()).isFalse();
+----
+
+=== Timeout Exceeded
+
+[source,java]
+----
+// Short timeout for demonstration
+Judge judge = new CommandJudge(
+    "sleep 300",
+    0,
+    Duration.ofSeconds(5)
+);
+
+Judgment judgment = judge.judge(context);
+
+// Command terminated after timeout
+assertThat(judgment.pass()).isFalse();
+----
+
+=== Permission Denied
+
+[source,java]
+----
+Judge judge = new CommandJudge("./non-executable-script.sh");
+Judgment judgment = judge.judge(context);
+
+// Status: FAIL
+// Exit code: 126 (permission denied)
+assertThat(judgment.pass()).isFalse();
+----
+
+== Performance Considerations
+
+Command execution times vary significantly:
+
+[cols="1,2,2"]
+|===
+|Command Type |Typical Duration |Timeout Recommendation
+
+|Quick compile
+|10-30 seconds
+|2 minutes (default)
+
+|Unit tests
+|30-120 seconds
+|5 minutes
+
+|Full build (Maven)
+|2-5 minutes
+|10 minutes (BuildSuccessJudge default)
+
+|Integration tests
+|3-10 minutes
+|15 minutes
+
+|Docker builds
+|5-15 minutes
+|20 minutes
+|===
+
+**Best practice**: Set timeout to 2-3x expected duration to account for variability.
+
+== Best Practices
+
+=== 1. Use BuildSuccessJudge for Builds
+
+[source,java]
+----
+// ✅ Good: Auto-detects wrapper, appropriate timeout
+BuildSuccessJudge.maven("clean", "install");
+
+// ❌ Manual: Must specify wrapper path, default timeout too short
+new CommandJudge("./mvnw clean install");
+----
+
+=== 2. Set Appropriate Timeouts
+
+[source,java]
+----
+// ✅ Good: Generous timeout for build
+new CommandJudge("npm install", 0, Duration.ofMinutes(10));
+
+// ❌ Risky: Default 2-minute timeout may be insufficient
+new CommandJudge("npm install");
+----
+
+=== 3. Capture Output for Debugging
+
+[source,java]
+----
+Judgment judgment = response.getJudgment();
+
+if (!judgment.pass()) {
+    // Log full output for debugging
+    logger.error("Build output:\n{}", judgment.metadata().get("output"));
+}
+----
+
+=== 4. Fail Fast with Quick Checks
+
+[source,java]
+----
+// Quick compile check first (fast fail)
+BuildSuccessJudge.maven("compile");
+
+// Then expensive full build if compile succeeds
+BuildSuccessJudge.maven("clean", "install");
+----
+
+== Next Steps
+
+* **File Judges**: xref:file-judges.adoc[File verification and content checks]
+* **LLM Judges**: xref:../llm-powered/overview.adoc[AI-based evaluation]
+* **Judge Advisor**: xref:../judge-advisor.adoc[Integration with AgentClient]
+* **Deterministic Overview**: xref:overview.adoc[All deterministic judge types]
+
+== Further Reading
+
+* xref:../index.adoc[Judge API Overview] - Complete Judge API documentation
+* xref:../../getting-started/first-judge.adoc[Your First Judge] - Practical introduction
+* xref:../../concepts/cli-agents.adoc[CLI Agents] - Understanding autonomous agents
+
+---
+
+Command judges provide fast, reliable verification of shell commands and builds. They're essential for CI/CD pipelines and production agent workflows.

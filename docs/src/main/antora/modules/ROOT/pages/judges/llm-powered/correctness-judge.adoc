@@ -1,0 +1,575 @@
+= CorrectnessJudge: Semantic Task Evaluation
+:page-title: CorrectnessJudge
+:toc: left
+:tabsize: 2
+:sectnums:
+
+`CorrectnessJudge` uses an LLM to determine if the agent accomplished its goal. It provides YES/NO judgments with natural language reasoning, making it ideal for tasks where semantic understanding is required.
+
+== Overview
+
+`CorrectnessJudge` is the simplest LLM judge—it asks the LLM: "Did the agent accomplish the goal?" and parses a YES/NO response.
+
+**When to use**:
+
+* Goal has subjective success criteria
+* Deterministic checks (file exists, build succeeds) are insufficient
+* Need explanation of why task succeeded/failed
+* Semantic understanding required (e.g., "write helpful documentation")
+
+**When NOT to use**:
+
+* Simple objective checks (use `FileExistsJudge` instead)
+* Build verification (use `BuildSuccessJudge` instead)
+* Cost/latency are concerns and deterministic judge suffices
+
+== Basic Usage
+
+[source,java]
+----
+import org.springframework.ai.chat.client.ChatClient;
+import org.springaicommunity.agents.judge.llm.CorrectnessJudge;
+
+@Service
+public class DocumentationService {
+
+    private final AgentClient.Builder agentClientBuilder;
+    private final ChatClient.Builder chatClientBuilder;
+
+    public void generateDocs(Path projectRoot) {
+        Judge judge = new CorrectnessJudge(chatClientBuilder);
+
+        AgentClientResponse response = agentClientBuilder
+            .goal("Write clear, helpful installation documentation in README.md")
+            .workingDirectory(projectRoot)
+            .advisors(JudgeAdvisor.builder()
+                .judge(judge)
+                .build())
+            .call();
+
+        Judgment judgment = response.getJudgment();
+
+        if (judgment.pass()) {
+            System.out.println("✓ Documentation is helpful");
+            System.out.println("Reasoning: " + judgment.reasoning());
+        } else {
+            System.out.println("✗ Documentation needs improvement");
+            System.out.println("Reasoning: " + judgment.reasoning());
+        }
+    }
+}
+----
+
+== How It Works
+
+=== 1. Prompt Structure
+
+`CorrectnessJudge` sends a structured prompt to the LLM:
+
+[source,text]
+----
+Goal: Write clear, helpful installation documentation in README.md
+Workspace: /projects/my-app
+Agent Output: Created README.md with sections:
+- Prerequisites
+- Installation Steps
+- Verification
+
+Did the agent accomplish the goal? Answer YES or NO, followed by your reasoning.
+
+Format your response as:
+Answer: [YES or NO]
+Reasoning: [Your explanation]
+----
+
+=== 2. LLM Response
+
+The LLM analyzes and responds:
+
+[source,text]
+----
+Answer: YES
+Reasoning: The agent created comprehensive installation documentation that is
+clear and helpful. The README includes prerequisite requirements, step-by-step
+installation instructions, and verification steps. The documentation is well-
+organized and provides all necessary information for users to successfully
+install the project.
+----
+
+=== 3. Parsed Judgment
+
+The judge parses this into a `Judgment`:
+
+[source,java]
+----
+Judgment {
+    status = PASS
+    score = BooleanScore(true)
+    reasoning = "The agent created comprehensive installation documentation..."
+}
+----
+
+== Judgment Structure
+
+When the agent succeeds:
+
+[source,java]
+----
+Judgment judgment = judge.judge(context);
+
+judgment.status()     // PASS
+judgment.pass()       // true
+judgment.score()      // BooleanScore(true)
+judgment.reasoning()  // "The agent created comprehensive installation..."
+----
+
+When the agent fails:
+
+[source,java]
+----
+judgment.status()     // FAIL
+judgment.pass()       // false
+judgment.score()      // BooleanScore(false)
+judgment.reasoning()  // "The documentation is incomplete. It lacks..."
+----
+
+== Production Examples
+
+=== Example 1: Documentation Evaluation
+
+[source,java]
+----
+@Service
+public class DocumentationGenerator {
+
+    private final AgentClient.Builder agentClientBuilder;
+    private final ChatClient.Builder chatClientBuilder;
+
+    public void generateProjectDocs(Path projectRoot) {
+        Judge correctnessJudge = new CorrectnessJudge(chatClientBuilder);
+
+        AgentClientResponse response = agentClientBuilder
+            .goal("""
+                Create project documentation with:
+                - README.md with installation and usage instructions
+                - CONTRIBUTING.md with contribution guidelines
+                - LICENSE file
+                All documentation should be clear and helpful.
+                """)
+            .workingDirectory(projectRoot)
+            .advisors(JudgeAdvisor.builder()
+                .judge(correctnessJudge)
+                .build())
+            .call();
+
+        Judgment judgment = response.getJudgment();
+
+        if (judgment.pass()) {
+            System.out.println("✓ Documentation complete and helpful");
+            commitAndPush(projectRoot);
+        } else {
+            System.out.println("✗ Documentation issues:");
+            System.out.println(judgment.reasoning());
+            requestManualReview(judgment.reasoning());
+        }
+    }
+}
+----
+
+=== Example 2: Code Refactoring Evaluation
+
+[source,java]
+----
+@Service
+public class CodeRefactoringService {
+
+    public void refactorForMaintainability(Path projectRoot, String className) {
+        Judge correctnessJudge = new CorrectnessJudge(chatClientBuilder);
+
+        AgentClientResponse response = agentClientBuilder
+            .goal(String.format("""
+                Refactor %s to improve maintainability:
+                - Extract long methods into smaller, focused methods
+                - Improve variable and method naming
+                - Add missing Javadoc comments
+                - Remove code duplication
+                The refactored code should be more readable and maintainable.
+                """, className))
+            .workingDirectory(projectRoot)
+            .advisors(JudgeAdvisor.builder()
+                .judge(correctnessJudge)
+                .build())
+            .call();
+
+        Judgment judgment = response.getJudgment();
+
+        if (judgment.pass()) {
+            logger.info("Refactoring successful: {}", judgment.reasoning());
+            runTests(projectRoot); // Verify functionality preserved
+        } else {
+            logger.warn("Refactoring incomplete: {}", judgment.reasoning());
+        }
+    }
+}
+----
+
+=== Example 3: Bug Fix Verification
+
+[source,java]
+----
+@Service
+public class BugFixService {
+
+    public boolean fixAndVerify(Path projectRoot, String bugDescription) {
+        Judge correctnessJudge = new CorrectnessJudge(chatClientBuilder);
+
+        AgentClientResponse response = agentClientBuilder
+            .goal("Fix the bug: " + bugDescription)
+            .workingDirectory(projectRoot)
+            .advisors(
+                // First: deterministic check (tests must pass)
+                JudgeAdvisor.builder()
+                    .judge(BuildSuccessJudge.maven("test"))
+                    .order(100)
+                    .build(),
+
+                // Second: semantic check (bug actually fixed)
+                JudgeAdvisor.builder()
+                    .judge(correctnessJudge)
+                    .order(200)
+                    .build()
+            )
+            .call();
+
+        Judgment judgment = response.getJudgment();
+
+        if (judgment.pass()) {
+            System.out.println("✓ Bug fixed: " + judgment.reasoning());
+            return true;
+        } else {
+            System.out.println("✗ Bug not fixed: " + judgment.reasoning());
+            return false;
+        }
+    }
+}
+----
+
+== Combining with Deterministic Judges
+
+Best practice: Use deterministic judges for objective criteria, `CorrectnessJudge` for semantic assessment.
+
+[source,java]
+----
+@Service
+public class APIGenerator {
+
+    public void generateRestAPI(Path projectRoot) {
+        AgentClientResponse response = agentClientBuilder
+            .goal("Create a REST API for User management with CRUD operations")
+            .workingDirectory(projectRoot)
+            .advisors(
+                // Objective check: code compiles
+                JudgeAdvisor.builder()
+                    .judge(BuildSuccessJudge.maven("compile"))
+                    .order(100)
+                    .build(),
+
+                // Objective check: tests pass
+                JudgeAdvisor.builder()
+                    .judge(BuildSuccessJudge.maven("test"))
+                    .order(200)
+                    .build(),
+
+                // Objective check: controller file exists
+                JudgeAdvisor.builder()
+                    .judge(new FileExistsJudge("src/main/java/com/example/controller/UserController.java"))
+                    .order(300)
+                    .build(),
+
+                // Subjective check: API is well-designed
+                JudgeAdvisor.builder()
+                    .judge(new CorrectnessJudge(chatClientBuilder))
+                    .order(400)
+                    .build()
+            )
+            .call();
+
+        Judgment finalJudgment = response.getJudgment();
+
+        if (finalJudgment.pass()) {
+            System.out.println("✓ REST API complete and well-designed");
+        }
+    }
+}
+----
+
+**Why this ordering works**:
+
+1. Fast compile check (~30s) - fail if syntax errors
+2. Fast test check (~60s) - fail if logic errors
+3. Fast file check (< 5ms) - fail if controller missing
+4. Expensive LLM check (~3s + $0.01) - only runs if all above passed
+
+== Limitations and Workarounds
+
+=== Limitation 1: Non-Deterministic
+
+LLM judges may return different results for the same input.
+
+**Workaround**: Use self-consistency (run N times, take majority vote):
+
+[source,java]
+----
+public class SelfConsistentCorrectnessJudge extends LLMJudge {
+
+    private final int runs;
+    private final CorrectnessJudge delegate;
+
+    public SelfConsistentCorrectnessJudge(ChatClient.Builder builder, int runs) {
+        super("SelfConsistentCorrectness", "Runs CorrectnessJudge N times", builder);
+        this.runs = runs;
+        this.delegate = new CorrectnessJudge(builder);
+    }
+
+    @Override
+    public Judgment judge(JudgmentContext context) {
+        List<Boolean> votes = new ArrayList<>();
+
+        // Run N times
+        for (int i = 0; i < runs; i++) {
+            Judgment judgment = delegate.judge(context);
+            votes.add(judgment.pass());
+        }
+
+        // Majority vote
+        long yesVotes = votes.stream().filter(v -> v).count();
+        boolean pass = yesVotes > runs / 2.0;
+
+        return Judgment.builder()
+            .score(new BooleanScore(pass))
+            .status(pass ? JudgmentStatus.PASS : JudgmentStatus.FAIL)
+            .reasoning(String.format("Self-consistency: %d/%d runs passed", yesVotes, runs))
+            .metadata(Map.of("votes", votes))
+            .build();
+    }
+}
+
+// Usage
+Judge robustJudge = new SelfConsistentCorrectnessJudge(chatClientBuilder, 3);
+----
+
+This approach is used in evaluation frameworks like https://github.com/explodinggradients/ragas[ragas] for robust scoring.
+
+=== Limitation 2: Parsing Failures
+
+LLM might not follow format exactly.
+
+**Workaround**: Robust fallback parsing:
+
+[source,java]
+----
+private boolean extractAnswer(String response) {
+    // Try structured format first
+    if (response.contains("Answer: YES")) {
+        return true;
+    }
+    if (response.contains("Answer: NO")) {
+        return false;
+    }
+
+    // Fallback: check for YES/NO anywhere in response
+    String upper = response.toUpperCase();
+    if (upper.contains("YES") && !upper.contains("NO")) {
+        return true;
+    }
+    if (upper.contains("NO") && !upper.contains("YES")) {
+        return false;
+    }
+
+    // Final fallback: sentiment analysis
+    return upper.contains("ACCOMPLISHED") || upper.contains("SUCCEEDED");
+}
+----
+
+=== Limitation 3: Cost and Latency
+
+Each judgment costs ~$0.01 and takes ~3 seconds.
+
+**Workaround**: Cache judgments for identical contexts:
+
+[source,java]
+----
+@Service
+public class CachedCorrectnessJudge implements Judge {
+
+    private final CorrectnessJudge delegate;
+    private final ConcurrentHashMap<String, Judgment> cache = new ConcurrentHashMap<>();
+
+    public CachedCorrectnessJudge(ChatClient.Builder builder) {
+        this.delegate = new CorrectnessJudge(builder);
+    }
+
+    @Override
+    public Judgment judge(JudgmentContext context) {
+        String key = context.goal() + "|" + context.agentOutput().orElse("");
+
+        return cache.computeIfAbsent(key, k -> {
+            logger.info("Cache miss - calling LLM");
+            return delegate.judge(context);
+        });
+    }
+}
+----
+
+== Customizing the Prompt
+
+Extend `CorrectnessJudge` to customize the evaluation criteria:
+
+[source,java]
+----
+public class DocumentationCorrectnessJudge extends CorrectnessJudge {
+
+    public DocumentationCorrectnessJudge(ChatClient.Builder builder) {
+        super(builder);
+    }
+
+    @Override
+    protected String buildPrompt(JudgmentContext context) {
+        return String.format("""
+            Goal: %s
+            Agent Output: %s
+
+            Evaluate if the documentation is complete and helpful.
+
+            Check for:
+            - Clear installation instructions
+            - Usage examples
+            - Proper formatting (headings, lists)
+            - No spelling/grammar errors
+
+            Answer YES if all criteria met, NO otherwise.
+
+            Format:
+            Answer: [YES or NO]
+            Reasoning: [Detailed explanation]
+            """, context.goal(), context.agentOutput().orElse(""));
+    }
+}
+----
+
+== Spring Bean Configuration
+
+Define `CorrectnessJudge` as a Spring bean for reuse:
+
+[source,java]
+----
+@Configuration
+public class JudgeConfiguration {
+
+    @Bean
+    public JudgeAdvisor correctnessAdvisor(ChatClient.Builder chatClientBuilder) {
+        return JudgeAdvisor.builder()
+            .judge(new CorrectnessJudge(chatClientBuilder))
+            .name("correctness-evaluation")
+            .build();
+    }
+}
+
+// Inject and use
+@Service
+public class MyService {
+
+    private final AgentClient.Builder agentClientBuilder;
+    private final JudgeAdvisor correctnessAdvisor;
+
+    public MyService(
+            AgentClient.Builder agentClientBuilder,
+            JudgeAdvisor correctnessAdvisor) {
+        this.agentClientBuilder = agentClientBuilder;
+        this.correctnessAdvisor = correctnessAdvisor;
+    }
+
+    public void performTask(Path workspace) {
+        agentClientBuilder
+            .goal("Some task")
+            .workingDirectory(workspace)
+            .advisors(correctnessAdvisor)
+            .call();
+    }
+}
+----
+
+== Best Practices
+
+=== 1. Use for Semantic Criteria Only
+
+[source,java]
+----
+// ✅ Good: Subjective criteria
+"Write clear, helpful documentation"
+"Refactor code for better maintainability"
+
+// ❌ Wasteful: Objective criteria (use deterministic instead)
+"Create a file named output.txt"  // Use FileExistsJudge
+"Build must succeed"               // Use BuildSuccessJudge
+----
+
+=== 2. Combine with Deterministic Judges
+
+[source,java]
+----
+// ✅ Good: Hybrid approach
+.advisors(
+    JudgeAdvisor.builder().judge(new FileExistsJudge("README.md")).build(),
+    JudgeAdvisor.builder().judge(new CorrectnessJudge(chatClient)).build()
+)
+
+// ❌ Inefficient: LLM only
+.advisors(
+    JudgeAdvisor.builder().judge(new CorrectnessJudge(chatClient)).build()
+)
+----
+
+=== 3. Provide Clear Goals
+
+[source,java]
+----
+// ✅ Good: Specific criteria
+"Write installation documentation that includes prerequisites, step-by-step instructions, and verification steps"
+
+// ❌ Vague: Hard for LLM to judge
+"Write documentation"
+----
+
+=== 4. Log Reasoning for Analysis
+
+[source,java]
+----
+Judgment judgment = response.getJudgment();
+
+// Always log reasoning
+logger.info("Correctness judgment: {}", judgment.pass());
+logger.info("Reasoning: {}", judgment.reasoning());
+
+// Analyze patterns over time
+if (!judgment.pass()) {
+    analyticsService.recordFailure(judgment.reasoning());
+}
+----
+
+== Next Steps
+
+* **LLM Judges Overview**: xref:overview.adoc[Complete LLM judge patterns]
+* **Agent as Judge**: xref:../agent-as-judge/overview.adoc[Use agents to evaluate agents]
+* **Jury Pattern**: xref:../jury/overview.adoc[Combine multiple judges]
+* **Deterministic Judges**: xref:../deterministic/overview.adoc[Fast, free rule-based evaluation]
+
+== Further Reading
+
+* xref:../index.adoc[Judge API Overview] - Complete Judge API documentation
+* xref:../../getting-started/first-judge.adoc[Your First Judge] - Practical introduction
+* Spring AI ChatClient: https://docs.spring.io/spring-ai/reference/api/chatclient.html[Documentation]
+
+---
+
+`CorrectnessJudge` brings semantic understanding to agent evaluation. Use it strategically for subjective criteria that deterministic judges can't capture.

@@ -1,0 +1,530 @@
+= LLM-Powered Judges
+:page-title: LLM-Powered Judges Overview
+:toc: left
+:tabsize: 2
+:sectnums:
+
+LLM-powered judges use language models to evaluate agent execution. They provide semantic understanding and nuanced evaluation that's difficult to express in deterministic rules.
+
+== What Are LLM Judges?
+
+LLM judges send evaluation prompts to language models and parse the responses into judgments. They excel at subjective or semantic criteria:
+
+* **Code quality** - "Is this code maintainable?"
+* **Correctness** - "Did the agent accomplish the goal?"
+* **Helpfulness** - "Is this documentation useful?"
+* **Creativity** - "Is this solution elegant?"
+
+[NOTE]
+====
+**LLM-as-a-Judge** is a widely-adopted pattern in AI evaluation frameworks. Python frameworks like https://github.com/confident-ai/deepeval[deepeval] and https://github.com/explodinggradients/ragas[ragas] pioneered this approach for evaluating RAG systems and LLM outputs. Spring AI Agents brings this pattern to Java developers with Spring-native integration.
+====
+
+== When to Use LLM Judges
+
+Use LLM judges for **subjective or semantic evaluation** that deterministic judges can't capture:
+
+[cols="1h,2,2"]
+|===
+|Criteria Type |Deterministic Judge |LLM Judge
+
+|File exists
+|✅ `FileExistsJudge`
+|❌ Overkill
+
+|Build succeeds
+|✅ `BuildSuccessJudge`
+|❌ Overkill
+
+|Code quality
+|❌ Too subjective
+|✅ `CodeQualityJudge`
+
+|Semantic correctness
+|❌ Requires understanding
+|✅ `CorrectnessJudge`
+
+|Documentation helpful
+|❌ Subjective
+|✅ Custom LLM judge
+|===
+
+**Best practice**: Use deterministic judges for objective criteria, LLM judges for subjective assessment.
+
+== LLMJudge Base Class
+
+All LLM judges extend `LLMJudge`, which uses the **template method pattern**:
+
+[source,java]
+----
+public abstract class LLMJudge implements Judge {
+
+    protected final ChatClient chatClient;
+
+    // Template method - orchestrates evaluation
+    @Override
+    public Judgment judge(JudgmentContext context) {
+        String prompt = buildPrompt(context);           // 1. Build prompt
+        String response = chatClient                     // 2. Call LLM
+            .prompt()
+            .user(prompt)
+            .call()
+            .content();
+        return parseResponse(response, context);         // 3. Parse response
+    }
+
+    // Subclasses implement these
+    protected abstract String buildPrompt(JudgmentContext context);
+    protected abstract Judgment parseResponse(String response, JudgmentContext context);
+}
+----
+
+**Design rationale**: The template method pattern separates the evaluation flow (build → call → parse) from judge-specific logic. This approach is common in Python evaluation frameworks—https://github.com/confident-ai/deepeval[deepeval] uses similar abstractions for metrics like G-Eval and faithfulness.
+
+== Creating Custom LLM Judges
+
+Extend `LLMJudge` and implement two methods:
+
+=== Example: Code Quality Judge
+
+[source,java]
+----
+import org.springframework.ai.chat.client.ChatClient;
+import org.springaicommunity.agents.judge.llm.LLMJudge;
+import org.springaicommunity.agents.judge.context.JudgmentContext;
+import org.springaicommunity.agents.judge.result.Judgment;
+import org.springaicommunity.agents.judge.result.JudgmentStatus;
+import org.springaicommunity.agents.judge.score.NumericalScore;
+
+public class CodeQualityJudge extends LLMJudge {
+
+    public CodeQualityJudge(ChatClient.Builder chatClientBuilder) {
+        super("CodeQuality", "Evaluates code quality 0-10", chatClientBuilder);
+    }
+
+    @Override
+    protected String buildPrompt(JudgmentContext context) {
+        String goal = context.goal();
+        String output = context.agentOutput().orElse("No output");
+
+        return String.format("""
+            Evaluate the code quality for this task:
+
+            Goal: %s
+            Agent Output: %s
+
+            Rate the code quality on a scale of 0-10 considering:
+            - Readability and clarity
+            - Proper naming conventions
+            - Code organization
+            - Best practices adherence
+
+            Format:
+            Score: [0-10]
+            Reasoning: [Your detailed explanation]
+            """, goal, output);
+    }
+
+    @Override
+    protected Judgment parseResponse(String response, JudgmentContext context) {
+        // Extract score
+        double score = extractScore(response);
+
+        // Extract reasoning
+        String reasoning = extractReasoning(response);
+
+        // Pass if score >= 7
+        boolean pass = score >= 7.0;
+
+        return Judgment.builder()
+            .score(new NumericalScore(score, 0, 10))
+            .status(pass ? JudgmentStatus.PASS : JudgmentStatus.FAIL)
+            .reasoning(reasoning)
+            .build();
+    }
+
+    private double extractScore(String response) {
+        // Find "Score: X" in response
+        String[] lines = response.split("\n");
+        for (String line : lines) {
+            if (line.startsWith("Score:")) {
+                String scoreStr = line.substring("Score:".length()).trim();
+                try {
+                    return Double.parseDouble(scoreStr);
+                } catch (NumberFormatException e) {
+                    return 0.0;
+                }
+            }
+        }
+        return 0.0;
+    }
+
+    private String extractReasoning(String response) {
+        int index = response.indexOf("Reasoning:");
+        if (index >= 0) {
+            return response.substring(index + "Reasoning:".length()).trim();
+        }
+        return response;
+    }
+}
+----
+
+=== Usage
+
+[source,java]
+----
+Judge qualityJudge = new CodeQualityJudge(chatClientBuilder);
+
+AgentClientResponse response = agentClientBuilder
+    .goal("Refactor UserService for better maintainability")
+    .workingDirectory(projectRoot)
+    .advisors(JudgeAdvisor.builder()
+        .judge(qualityJudge)
+        .build())
+    .call();
+
+Judgment judgment = response.getJudgment();
+
+if (judgment.pass()) {
+    System.out.println("✓ Code quality meets standards");
+    if (judgment.score() instanceof NumericalScore numerical) {
+        System.out.println("Quality score: " + numerical.value() + "/10");
+    }
+} else {
+    System.out.println("✗ Code quality below threshold");
+    System.out.println("Reasoning: " + judgment.reasoning());
+}
+----
+
+== Prompt Engineering for Judges
+
+Effective LLM judges require well-crafted prompts:
+
+=== Pattern 1: Structured Output
+
+Request specific format for easy parsing:
+
+[source,java]
+----
+@Override
+protected String buildPrompt(JudgmentContext context) {
+    return """
+        Evaluate if the agent accomplished this goal: """ + context.goal() + """
+
+        Agent output: """ + context.agentOutput().orElse("") + """
+
+        Answer in this EXACT format:
+        Answer: YES or NO
+        Confidence: [1-10]
+        Reasoning: [Your explanation]
+        """;
+}
+----
+
+=== Pattern 2: Chain-of-Thought
+
+Request step-by-step reasoning (inspired by https://github.com/confident-ai/deepeval[deepeval's G-Eval] approach):
+
+[source,java]
+----
+@Override
+protected String buildPrompt(JudgmentContext context) {
+    return """
+        Evaluate code quality using these steps:
+
+        1. Read the code carefully
+        2. Check naming conventions (are variables/methods well-named?)
+        3. Assess code organization (is it structured logically?)
+        4. Verify best practices (does it follow Java conventions?)
+        5. Provide final score 0-10
+
+        Code to evaluate:
+        """ + context.agentOutput().orElse("") + """
+
+        Provide your step-by-step evaluation, then conclude with:
+        Final Score: [0-10]
+        """;
+}
+----
+
+**Why this works**: Asking the LLM to "show its work" often produces more accurate and consistent judgments. This is a core technique in evaluation frameworks—https://github.com/explodinggradients/ragas[ragas] uses similar multi-step evaluation for faithfulness metrics.
+
+=== Pattern 3: Few-Shot Examples
+
+Provide examples of good/bad outputs:
+
+[source,java]
+----
+@Override
+protected String buildPrompt(JudgmentContext context) {
+    return """
+        Evaluate documentation quality. Here are examples:
+
+        GOOD (Score: 9):
+        "## Installation
+        Run: `mvn install`
+        This will download dependencies and build the project."
+
+        BAD (Score: 3):
+        "Just run the build command."
+
+        Now evaluate this documentation:
+        """ + context.agentOutput().orElse("") + """
+
+        Score: [0-10]
+        Reasoning: [Explanation]
+        """;
+}
+----
+
+== Built-in LLM Judges
+
+Spring AI Agents provides production-ready LLM judges:
+
+=== CorrectnessJudge
+
+Evaluates if the agent accomplished its goal:
+
+[source,java]
+----
+Judge judge = new CorrectnessJudge(chatClientBuilder);
+
+AgentClientResponse response = agentClientBuilder
+    .goal("Write helpful installation documentation")
+    .advisors(JudgeAdvisor.builder().judge(judge).build())
+    .call();
+
+// Returns YES/NO with reasoning
+Judgment judgment = response.getJudgment();
+System.out.println(judgment.reasoning());
+----
+
+See xref:correctness-judge.adoc[CorrectnessJudge] for complete details.
+
+== Trade-offs: LLM vs Deterministic
+
+Understanding when to use each type:
+
+[cols="1h,2,2"]
+|===
+|Aspect |Deterministic Judges |LLM Judges
+
+|**Speed**
+|Milliseconds
+|Seconds (LLM inference)
+
+|**Cost**
+|Free
+|$0.001-$0.01 per judgment
+
+|**Reliability**
+|100% deterministic
+|Non-deterministic (variance)
+
+|**Capabilities**
+|Exact matches, rules
+|Semantic understanding, nuance
+
+|**Use Cases**
+|File checks, build success, exact validation
+|Quality, correctness, subjective criteria
+
+|**Best Practice**
+|Use for all objective criteria
+|Use only for subjective assessment
+|===
+
+**Recommendation**: Start with deterministic judges for objective checks, add LLM judges only for criteria that require semantic understanding.
+
+== Combining Deterministic + LLM Judges
+
+The most robust evaluation uses both:
+
+[source,java]
+----
+AgentClientResponse response = agentClientBuilder
+    .goal("Create REST API with documentation")
+    .workingDirectory(projectRoot)
+    .advisors(
+        // Fast deterministic checks first
+        JudgeAdvisor.builder()
+            .judge(new FileExistsJudge("README.md"))
+            .order(100)
+            .build(),
+
+        JudgeAdvisor.builder()
+            .judge(BuildSuccessJudge.maven("compile"))
+            .order(200)
+            .build(),
+
+        // Expensive LLM check last (only if above passed)
+        JudgeAdvisor.builder()
+            .judge(new CorrectnessJudge(chatClientBuilder))
+            .order(300)
+            .build()
+    )
+    .call();
+----
+
+**Why this ordering works**:
+1. Fast file check (< 5ms) - fail immediately if README missing
+2. Fast build check (~30s) - fail if code doesn't compile
+3. Expensive LLM check (~3s + API cost) - only runs if above passed
+
+== Cost and Performance
+
+LLM judges have different cost/performance characteristics:
+
+=== Typical Costs (OpenAI GPT-4)
+
+* **Input**: ~$0.03 per 1K tokens
+* **Output**: ~$0.06 per 1K tokens
+* **Judgment**: ~$0.01-0.05 each (varies by prompt complexity)
+
+=== Optimization Strategies
+
+==== 1. Use Smaller Models
+
+[source,java]
+----
+// Expensive: GPT-4 for simple yes/no
+ChatClient.Builder expensiveBuilder = ChatClient.builder(chatModel)
+    .defaultOptions(ChatOptions.builder()
+        .model("gpt-4-turbo")
+        .build());
+
+// Cheaper: GPT-3.5 for simple judgments
+ChatClient.Builder cheaperBuilder = ChatClient.builder(chatModel)
+    .defaultOptions(ChatOptions.builder()
+        .model("gpt-3.5-turbo")
+        .build());
+
+// Use appropriate model for task complexity
+Judge simpleJudge = new CorrectnessJudge(cheaperBuilder);
+Judge complexJudge = new CodeQualityJudge(expensiveBuilder);
+----
+
+==== 2. Cache Judgments
+
+[source,java]
+----
+@Service
+public class CachedJudgmentService {
+
+    private final Map<String, Judgment> cache = new ConcurrentHashMap<>();
+
+    public Judgment judgeWithCache(Judge judge, JudgmentContext context) {
+        String cacheKey = generateKey(context);
+
+        return cache.computeIfAbsent(cacheKey, key -> {
+            logger.info("Cache miss - calling LLM judge");
+            return judge.judge(context);
+        });
+    }
+
+    private String generateKey(JudgmentContext context) {
+        return context.goal() + "|" + context.agentOutput().orElse("");
+    }
+}
+----
+
+==== 3. Limit LLM Judges
+
+Only use LLM judges for criteria that truly need semantic understanding:
+
+[source,java]
+----
+// ❌ Wasteful: LLM for file existence
+new CorrectnessJudge(chatClientBuilder) // Costs $0.01 per call
+
+// ✅ Efficient: Deterministic judge
+new FileExistsJudge("output.txt") // Free, < 5ms
+----
+
+== Best Practices
+
+=== 1. Structured Output Formats
+
+[source,java]
+----
+// ✅ Good: Structured format
+"""
+Score: [0-10]
+Reasoning: [Explanation]
+"""
+
+// ❌ Poor: Freeform (hard to parse)
+"""
+Tell me what you think about the code quality.
+"""
+----
+
+=== 2. Clear Success Criteria
+
+[source,java]
+----
+// ✅ Good: Specific threshold
+boolean pass = score >= 7.0;
+
+// ❌ Vague: Unclear what "good" means
+boolean pass = response.contains("good");
+----
+
+=== 3. Robust Parsing
+
+[source,java]
+----
+@Override
+protected Judgment parseResponse(String response, JudgmentContext context) {
+    try {
+        // Attempt to extract structured data
+        double score = extractScore(response);
+        String reasoning = extractReasoning(response);
+
+        return Judgment.builder()
+            .score(new NumericalScore(score, 0, 10))
+            .reasoning(reasoning)
+            .build();
+
+    } catch (Exception e) {
+        // Fallback: return failure with full response
+        return Judgment.builder()
+            .score(new BooleanScore(false))
+            .status(JudgmentStatus.ABSTAIN)
+            .reasoning("Failed to parse LLM response: " + response)
+            .build();
+    }
+}
+----
+
+=== 4. Combine with Deterministic Judges
+
+[source,java]
+----
+// Use Jury for hybrid evaluation
+Jury hybridJury = Juries.builder()
+    .addJudge("build", new BuildSuccessJudge(), 0.4)      // Objective
+    .addJudge("files", new FileExistsJudge("README.md"), 0.3)  // Objective
+    .addJudge("quality", new CodeQualityJudge(chatClient), 0.3) // Subjective
+    .votingStrategy(VotingStrategies.weightedAverage())
+    .build();
+----
+
+See xref:../jury/overview.adoc[Jury Pattern] for ensemble evaluation.
+
+== Next Steps
+
+* **CorrectnessJudge**: xref:correctness-judge.adoc[Built-in semantic correctness evaluation]
+* **Agent as Judge**: xref:../agent-as-judge/overview.adoc[Use agents to evaluate agents]
+* **Jury Pattern**: xref:../jury/overview.adoc[Combine multiple judges]
+* **Deterministic Judges**: xref:../deterministic/overview.adoc[Fast, free rule-based evaluation]
+
+== Further Reading
+
+* xref:../index.adoc[Judge API Overview] - Complete Judge API documentation
+* xref:../../getting-started/first-judge.adoc[Your First Judge] - Practical introduction
+* Spring AI ChatClient: https://docs.spring.io/spring-ai/reference/api/chatclient.html[Documentation]
+
+---
+
+LLM judges bring semantic understanding and nuanced evaluation to agent workflows. Use them strategically for subjective criteria that deterministic judges can't capture.
