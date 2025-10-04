@@ -58,6 +58,10 @@ Spring AI provides the building blocks to create custom "LLM in a loop" agents:
 
 **The challenge**: Building effective agents is **hard**. You're solving problems that companies like Anthropic, Google, and OpenAI invest heavily in: context management, error recovery, planning, tool selection, performance optimization.
 
+**Can you build the agent loop yourself?** Yes! https://github.com/SWE-agent/mini-swe-agent[Mini-swe-agent] proves it's possible with a simple "LLM in a loop executing bash commands" approach. And we will build custom agents for specific needs.
+
+**But here's the reality**: Many companies are investing heavily in this space. **Why not try them out? Validate them with benchmarking.** That's what Spring AI Bench enables.
+
 ==== Path 2: Use Production-Ready CLI Agents
 
 Here's the key realization: **Leading AI companies have figured this out.**
