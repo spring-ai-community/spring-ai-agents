@@ -308,49 +308,47 @@ Built-in support for:
 * **Sandboxes** - Safe execution environments
 * **Advisors** - Extensible plugin architecture
 
-== CLI Agents vs Annotation-Based Tools
+== Building Your Own Agent vs Using CLI Agents
 
-Understanding the fundamental difference between CLI agents and traditional annotation-based agent frameworks:
+Both approaches fundamentally implement "LLM in a loop"—but with different trade-offs:
 
 [cols="1h,2,2"]
 |===
-|Aspect |Annotation-Based (@Tool) |CLI Agents
+|Aspect |Build Your Own (Spring AI @Tool/MCP) |Use CLI Agents (Spring AI Agents)
 
-|**Action Scope**
-|Predefined Java methods only
-|Any bash command (`grep`, `sed`, `git`, `mvn`, etc.)
+|**Control**
+|Complete - you write the tools
+|Delegated - agent provider handles tools
+
+|**Development Effort**
+|High - build and maintain tools
+|Low - integrate pre-built agents
 
 |**Flexibility**
-|Developer must code every tool
-|Agent can use any command-line tool
+|Custom tools for specific needs
+|General-purpose development tasks
 
-|**Workflow**
-|Back-and-forth LLM tool calls
-|Autonomous bash execution loop
+|**Investment**
+|Your team's R&D
+|Anthropic, Google, Amazon, OpenAI R&D
 
-|**State**
-|Linear conversation history
-|File system + command output
+|**Tool Scope**
+|Methods you explicitly code
+|Full bash/CLI access
 
-|**Scaffolding**
-|Heavy (routing, orchestration)
-|Minimal (just goal + workspace)
-
-|**Examples**
-|LangChain4j, Spring AI @Tool
-|Claude Agent SDK, Gemini CLI
+|**Best For**
+|Domain-specific workflows, custom integrations
+|General development, rapid adoption
 |===
-
-**Key insight** (Noam Brown, OpenAI): Before reasoning models, annotation-based scaffolding was necessary. After reasoning models, "you just give the model the question without any sort of scaffolding and it just does it."
 
 [NOTE]
 ====
-Spring AI supports **both approaches**:
+**Spring AI supports both approaches**:
 
-* **@Tool annotations + MCP**: For structured, controlled tool calling (https://spring.io/blog/2025/03/17/model-context-protocol-mcp-in-spring-ai[Spring AI MCP support])
-* **CLI agents**: For autonomous, bash-driven execution (Spring AI Agents library)
+* **@Tool annotations + MCP**: Build custom agent loops (https://spring.io/blog/2025/03/17/model-context-protocol-mcp-in-spring-ai[Spring AI MCP support])
+* **CLI agents**: Integrate production-ready agents (Spring AI Agents library)
 
-Different tools for different needs. Choose based on your use case.
+Use what fits your needs. Combine both when appropriate.
 ====
 
 == CLI Agents vs Other AI Tools
