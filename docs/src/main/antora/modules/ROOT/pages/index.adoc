@@ -6,60 +6,98 @@
 
 Spring AI Agents is a community-maintained library that brings autonomous agents into mainstream Java enterprise development, making them as easy to use as any other Spring component.
 
-== Overview
+== The Agent Evolution
 
-This library provides a unified abstraction for working with autonomous coding agents through the familiar Spring AI patterns. For now, autonomous agents are commonly packaged as CLI tools with various wrappers on top. We have taken inspiration from https://github.com/anthropics/claude-code-sdk-python[Claude Code SDK Python] and https://docs.anthropic.com/en/docs/claude-code/sdk[Anthropic's SDK documentation]. We have made autonomous agents portable and easy to consume for Java developers across a wide range of agent providers. More to come!
+> **"There are a lot of things that people are building right now that will eventually be washed away by scale."**
+> — Noam Brown, OpenAI Research Lead (Latent Space Podcast, June 2025)
 
-== What Is an Agent?
+The way we build AI agents is changing rapidly. What worked six months ago is becoming obsolete. What's emerging is simpler, more powerful, and fundamentally different.
 
-> **"An agent is AI-powered software that accomplishes a goal. Period."**
-> — Dharmesh Shah, HubSpot CTO and Agents.ai co-founder
+=== Then: Annotation-Based Tool Calling
 
-An **agent** is any AI system that can pursue and accomplish a goal. This broad definition covers many patterns, from conversational assistants to specialized developer tools.
+Early agent approaches used **method annotations** to define tools:
 
-As the saying goes: *"An agent is a LLM in a loop"* — but the sophistication lies in how that loop is structured.
+[source,java]
+----
+@Tool("Searches Google for relevant URLs")
+public List<String> searchGoogle(@P("search query") String query) {
+    return googleSearchService.search(query);
+}
+----
 
-Anthropic has identified https://www.anthropic.com/engineering/building-effective-agents[four key patterns for building effective agents]:
+This approach required:
 
-* **Prompt chaining** — Break complex tasks into simpler, sequential steps
-* **Routing** — Direct queries to specialized agents or tools
-* **Parallelization** — Execute multiple tasks simultaneously  
-* **Evaluator-optimizer workflows** — Use agents to evaluate and improve outputs iteratively. This is the type of loop that agents perform to achieve goals effectively, in addition to many other techniques such as planning
+* **Predefined tools** - Developers wrote Java methods for every possible action
+* **Linear conversation history** - Back-and-forth LLM interactions with tool calls
+* **Limited scope** - Only actions you explicitly coded were available
 
-Spring AI has implemented these patterns as first-class abstractions. You can explore them in the https://docs.spring.io/spring-ai/reference/1.1-SNAPSHOT/api/effective-agents.html[Spring AI Effective Agents documentation] and see working examples in the https://github.com/spring-projects/spring-ai-examples/tree/main/agentic-patterns[agentic-patterns repository].
+[NOTE]
+====
+Spring AI fully supports this approach too—with `@Tool` annotations and first-class https://spring.io/blog/2025/03/17/model-context-protocol-mcp-in-spring-ai[Model Context Protocol (MCP)] integration for building LLM-based tools. This remains valuable for certain use cases.
+====
 
-== What Are Autonomous Agents?
+The limitation: agents were constrained to predefined Java methods. Want to run `grep`? Write a GrepTool. Want to use `sed`? Write a SedTool. The combinatorial explosion of "what if the agent needs X?" led to heavy scaffolding.
 
-Autonomous agents are a specific type of agent that can achieve goals with minimal or no human supervision.
+=== Now: Reasoning Models + Direct Computer Access
 
-Unlike traditional chat models that rely on back-and-forth human prompting, autonomous agents can:
+Then reasoning models arrived (OpenAI o1, Claude 3.7 Sonnet). Noam Brown observed: _"Before reasoning models, there was extensive work engineering agentic systems with complex calls to non-reasoning models. When reasoning models were created, you don't need this complex behavior. You just give the reasoning model the same question without any sort of scaffolding and it just does it."_
 
-* **Plan and execute workflows** — break down a goal into steps and follow them
-* **Use tools and commands** — run shell commands, edit files, query APIs
-* **Understand codebases** — navigate, refactor, and extend complex projects
-* **Make decisions** — choose strategies and adapt as they progress
+**The new paradigm**: Give agents direct access to the computer—bash, file systems, git—and let the reasoning model figure out the steps.
+
+This is exactly what https://www.anthropic.com/engineering/building-agents-with-the-claude-agent-sdk[Anthropic's Claude Agent SDK] (renamed from Claude Code SDK in September 2025) demonstrates:
+
+[quote, Anthropic Engineering Blog]
+The agent loop is: *gather context → take action → verify work → repeat*. The agent writes files, runs commands, and iterates on its work until the goal is achieved.
+
+**No annotations. No predefined workflows. Just a goal, a workspace, and direct computer access.**
+
+=== What Persists: Lightweight Integration & Evaluation
+
+Noam Brown's guidance for developers:
+
+* ❌ **Don't invest in**: Complex routing, heavy scaffolding that compensates for model limitations
+* ✅ **Do invest in**: Reward/environment design, evaluation pipelines, minimal tooling for safety/telemetry
+
+This is exactly what **Spring AI Agents** provides:
+
+* **Lightweight integration** - Thin Spring Boot abstraction over CLI agents (Claude, Gemini, etc.)
+* **Evaluation-first** - Judge API for deterministic and AI-powered verification
+* **Vendor flexibility** - Switch agents as the landscape evolves
+* **Safety layers** - Sandboxes, permissions, monitoring
+
+We're not building another workflow orchestration framework. We're building the **pragmatic integration layer** that connects Spring Boot applications to the future of autonomous agents.
+
+== Why CLI Agents?
+
+Spring AI Agents focuses specifically on **autonomous CLI agents** - agents that execute goals by directly interacting with your computer through command-line interfaces.
+
+Unlike traditional frameworks where you define workflows in code, CLI agents:
+
+* **Execute bash commands** - `mvn test`, `git commit`, `grep`, `sed`—anything you can type in a terminal
+* **Navigate file systems** - Read, write, search across entire codebases
+* **Iterate autonomously** - Keep working until the goal is achieved
+* **Adapt dynamically** - The reasoning model decides the workflow, not predefined code
+
+Example: _"Upgrade Spring Boot from 2.7 to 3.2 and fix breaking changes"_
+
+The agent:
+1. Finds the current version in pom.xml
+2. Updates to 3.2
+3. Runs `mvn compile` and sees javax.* errors
+4. Searches for affected files with `grep`
+5. Replaces javax.servlet with jakarta.servlet
+6. Runs `mvn test` to verify
+
+**All autonomously. No predefined workflow. Just a goal and direct computer access.**
 
 === Human-in-the-Loop vs Autonomous
 
-In practice, many workflows combine both:
+Different tools for different needs:
 
-* **Human-in-the-loop agents** (e.g. Copilot, ChatGPT) are best for exploration, clarification, and oversight.
-* **Autonomous agents** are best for carrying out well-defined goals end-to-end inside developer workflows.
+* **Human-in-the-loop** (Copilot, ChatGPT): Exploration, clarification, pair programming
+* **Autonomous CLI agents** (Claude Code, Gemini CLI): Execute well-defined goals end-to-end
 
-=== A Progression of Agent Patterns
-
-Anthropic and others have shown that effective agents emerge from combining foundational patterns:
-
-* **Prompt chaining** — breaking problems into steps
-* **Routing** — choosing the right tool or agent
-* **Parallelization** — working on multiple subtasks at once
-* **Evaluator–optimizer workflows** — iterating until the goal is met
-
-Autonomous agents represent a **progression of these patterns**. In a very simple sense, they are *"LLMs in a loop"* — running, evaluating, and optimizing until the work is complete.
-
-A concrete example of this pattern is the "stupid 'LLM in a loop executing bash commands'" approach used by https://github.com/SWE-agent/mini-swe-agent[SWE-agent], which despite its humble description, proves remarkably effective at solving real software engineering problems.
-
-👉 **Spring AI Agents focuses on autonomous coding agents** — not because they replace human-in-the-loop tools, but because they complement them. By making autonomous agents portable and easy to consume for Java developers, we enable AI to be embedded throughout the development workflow: automated code generation and refactoring, CI/CD integration with pull request reviews and build optimization, comprehensive test suite generation, API documentation creation, database schema evolution and query optimization, security vulnerability scanning, and multi-agent collaborative workflows for complex development tasks. See practical examples in our xref:samples.adoc[Sample Agents] documentation.
+Spring AI Agents makes autonomous agents as easy to use in Spring Boot as ChatClient is for conversational AI.
 
 == Key Features
 
@@ -70,6 +108,25 @@ A concrete example of this pattern is the "stupid 'LLM in a loop executing bash 
 * **Fluent API design** - Clean, intuitive interface following Spring patterns
 * **Spring Boot ready** - Auto-configuration and dependency injection support
 * **Production essentials** - Built-in error handling, timeouts, and metadata
+* **Evaluation-first design** - Judge API for deterministic and AI-powered verification
+
+== Why Java? Why Now?
+
+The agent ecosystem has a **Python bias**. Most benchmarks, research, and tooling assume Python workflows. But enterprise software development is multi-language, and Java remains the backbone of mission-critical systems.
+
+=== The Benchmark Reality
+
+* **SWE-bench**: Python-centric, curated dataset with inflated scores
+* **SWE-bench-Live**: More realistic fresh issues—scores drop significantly
+* **Multi-SWE-bench & SWE-PolyBench** (2025): Added Java, revealed Python bias—Java agents score lower not because they're worse, but because benchmarks don't reflect Java workflows
+
+=== Spring AI Bench (Coming)
+
+We're building **Spring AI Bench**—an open-source benchmark suite for Java that evaluates agents on goal-directed, enterprise workflows. Following BetterBench best practices for reproducibility and contamination resistance.
+
+**Philosophy**: Let the best agent per use case win. Benchmark ALL approaches—annotation-based tools, CLI agents, custom solutions—and measure what actually matters: Can it achieve the goal? At what cost? With what reliability?
+
+Early validation from **Netflix**, **JetBrains**, and **Fiserv** confirms the approach.
 
 == Agent Providers
 
@@ -79,8 +136,8 @@ Spring AI Agents supports multiple autonomous agent platforms:
 |===
 |Provider |Description |Best For
 
-|Claude Code CLI
-|Anthropic's autonomous coding agent
+|Claude Agent SDK
+|Anthropic's autonomous coding agent (renamed Sept 2025)
 |General software development, debugging, refactoring
 
 |Gemini CLI  
@@ -118,13 +175,13 @@ We welcome contributions to Spring AI Agents! Please see our xref:contribution-g
 
 == The Vision
 
-Spring AI Agents brings autonomous code reasoning and tool use into mainstream Java enterprise development. By following Spring AI's proven patterns and conventions, we make autonomous agents accessible to every Spring developer while maintaining the full power that makes autonomous agents revolutionary for software development tasks.
+Spring AI Agents is the pragmatic integration layer for autonomous agents in Java enterprise development.
 
-== Future Concepts
+We're not building heavy scaffolding that will "wash away with scale." We're building what persists:
 
-Spring AI Agents is evolving to include advanced capabilities:
+* **Lightweight integration** - Spring Boot patterns for any CLI agent
+* **Evaluation infrastructure** - Judge API and Spring AI Bench for measuring what matters
+* **Vendor flexibility** - Switch agents as models and tools evolve
+* **Safety and observability** - Sandboxes, permissions, monitoring
 
-* **xref:future/judge-concept.adoc[Judge Concept]** - Comprehensive result validation using both deterministic checks (test coverage, build success) and AI-powered assessment (code quality, architecture impact)
-* **xref:future/context-engineering.adoc[Context Engineering]** - Intelligent context assembly using tools like vendir to provide agents with rich project understanding and external reference materials
-
-These concepts represent the next evolution of autonomous agent capabilities, enabling more sophisticated and reliable AI-powered development workflows.
+**The landscape is changing fast.** Invest in what complements model scaling, not what gets replaced by it.

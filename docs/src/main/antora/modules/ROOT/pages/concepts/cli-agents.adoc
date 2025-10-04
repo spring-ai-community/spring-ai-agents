@@ -17,14 +17,12 @@ CLI (Command-Line Interface) agents are autonomous AI systems that interact with
 
 Think of a CLI agent as a developer who works through the terminal—but powered by AI.
 
-== Anthropic's Vision: Building Agents with the Claude SDK
+== Anthropic's Vision: Building Agents with the Claude Agent SDK
 
-In their engineering blog post https://www.anthropic.com/engineering/building-agents-with-the-claude-agent-sdk[Building Agents with the Claude Agent SDK], Anthropic describes the architecture and principles of production-ready CLI agents:
+In their engineering blog post https://www.anthropic.com/engineering/building-agents-with-the-claude-agent-sdk[Building Agents with the Claude Agent SDK] (renamed from "Claude Code SDK" in September 2025 to reflect broader applications beyond coding), Anthropic describes the architecture of production-ready CLI agents:
 
 [quote, Anthropic Engineering Blog]
-____
-The Claude Agent SDK provides a framework for building autonomous agents that can execute complex development tasks by iterating through cycles of planning, execution, and verification until the goal is achieved.
-____
+The agent loop is: *gather context → take action → verify work → repeat*. The agent writes files, runs commands, and iterates on its work until the goal is achieved.
 
 === Key Principles from Anthropic
 
@@ -310,9 +308,54 @@ Built-in support for:
 * **Sandboxes** - Safe execution environments
 * **Advisors** - Extensible plugin architecture
 
+== CLI Agents vs Annotation-Based Tools
+
+Understanding the fundamental difference between CLI agents and traditional annotation-based agent frameworks:
+
+[cols="1h,2,2"]
+|===
+|Aspect |Annotation-Based (@Tool) |CLI Agents
+
+|**Action Scope**
+|Predefined Java methods only
+|Any bash command (`grep`, `sed`, `git`, `mvn`, etc.)
+
+|**Flexibility**
+|Developer must code every tool
+|Agent can use any command-line tool
+
+|**Workflow**
+|Back-and-forth LLM tool calls
+|Autonomous bash execution loop
+
+|**State**
+|Linear conversation history
+|File system + command output
+
+|**Scaffolding**
+|Heavy (routing, orchestration)
+|Minimal (just goal + workspace)
+
+|**Examples**
+|LangChain4j, Spring AI @Tool
+|Claude Agent SDK, Gemini CLI
+|===
+
+**Key insight** (Noam Brown, OpenAI): Before reasoning models, annotation-based scaffolding was necessary. After reasoning models, "you just give the model the question without any sort of scaffolding and it just does it."
+
+[NOTE]
+====
+Spring AI supports **both approaches**:
+
+* **@Tool annotations + MCP**: For structured, controlled tool calling (https://spring.io/blog/2025/03/17/model-context-protocol-mcp-in-spring-ai[Spring AI MCP support])
+* **CLI agents**: For autonomous, bash-driven execution (Spring AI Agents library)
+
+Different tools for different needs. Choose based on your use case.
+====
+
 == CLI Agents vs Other AI Tools
 
-Understanding where CLI agents fit:
+Understanding where CLI agents fit in the broader AI ecosystem:
 
 [cols="1,2,2"]
 |===
@@ -326,9 +369,13 @@ Understanding where CLI agents fit:
 |Answers questions, generates code
 |ChatGPT, Claude Chat
 
+|**Annotation-Based Agents**
+|Predefined tool calling in conversation
+|LangChain4j, Spring AI @Tool
+
 |**CLI Agents**
-|**Executes tasks autonomously**
-|**Claude Code, Gemini CLI**
+|**Autonomous bash execution**
+|**Claude Agent SDK, Gemini CLI**
 
 |**Workflow Engines**
 |Orchestrates predefined steps
@@ -337,10 +384,10 @@ Understanding where CLI agents fit:
 
 CLI agents are unique because they:
 
-* ✅ Execute real commands (not just generate code)
+* ✅ Execute real bash commands (not just predefined Java methods)
 * ✅ Iterate until complete (not one-shot responses)
 * ✅ Adapt dynamically (not predefined workflows)
-* ✅ Verify results (not assume success)
+* ✅ Have full computer access (bash, file system, git)
 
 == Example: CLI Agent in Action
 
