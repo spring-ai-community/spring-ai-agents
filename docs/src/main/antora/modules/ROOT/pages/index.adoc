@@ -61,12 +61,40 @@ Instead of building everything from scratch, we provide:
 
 Spring AI Agents focuses specifically on **autonomous CLI agents** - agents that execute goals by directly interacting with your computer through command-line interfaces.
 
-Unlike traditional frameworks where you define workflows in code, CLI agents:
+=== Context Engineering Through the File System
 
-* **Execute bash commands** - `mvn test`, `git commit`, `grep`, `sed`—anything you can type in a terminal
+> **"The delicate art and science of filling the context window with just the right information"**
+> — Andrej Karpathy on context engineering
+
+A major challenge with agents is **context growth**. A typical agent task requires https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus[~50 tool calls] (Manus AI), and as context grows:
+
+* Performance drops (https://research.trychroma.com/context-rot[Chroma research on "context rot"])
+* Costs increase (every token in context costs money)
+* Latency increases (more tokens to process)
+* Quality degrades (LLMs struggle with very long contexts)
+
+**CLI agents solve this through the file system**:
+
+* **Write context to files** - Instead of keeping everything in LLM memory, agents write `todo.md`, research plans, intermediate results to files
+* **Read context when needed** - Retrieve specific files only when relevant to the current step
+* **Persistent state** - File system provides durable storage across agent iterations
+
+This is https://rlancemartin.github.io/2025/06/23/context_engineering/[context engineering] in practice. Examples:
+
+* **Manus AI**: Writes `todo.md` at task start, rewrites during execution. Recitation of objectives helps maintain focus without bloating context.
+* **Anthropic multi-agent researcher**: https://anthropic.com/engineering/built-multi-agent-research-system[Writes research plans to files] so they can be retrieved as needed
+* **Cursor/Windsurf**: Use sophisticated retrieval to assemble relevant code into prompts without overwhelming context
+
+CLI agents **naturally** do context engineering because they operate through bash and file systems—reading, writing, searching files is their native mode.
+
+=== Direct Computer Access
+
+Unlike frameworks where you define tools in code, CLI agents:
+
+* **Execute any bash command** - `mvn test`, `git commit`, `grep`, `sed`—anything you can type in a terminal
 * **Navigate file systems** - Read, write, search across entire codebases
 * **Iterate autonomously** - Keep working until the goal is achieved
-* **Adapt dynamically** - The reasoning model decides the workflow, not predefined code
+* **Use files as context** - Write intermediate state, read when needed
 
 Example: _"Upgrade Spring Boot from 2.7 to 3.2 and fix breaking changes"_
 
@@ -74,18 +102,20 @@ The agent:
 1. Finds the current version in pom.xml
 2. Updates to 3.2
 3. Runs `mvn compile` and sees javax.* errors
-4. Searches for affected files with `grep`
-5. Replaces javax.servlet with jakarta.servlet
-6. Runs `mvn test` to verify
+4. **Writes error summary to analysis.md** (context engineering)
+5. Searches for affected files with `grep`
+6. Replaces javax.servlet with jakarta.servlet
+7. Runs `mvn test` to verify
+8. **Reads analysis.md to confirm all issues resolved**
 
-**All autonomously. No predefined workflow. Just a goal and direct computer access.**
+**All autonomously. No predefined workflow. Context managed through the file system.**
 
 === Human-in-the-Loop vs Autonomous
 
 Different tools for different needs:
 
 * **Human-in-the-loop** (Copilot, ChatGPT): Exploration, clarification, pair programming
-* **Autonomous CLI agents** (Claude Code, Gemini CLI): Execute well-defined goals end-to-end
+* **Autonomous CLI agents** (Claude Agent SDK, Gemini CLI): Execute well-defined goals end-to-end with file-based context management
 
 Spring AI Agents makes autonomous agents as easy to use in Spring Boot as ChatClient is for conversational AI.
 
