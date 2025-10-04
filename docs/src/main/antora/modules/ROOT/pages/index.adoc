@@ -196,7 +196,20 @@ The agent ecosystem has a **Python bias**. Most benchmarks, research, and toolin
 
 We're building **Spring AI Bench**—an open-source benchmark suite for Java that evaluates agents on goal-directed, enterprise workflows. Following BetterBench best practices for reproducibility and contamination resistance.
 
-**Philosophy**: Let the best agent per use case win. Benchmark ALL approaches—annotation-based tools, CLI agents, custom solutions—and measure what actually matters: Can it achieve the goal? At what cost? With what reliability?
+**Philosophy**: Let the best agent per use case win. Benchmark ALL approaches—annotation-based tools, CLI agents, custom solutions—and measure what actually matters:
+
+* **Can it achieve the goal?** Success rate
+* **At what cost?** Token usage, API costs
+* **How fast?** Execution time
+* **How reliably?** Consistency across runs
+
+Different use cases optimize for different metrics:
+
+* **Fastest at least cost** - Routine tasks, CI/CD automation
+* **Longest but most accurate** - Critical migrations, security audits
+* **Somewhere in between** - Most development tasks
+
+**We'll learn which agent wins for which scenario.** That's the point of benchmarking.
 
 Early validation from **Netflix**, **JetBrains**, and **Fiserv** confirms the approach.
 
