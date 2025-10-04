@@ -196,7 +196,7 @@ The agent ecosystem has a **Python bias**. Most benchmarks, research, and toolin
 
 === Spring AI Bench
 
-We're building https://github.com/spring-ai-community/spring-ai-bench[**Spring AI Bench**]—an open-source benchmark suite for Java that evaluates agents on goal-directed, enterprise workflows. Following BetterBench best practices for reproducibility and contamination resistance.
+We're building https://github.com/spring-ai-community/spring-ai-bench[**Spring AI Bench**]—an open-source benchmark suite for Java that evaluates agents on goal-directed, enterprise workflows. Following https://betterbench.stanford.edu/[BetterBench] best practices for reproducibility and contamination resistance.
 
 Spring AI Bench and Spring AI Agents work hand-in-hand: **Spring AI Agents provides the integration layer**, making it easy to run different agents (Claude, Gemini, custom solutions). **Spring AI Bench provides the measurement framework**, evaluating which agent performs best for which scenario.
 
