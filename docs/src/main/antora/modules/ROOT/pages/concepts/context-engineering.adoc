@@ -6,7 +6,11 @@
 > **"The delicate art and science of filling the context window with just the right information"**
 > — Andrej Karpathy on context engineering
 
-Context engineering is about providing agents with the right information to make effective decisions. In Spring AI Agents, context is provided through the **Advisor pattern**, following the same approach as ChatClient.
+Context engineering is **curating and maintaining the optimal set of tokens (information) during LLM inference**. It's about finding the smallest possible set of high-signal tokens that maximize the likelihood of desired outcomes.
+
+In Spring AI Agents, context is provided through the **Advisor pattern**, following the same approach as ChatClient.
+
+For a comprehensive treatment of context engineering principles, see Anthropic's https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents[Effective Context Engineering for AI Agents] blog post.
 
 == The Challenge
 
@@ -19,11 +23,23 @@ A major challenge with autonomous agents is **context growth**. A typical agent 
 
 == CLI Agents and File System Context
 
-CLI agents solve context management through the file system:
+CLI agents solve context management through the file system, implementing key context engineering techniques:
+
+=== Just-in-Time Context Retrieval
+
+Instead of pre-loading all information, agents:
+
+* **Maintain lightweight identifiers** - Keep references to files/resources, not full content
+* **Dynamically load relevant information** - Read files only when needed for the current step
+* **Explore and discover progressively** - Build context as the task unfolds
+
+=== Structured Note-Taking
+
+Agents write and reference external notes:
 
 * **Write context to files** - Instead of keeping everything in LLM memory, agents write `todo.md`, research plans, intermediate results to files
-* **Read context when needed** - Retrieve specific files only when relevant to the current step
 * **Persistent state** - File system provides durable storage across agent iterations
+* **Compaction** - Summarize and consolidate information to reset context windows
 
 This is https://rlancemartin.github.io/2025/06/23/context_engineering/[context engineering] in practice.
 
