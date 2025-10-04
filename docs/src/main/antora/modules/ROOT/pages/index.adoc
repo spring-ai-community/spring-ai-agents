@@ -106,7 +106,7 @@ public void upgrade() {
 * **Lightweight integration** - Thin Spring Boot abstraction
 * **Vendor flexibility** - Switch between Claude, Gemini, etc.
 * **Evaluation infrastructure** - xref:judges/index.adoc[Judge API] for verification
-* **Agent sandbox** - xref:concepts/sandboxes.adoc[Isolated execution] with permissions
+* **Agent sandbox** - xref:concepts/sandboxes.adoc[Isolated execution]
 * **Spring patterns** - Familiar xref:api/agentclient.adoc[AgentClient] API
 
 **Both paths coexist**: Use CLI agents for general development tasks. Build custom agents with Spring AI's `@Tool`/MCP for specialized needs. Combine both when appropriate.
@@ -271,6 +271,6 @@ We're not building heavy scaffolding that will "wash away with scale." We're bui
 * **Lightweight integration** - Spring Boot patterns for any CLI agent
 * **Evaluation infrastructure** - xref:judges/index.adoc[Judge API] and https://github.com/spring-ai-community/spring-ai-bench[Spring AI Bench] for measuring what matters
 * **Vendor flexibility** - Switch agents as models and tools evolve
-* **Agent sandbox** - xref:concepts/sandboxes.adoc[Isolated execution] with permissions
+* **Agent sandbox** - xref:concepts/sandboxes.adoc[Isolated execution]
 
 **The landscape is changing fast.** Invest in what complements model scaling, not what gets replaced by it.
