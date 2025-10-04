@@ -15,8 +15,10 @@ At the core, every agent is an **LLM executing a loop**: think → act (via tool
 
 The key components:
 * **LLM as the workflow engine** - The LLM plans and decides what to do next
+* **xref:concepts/goals.adoc[Goals]** - Clear objectives that guide agent execution
 * **Tools** - Actions the agent can take (call APIs, run commands, read files)
-* **Context** - Information the agent needs to make decisions
+* **xref:concepts/context-engineering.adoc[Context]** - Information the agent needs to make decisions
+* **xref:judges/index.adoc[Judges]** - Verification that the goal was achieved
 
 === The Paradigm Shift
 
@@ -60,7 +62,7 @@ Spring AI provides the building blocks to create custom "LLM in a loop" agents:
 
 **Can you build the agent loop yourself?** Yes! https://github.com/SWE-agent/mini-swe-agent[Mini-swe-agent] proves it's possible with a simple "LLM in a loop executing bash commands" approach. And we will build custom agents for specific needs.
 
-**But here's the reality**: Many companies are investing heavily in this space. **Why not try them out? Validate them with benchmarking.** That's what Spring AI Bench enables.
+**But here's the reality**: Many companies are investing heavily in this space. **Why not try them out? Validate them with benchmarking.** That's where https://github.com/spring-ai-community/spring-ai-bench[Spring AI Bench] comes in—working hand-in-hand with Spring AI Agents to measure what actually matters.
 
 ==== Path 2: Use Production-Ready CLI Agents
 
@@ -103,9 +105,9 @@ public void upgrade() {
 
 * **Lightweight integration** - Thin Spring Boot abstraction
 * **Vendor flexibility** - Switch between Claude, Gemini, etc.
-* **Evaluation infrastructure** - Judge API for verification
-* **Safety layers** - Sandboxes, permissions, monitoring
-* **Spring patterns** - Familiar `AgentClient` API
+* **Evaluation infrastructure** - xref:judges/index.adoc[Judge API] for verification
+* **Safety layers** - xref:concepts/sandboxes.adoc[Sandboxes], permissions, monitoring
+* **Spring patterns** - Familiar xref:api/agentclient.adoc[AgentClient] API
 
 **Both paths coexist**: Use CLI agents for general development tasks. Build custom agents with Spring AI's `@Tool`/MCP for specialized needs. Combine both when appropriate.
 
@@ -192,9 +194,11 @@ The agent ecosystem has a **Python bias**. Most benchmarks, research, and toolin
 * **SWE-bench-Live**: More realistic fresh issues—scores drop significantly
 * **Multi-SWE-bench & SWE-PolyBench** (2025): Added Java, revealed Python bias—Java agents score lower not because they're worse, but because benchmarks don't reflect Java workflows
 
-=== Spring AI Bench (Coming)
+=== Spring AI Bench
 
-We're building **Spring AI Bench**—an open-source benchmark suite for Java that evaluates agents on goal-directed, enterprise workflows. Following BetterBench best practices for reproducibility and contamination resistance.
+We're building https://github.com/spring-ai-community/spring-ai-bench[**Spring AI Bench**]—an open-source benchmark suite for Java that evaluates agents on goal-directed, enterprise workflows. Following BetterBench best practices for reproducibility and contamination resistance.
+
+Spring AI Bench and Spring AI Agents work hand-in-hand: **Spring AI Agents provides the integration layer**, making it easy to run different agents (Claude, Gemini, custom solutions). **Spring AI Bench provides the measurement framework**, evaluating which agent performs best for which scenario.
 
 **Philosophy**: Let the best agent per use case win. Benchmark ALL approaches—annotation-based tools, CLI agents, custom solutions—and measure what actually matters:
 
@@ -265,8 +269,8 @@ Spring AI Agents is the pragmatic integration layer for autonomous agents in Jav
 We're not building heavy scaffolding that will "wash away with scale." We're building what persists:
 
 * **Lightweight integration** - Spring Boot patterns for any CLI agent
-* **Evaluation infrastructure** - Judge API and Spring AI Bench for measuring what matters
+* **Evaluation infrastructure** - xref:judges/index.adoc[Judge API] and https://github.com/spring-ai-community/spring-ai-bench[Spring AI Bench] for measuring what matters
 * **Vendor flexibility** - Switch agents as models and tools evolve
-* **Safety and observability** - Sandboxes, permissions, monitoring
+* **Safety and observability** - xref:concepts/sandboxes.adoc[Sandboxes], permissions, monitoring
 
 **The landscape is changing fast.** Invest in what complements model scaling, not what gets replaced by it.
