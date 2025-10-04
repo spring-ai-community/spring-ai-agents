@@ -1,0 +1,80 @@
+= Context Engineering: Information for Agents
+:page-title: Context Engineering
+:toc: left
+:tabsize: 2
+
+> **"The delicate art and science of filling the context window with just the right information"**
+> — Andrej Karpathy on context engineering
+
+Context engineering is about providing agents with the right information to make effective decisions. In Spring AI Agents, context is provided through the **Advisor pattern**, following the same approach as ChatClient.
+
+== The Challenge
+
+A major challenge with autonomous agents is **context growth**. A typical agent task requires https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus[~50 tool calls] (Manus AI), and as context grows:
+
+* Performance drops (https://research.trychroma.com/context-rot[Chroma research on "context rot"])
+* Costs increase (every token in context costs money)
+* Latency increases (more tokens to process)
+* Quality degrades (LLMs struggle with very long contexts)
+
+== CLI Agents and File System Context
+
+CLI agents solve context management through the file system:
+
+* **Write context to files** - Instead of keeping everything in LLM memory, agents write `todo.md`, research plans, intermediate results to files
+* **Read context when needed** - Retrieve specific files only when relevant to the current step
+* **Persistent state** - File system provides durable storage across agent iterations
+
+This is https://rlancemartin.github.io/2025/06/23/context_engineering/[context engineering] in practice.
+
+=== Real-World Examples
+
+Examples from production agentic systems:
+
+* **Manus AI**: Writes `todo.md` at task start, rewrites during execution. Recitation of objectives helps maintain focus without bloating context.
+* **Anthropic multi-agent researcher**: https://anthropic.com/engineering/built-multi-agent-research-system[Writes research plans to files] so they can be retrieved as needed
+* **Cursor/Windsurf**: Use sophisticated retrieval to assemble relevant code into prompts without overwhelming context
+
+CLI agents **naturally** do context engineering because they operate through bash and file systems—reading, writing, searching files is their native mode.
+
+== Providing Context with Advisors
+
+In Spring AI Agents, context is provided using **Advisors**:
+
+[source,java]
+----
+AgentClientResponse response = agentClient
+    .goal("Increase JaCoCo test coverage to 80%")
+    .workingDirectory(projectRoot)
+    .advisors(vendirAdvisor, judgeAdvisor)  // ← Context providers
+    .run();
+----
+
+=== Example: VendirContextAdvisor
+
+The `VendirContextAdvisor` pulls documentation into the workspace so agents can access it:
+
+[source,java]
+----
+VendirContextAdvisor vendirAdvisor = VendirContextAdvisor.builder()
+    .include("https://github.com/jacoco/jacoco//docs", "jacoco-manual")
+    .build();
+----
+
+This downloads the JaCoCo manual into the workspace. The agent can then read it to understand coverage metrics and requirements.
+
+See xref:../api/context-engineering.adoc[VendirContextAdvisor documentation] for complete usage details and examples.
+
+== Context Best Practices
+
+* **Provide just enough** - Too little context and the agent guesses; too much and performance degrades
+* **Use files for large content** - Write documentation, schemas, examples to files rather than prompt text
+* **Scope appropriately** - Only include information relevant to the goal
+* **Let agents manage state** - CLI agents naturally write intermediate results to files
+
+== Next Steps
+
+* xref:goals.adoc[Goals] - Defining what agents should accomplish
+* xref:../judges/index.adoc[Judges] - Verifying agent work
+* xref:cli-agents.adoc[CLI Agents] - Understanding autonomous agents
+* xref:../getting-started.adoc[Getting Started] - Build your first agent

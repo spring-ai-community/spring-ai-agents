@@ -19,7 +19,7 @@ Think of a CLI agent as a developer who works through the terminal—but powered
 
 == Anthropic's Vision: Building Agents with the Claude Agent SDK
 
-In their engineering blog post https://www.anthropic.com/engineering/building-agents-with-the-claude-agent-sdk[Building Agents with the Claude Agent SDK] (renamed from "Claude Code SDK" in September 2025 to reflect broader applications beyond coding), Anthropic describes the architecture of production-ready CLI agents:
+In their engineering blog post https://www.anthropic.com/engineering/building-agents-with-the-claude-agent-sdk[Building Agents with the Claude Agent SDK] (renamed from "Claude Code SDK" in September 2025 to reflect broader applications beyond coding), Anthropic describes the architecture of agentic CLI tools:
 
 [quote, Anthropic Engineering Blog]
 The agent loop is: *gather context → take action → verify work → repeat*. The agent writes files, runs commands, and iterates on its work until the goal is achieved.
@@ -154,7 +154,7 @@ Different agents excel at different tasks:
 |Advanced reasoning, multi-step planning, code understanding
 |Complex refactoring, architectural changes, bug fixes
 
-|**Gemini CLI**
+|**Gemini CLI Agent SDK**
 |Multimodal capabilities, fast execution, Google integration
 |Document analysis, image processing, quick tasks
 
@@ -373,7 +373,7 @@ Understanding where CLI agents fit in the broader AI ecosystem:
 
 |**CLI Agents**
 |**Autonomous bash execution**
-|**Claude Agent SDK, Gemini CLI**
+|**Claude Agent SDK, Gemini CLI Agent SDK**
 
 |**Workflow Engines**
 |Orchestrates predefined steps
@@ -466,4 +466,4 @@ Now that you understand the foundation, explore how to use CLI agents effectivel
 
 * Anthropic Engineering Blog: https://www.anthropic.com/engineering/building-agents-with-the-claude-agent-sdk[Building Agents with the Claude Agent SDK]
 * xref:../api/agentclient-vs-chatclient.adoc[AgentClient vs ChatClient] - API comparison
-* xref:../api/claude-code-sdk.adoc[Claude Code SDK] - Deep dive into Claude integration
+* xref:../api/claude-code-sdk.adoc[Claude Agent SDK] - Deep dive into Claude integration

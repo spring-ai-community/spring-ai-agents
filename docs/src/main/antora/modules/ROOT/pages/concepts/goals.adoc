@@ -1,0 +1,57 @@
+= Goals: Defining Agent Objectives
+:page-title: Goals
+:toc: left
+:tabsize: 2
+
+Goals are clear, measurable objectives that guide agent execution. A well-defined goal tells the agent **what** to accomplish, not **how** to do it.
+
+== What Makes a Good Goal?
+
+A good goal is:
+
+* **Clear** - Unambiguous about what success looks like
+* **Specific** - Provides enough context to guide execution
+* **Measurable** - Has clear criteria for completion
+* **Achievable** - Within the agent's capabilities
+
+== Examples
+
+=== Good Goals
+
+[source,text]
+----
+✓ "Increase JaCoCo test coverage to 80% for the Judge API"
+✓ "Create a REST API for Product management with CRUD endpoints"
+✓ "Fix the failing tests in UserServiceTest"
+✓ "Add authentication to the /api/users endpoint using JWT"
+----
+
+=== Poor Goals
+
+[source,text]
+----
+✗ "Make the code better" (too vague)
+✗ "Fix everything" (not measurable)
+✗ "Update the system" (unclear what to update)
+----
+
+== Goal-Driven Execution
+
+In Spring AI Agents, goals are specified using the `AgentClient` API:
+
+[source,java]
+----
+AgentClientResponse response = agentClient
+    .goal("Increase JaCoCo test coverage to 80% for the Judge API")
+    .workingDirectory(projectRoot)
+    .run();
+----
+
+The agent autonomously determines the steps needed to achieve the goal.
+
+== Next Steps
+
+* xref:context-engineering.adoc[Context Engineering] - Providing information to agents
+* xref:../judges/index.adoc[Judges] - Verifying goals were achieved
+* xref:cli-agents.adoc[CLI Agents] - Understanding autonomous agents
+* xref:../getting-started.adoc[Getting Started] - Build your first agent

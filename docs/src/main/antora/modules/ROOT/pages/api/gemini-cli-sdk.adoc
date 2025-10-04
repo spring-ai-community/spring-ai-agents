@@ -1,5 +1,5 @@
-= Gemini CLI SDK
-:page-title: Gemini CLI SDK Documentation
+= Gemini CLI Agent SDK
+:page-title: Gemini CLI Agent SDK Documentation
 :toc: left
 :tabsize: 2
 :sectnums:

@@ -1,5 +1,5 @@
-= Claude Code SDK
-:page-title: Claude Code SDK Documentation
+= Claude Agent SDK
+:page-title: Claude Agent SDK Documentation
 :toc: left
 :tabsize: 2
 :sectnums:

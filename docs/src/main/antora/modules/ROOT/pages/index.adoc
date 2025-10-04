@@ -4,17 +4,21 @@
 :tabsize: 2
 :sectnums:
 
-Spring AI Agents is a community-maintained library that brings autonomous agents into mainstream Java enterprise development, making them as easy to use as any other Spring component.
+**Spring AI Agents is the pragmatic integration layer for autonomous agents in Java enterprise development.**
+
+Bringing autonomous agents into mainstream Java development, making them as easy to use as any other Spring component.
+
+**GitHub Repository**: https://github.com/spring-ai-community/spring-ai-agents[github.com/spring-ai-community/spring-ai-agents]
 
 == What Is an Agent?
 
-> **"An agent is a LLM in a loop"**
-> — Common saying in AI engineering
+> **"An agent is AI-powered software that accomplishes a goal. Period."**
+> — Dharmesh Shah, HubSpot CTO and Agents.ai co-founder
 
-At the core, every agent is an **LLM executing a loop**: think → act (via tools) → observe → repeat until the goal is achieved.
+At the core, every agent is **software that pursues a goal**. The common pattern is an **LLM executing a loop**: think → act (via tools) → observe → repeat until the goal is achieved. But building effective agents is far harder than this simple description suggests.
 
-The key components:
-* **LLM as the workflow engine** - The LLM plans and decides what to do next
+In Spring AI Agents, we model agents around these components:
+
 * **xref:concepts/goals.adoc[Goals]** - Clear objectives that guide agent execution
 * **Tools** - Actions the agent can take (call APIs, run commands, read files)
 * **xref:concepts/context-engineering.adoc[Context]** - Information the agent needs to make decisions
@@ -22,92 +26,80 @@ The key components:
 
 === The Paradigm Shift
 
-Building agents is hard. The industry has gone through a fundamental shift:
+After hundreds of hours using agentic CLI tools and conversations with engineers at Google, Amazon, and Netflix, a clear pattern emerged: **these tools are incredibly effective at their jobs**. The real paradigm shift isn't any single feature—it's **capability moving into the models themselves**. As models evolved from completions → reasoning → planning, the scaffolding we built to compensate for weaker models became unnecessary.
 
-**Old paradigm**: _"The LLM can't plan workflows, so we must code them"_
+[NOTE]
+====
+**"There are a lot of things that people are building right now that will eventually be washed away by scale."**
 
-* Developer writes the workflow logic in code
-* Developer defines which tool to call when
-* Developer handles error cases and retries
-* Heavy scaffolding to compensate for model limitations
+— Noam Brown, OpenAI Research Lead (https://www.youtube.com/watch?v=ddd4xjuJTyg[Latent Space podcast])
+====
 
-**New paradigm**: _"The LLM IS the workflow engine"_
+Reasoning models now handle what used to require elaborate client-side engineering. **What remains critical: context engineering and tool design.**
 
-* Developer provides goals, context, and available tools
-* LLM decides the plan and execution steps
-* LLM adapts when things go wrong
-* Minimal scaffolding - trust the reasoning model
+Even LLM-based workflow engines—where you trust the LLM to plan instead of coding every step—are just another example of this evolution. The shift: from **imperative** (code every step) to **declarative** (describe the goal and let the model figure it out).
 
-This shift makes agent development almost **declarative** (describe what you want) rather than **imperative** (code every step).
+**Spring AI Agents leans into this direction**: trust the LLM to plan and execute, validate through benchmarking.
 
-=== Two Paths Forward
+=== The Journey: From Building to Using
 
-Both approaches are valid and coexist:
+I started wrapping the Claude Code CLI myself. Then I discovered Anthropic had created the https://github.com/anthropics/claude-agent-sdk-python[Claude Code SDK] (now Claude Agent SDK)—a Python wrapper providing a clean interface to their CLI tool. Similar SDKs emerged from Google (Gemini CLI), Amazon (Q Developer), and others.
 
-==== Path 1: Build Your Own Agent
+As Anthropic explains in their https://www.anthropic.com/engineering/building-agents-with-the-claude-agent-sdk[blog]:
 
-Spring AI provides the building blocks to create custom "LLM in a loop" agents:
+[quote, Anthropic Engineering Blog]
+____
+The Claude Agent SDK enables developers to build powerful, flexible agents by giving Claude access to a computer where it can write files, run commands, and iterate on its work.
+____
 
-* **`@Tool` annotations** - Define tools as Java methods
-* **Model Context Protocol (MCP)** - https://spring.io/blog/2025/03/17/model-context-protocol-mcp-in-spring-ai[First-class MCP support]
-* **Conversation history** - Manage context and tool interactions
-* **Spring integration** - Familiar Spring Boot patterns
+**The realization**: You can build custom agents with Spring AI's `@Tool` annotations and https://spring.io/blog/2025/03/17/model-context-protocol-mcp-in-spring-ai[MCP support]. https://github.com/SWE-agent/mini-swe-agent[Mini-swe-agent] proves a simple "LLM in a loop" works. And we will build custom agents for domain-specific needs.
 
-**When to build your own**:
-* Domain-specific workflows
-* Custom tool integrations
-* Full control over agent behavior
+**But why reinvent?** Building effective agents is hard. You're solving problems that Anthropic, Google, and OpenAI invest heavily in: context management, error recovery, planning, tool selection, performance optimization. Why not leverage that R&D?
 
-**The challenge**: Building effective agents is **hard**. You're solving problems that companies like Anthropic, Google, and OpenAI invest heavily in: context management, error recovery, planning, tool selection, performance optimization.
+=== The Spring AI Agents Approach
 
-**Can you build the agent loop yourself?** Yes! https://github.com/SWE-agent/mini-swe-agent[Mini-swe-agent] proves it's possible with a simple "LLM in a loop executing bash commands" approach. And we will build custom agents for specific needs.
+**The pattern looked familiar**: Just like database access before JDBC—many powerful tools doing similar things, but all slightly different. Spring AI solved this for LLM completions with `ChatClient`, providing portability and a higher-level developer experience.
 
-**But here's the reality**: Many companies are investing heavily in this space. **Why not try them out? Validate them with benchmarking.** That's where https://github.com/spring-ai-community/spring-ai-bench[Spring AI Bench] comes in—working hand-in-hand with Spring AI Agents to measure what actually matters.
+**Spring AI Agents applies the same principle to autonomous agents:**
 
-==== Path 2: Use Production-Ready CLI Agents
+* **Agent SDK portability layer** - Java wrappers for xref:api/claude-code-sdk.adoc[Claude Agent SDK], xref:api/gemini-cli-sdk.adoc[Gemini CLI Agent SDK], SWE Agent (like Anthropic's Python SDK, but cross-vendor)
+* **Familiar Spring AI patterns** - xref:api/agentclient.adoc[AgentClient] API following xref:api/agentclient-vs-chatclient.adoc[ChatClient design]
+* **Advisor pattern** - Extend agent behavior with xref:concepts/context-engineering.adoc[context] and xref:judges/index.adoc[judges] as advisors, just like ChatClient
+* **Agent sandbox** - xref:concepts/sandboxes.adoc[Isolated execution]
 
-Here's the key realization: **Leading AI companies have figured this out.**
-
-Production CLI agents like Claude Agent SDK, Gemini CLI, Amazon Q Developer, and OpenAI Codex agents have:
-
-* Sophisticated context engineering
-* Proven planning and execution strategies
-* Constant model improvements
-* Battle-tested on millions of tasks
-* Massive ongoing R&D investment
-
-**Why not take advantage of this?**
-
-Using these tools is **declarative**:
+**Example** - Declarative agent execution:
 
 [source,java]
 ----
-// Declarative: Describe the goal
-agentClientBuilder
-    .goal("Upgrade Spring Boot from 2.7 to 3.2 and fix breaking changes")
-    .workingDirectory(projectRoot)
-    .call();
+AgentClientResponse response = agentClient  // <1>
+    .goal("Increase JaCoCo test coverage to 80% for the Judge API")  // <2>
+    .workingDirectory(projectRoot)  // <3>
+    .advisors(vendirAdvisor, judgeAdvisor)  // <4>
+    .run();  // <5>
+----
+<1> Start with `AgentClient` instance (auto-configured by Spring Boot)
+<2> **Goal** - What you want to accomplish (the "what", not the "how")
+<3> **Working directory** - Where the agent executes (sandbox isolation)
+<4> **Context & verification** - xref:api/context-engineering.adoc[VendirContextAdvisor] provides JaCoCo manual, xref:judges/index.adoc[JudgeAdvisor] verifies 80% coverage achieved
+<5> **Execute** - Run autonomously until goal achieved
 
-// vs Imperative: Code every step
-public void upgrade() {
-    updatePomVersion();
-    runBuild();
-    if (buildFails()) {
-        List<File> affectedFiles = findJavaxImports();
-        replaceJavaxWithJakarta(affectedFiles);
-        runBuild();
-    }
-    // ... dozens more conditional branches
-}
+[TIP]
+====
+**Declarative approach**: You describe the goal and provide context. The LLM plans the workflow, decides which tools to use, and adapts when things go wrong. No coding workflows, no predefined steps—just the goal and context.
+====
+
+**Or run agents directly with JBang** - no build required:
+
+[source,bash]
+----
+jbang agents@springai coverage target_coverage=80
 ----
 
-**The Spring AI Agents Approach**: Make production CLI agents accessible to Spring developers with:
+Zero setup - the agent runs on your local codebase, pulls context as needed, and achieves the goal. Once you see it working, tweak the configuration or create your own agents.footnote:[Code coverage agent coming soon to the JBang catalog]
 
-* **Lightweight integration** - Thin Spring Boot abstraction
-* **Vendor flexibility** - Switch between Claude, Gemini, etc.
-* **Evaluation infrastructure** - xref:judges/index.adoc[Judge API] for verification
-* **Agent sandbox** - xref:concepts/sandboxes.adoc[Isolated execution]
-* **Spring patterns** - Familiar xref:api/agentclient.adoc[AgentClient] API
+xref:getting-started.adoc[See the Getting Started guide] for complete examples.
+
+**Why use agentic CLI tools?** Leading companies invest heavily in context engineering, planning strategies, and continuous model improvements. Why not leverage that R&D?
 
 **Both paths coexist**: Use CLI agents for general development tasks. Build custom agents with Spring AI's `@Tool`/MCP for specialized needs. Combine both when appropriate.
 
@@ -115,61 +107,13 @@ public void upgrade() {
 
 Spring AI Agents focuses specifically on **autonomous CLI agents** - agents that execute goals by directly interacting with your computer through command-line interfaces.
 
-=== Context Engineering Through the File System
+CLI agents are uniquely effective because they:
 
-> **"The delicate art and science of filling the context window with just the right information"**
-> — Andrej Karpathy on context engineering
+* **Manage context through the file system** - Write intermediate state to files, read when needed, avoiding context window limitations (see xref:concepts/context-engineering.adoc[Context Engineering])
+* **Execute bash commands** - Run builds, tests, searches—anything you can type in a terminal
+* **Iterate autonomously** - Keep working until the goal is achieved, no human intervention required
 
-A major challenge with agents is **context growth**. A typical agent task requires https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus[~50 tool calls] (Manus AI), and as context grows:
-
-* Performance drops (https://research.trychroma.com/context-rot[Chroma research on "context rot"])
-* Costs increase (every token in context costs money)
-* Latency increases (more tokens to process)
-* Quality degrades (LLMs struggle with very long contexts)
-
-**CLI agents solve this through the file system**:
-
-* **Write context to files** - Instead of keeping everything in LLM memory, agents write `todo.md`, research plans, intermediate results to files
-* **Read context when needed** - Retrieve specific files only when relevant to the current step
-* **Persistent state** - File system provides durable storage across agent iterations
-
-This is https://rlancemartin.github.io/2025/06/23/context_engineering/[context engineering] in practice. Examples:
-
-* **Manus AI**: Writes `todo.md` at task start, rewrites during execution. Recitation of objectives helps maintain focus without bloating context.
-* **Anthropic multi-agent researcher**: https://anthropic.com/engineering/built-multi-agent-research-system[Writes research plans to files] so they can be retrieved as needed
-* **Cursor/Windsurf**: Use sophisticated retrieval to assemble relevant code into prompts without overwhelming context
-
-CLI agents **naturally** do context engineering because they operate through bash and file systems—reading, writing, searching files is their native mode.
-
-=== Direct Computer Access
-
-Unlike frameworks where you define tools in code, CLI agents:
-
-* **Execute any bash command** - `mvn test`, `git commit`, `grep`, `sed`—anything you can type in a terminal
-* **Navigate file systems** - Read, write, search across entire codebases
-* **Iterate autonomously** - Keep working until the goal is achieved
-* **Use files as context** - Write intermediate state, read when needed
-
-Example: _"Upgrade Spring Boot from 2.7 to 3.2 and fix breaking changes"_
-
-The agent:
-1. Finds the current version in pom.xml
-2. Updates to 3.2
-3. Runs `mvn compile` and sees javax.* errors
-4. **Writes error summary to analysis.md** (context engineering)
-5. Searches for affected files with `grep`
-6. Replaces javax.servlet with jakarta.servlet
-7. Runs `mvn test` to verify
-8. **Reads analysis.md to confirm all issues resolved**
-
-**All autonomously. No predefined workflow. Context managed through the file system.**
-
-=== Human-in-the-Loop vs Autonomous
-
-Different tools for different needs:
-
-* **Human-in-the-loop** (Copilot, ChatGPT): Exploration, clarification, pair programming
-* **Autonomous CLI agents** (Claude Agent SDK, Gemini CLI): Execute well-defined goals end-to-end with file-based context management
+**Human-in-the-Loop vs Autonomous**: Chatbots like ChatGPT and code completion tools like Copilot excel at exploration and pair programming. Autonomous CLI agents excel at executing well-defined goals end-to-end without human intervention. Different tools for different needs.
 
 Spring AI Agents makes autonomous agents as easy to use in Spring Boot as ChatClient is for conversational AI.
 
@@ -184,11 +128,11 @@ Spring AI Agents makes autonomous agents as easy to use in Spring Boot as ChatCl
 * **Production essentials** - Built-in error handling, timeouts, and metadata
 * **Evaluation-first design** - Judge API for deterministic and AI-powered verification
 
-== Why Java? Why Now?
+== Better Benchmarks for Java
 
 The agent ecosystem has a **Python bias**. Most benchmarks, research, and tooling assume Python workflows. But enterprise software development is multi-language, and Java remains the backbone of mission-critical systems.
 
-=== The Benchmark Reality
+=== The Benchmark Problem
 
 * **SWE-bench**: Python-centric, curated dataset with inflated scores
 * **SWE-bench-Live**: More realistic fresh issues—scores drop significantly
@@ -196,30 +140,36 @@ The agent ecosystem has a **Python bias**. Most benchmarks, research, and toolin
 
 === Spring AI Bench
 
-We're building https://github.com/spring-ai-community/spring-ai-bench[**Spring AI Bench**]—an open-source benchmark suite for Java that evaluates agents on goal-directed, enterprise workflows. Following https://betterbench.stanford.edu/[BetterBench] best practices for reproducibility and contamination resistance.
+We're building https://github.com/spring-ai-community/spring-ai-bench[**Spring AI Bench**]—an open-source benchmark suite for Java that evaluates agents on goal-directed, enterprise workflows. Following Stanford's https://betterbench.stanford.edu/[BetterBench] principles for reproducibility and contamination resistance.
 
-Spring AI Bench and Spring AI Agents work hand-in-hand: **Spring AI Agents provides the integration layer**, making it easy to run different agents (Claude, Gemini, custom solutions). **Spring AI Bench provides the measurement framework**, evaluating which agent performs best for which scenario.
+Spring AI Bench and Spring AI Agents work hand-in-hand: **Spring AI Agents provides the integration layer**, making it easy to run different agents (Claude, Gemini, custom solutions). **Spring AI Bench provides the measurement framework**, evaluating agents across multiple dimensions.
 
-**Philosophy**: Let the best agent per use case win. Benchmark ALL approaches—annotation-based tools, CLI agents, custom solutions—and measure what actually matters:
+**Philosophy**: Let the best agent per use case win. Benchmark ALL approaches—annotation-based tools, CLI agents, custom solutions—and measure what actually matters.
 
-* **Can it achieve the goal?** Success rate
-* **At what cost?** Token usage, API costs
-* **How fast?** Execution time
-* **How reliably?** Consistency across runs
+As Dharmesh Shah frames it on the https://www.latent.space/p/agents[Latent Space podcast], evaluating agents is like hiring for a job: effectiveness depends on your specific constraints and goals. Spring AI Bench measures across multiple axes:
 
-Different use cases optimize for different metrics:
+**Objective metrics:**
+* **Success rate** - Can it achieve the goal?
+* **Cost** - Token usage, API costs
+* **Speed** - Execution time, latency
+* **Reliability** - Consistency across runs
+
+**Qualitative factors:**
+* **Quality vs. cost tradeoff** - Is the premium model worth it for this task?
+* **Time-to-value** - How quickly does it deliver results?
+* **Workflow fit** - Does it integrate cleanly into your process?
+
+Different scenarios optimize for different combinations:
 
 * **Fastest at least cost** - Routine tasks, CI/CD automation
-* **Longest but most accurate** - Critical migrations, security audits
-* **Somewhere in between** - Most development tasks
+* **Highest quality regardless of cost** - Critical migrations, security audits
+* **Balanced tradeoffs** - Most development tasks
 
 **We'll learn which agent wins for which scenario.** That's the point of benchmarking.
 
-Early validation from **Netflix**, **JetBrains**, and **Fiserv** confirms the approach.
-
 == Agent Providers
 
-Spring AI Agents supports multiple autonomous agent platforms:
+Spring AI Agents supports multiple autonomous agent platforms (more to come):
 
 [cols="1,2,2"]
 |===
@@ -229,7 +179,7 @@ Spring AI Agents supports multiple autonomous agent platforms:
 |Anthropic's autonomous coding agent (renamed Sept 2025)
 |General software development, debugging, refactoring
 
-|Gemini CLI  
+|Gemini CLI
 |Google's command-line coding agent
 |Google ecosystem integration, specialized tasks
 
@@ -254,23 +204,20 @@ Get started using Spring AI Agents by following our xref:getting-started.adoc[Ge
 * xref:jbang-runner.adoc[JBang Agent Runner] - Primary developer entry point for trying agents locally
 * xref:api/agentclient.adoc[AgentClient API] - Learn the core API for running autonomous tasks
 * xref:api/agentclient-vs-chatclient.adoc[AgentClient vs ChatClient] - See how AgentClient follows ChatClient patterns
-* xref:api/claude-code-sdk.adoc[Claude Code SDK] - Java integration with Claude Code CLI
-* xref:api/gemini-cli-sdk.adoc[Gemini CLI SDK] - Java integration with Gemini CLI
+* xref:api/claude-code-sdk.adoc[Claude Agent SDK] - Java integration with Claude Agent SDK
+* xref:api/gemini-cli-sdk.adoc[Gemini CLI Agent SDK] - Java integration with Gemini CLI Agent SDK
 * xref:samples.adoc[Sample Agents] - Real-world agent examples and patterns
 
 == Contributing
 
 We welcome contributions to Spring AI Agents! Please see our xref:contribution-guidelines.adoc[Contribution Guidelines] for more information on how to get involved.
 
-== The Vision
+== Resources
 
-Spring AI Agents is the pragmatic integration layer for autonomous agents in Java enterprise development.
+* **Spring AI Agents**
+** GitHub: https://github.com/spring-ai-community/spring-ai-agents[github.com/spring-ai-community/spring-ai-agents]
+** Documentation: This site
 
-We're not building heavy scaffolding that will "wash away with scale." We're building what persists:
-
-* **Lightweight integration** - Spring Boot patterns for any CLI agent
-* **Evaluation infrastructure** - xref:judges/index.adoc[Judge API] and https://github.com/spring-ai-community/spring-ai-bench[Spring AI Bench] for measuring what matters
-* **Vendor flexibility** - Switch agents as models and tools evolve
-* **Agent sandbox** - xref:concepts/sandboxes.adoc[Isolated execution]
-
-**The landscape is changing fast.** Invest in what complements model scaling, not what gets replaced by it.
+* **Spring AI Bench**
+** GitHub: https://github.com/spring-ai-community/spring-ai-bench[github.com/spring-ai-community/spring-ai-bench]
+** Documentation: https://spring-ai-community.github.io/spring-ai-bench[spring-ai-bench documentation]

@@ -1,0 +1,82 @@
+= Sandboxes: Isolated Execution
+:page-title: Sandboxes
+:toc: left
+:tabsize: 2
+
+Sandboxes provide secure, isolated environments for agent execution. They ensure agents can work autonomously without risking the host system.
+
+== Why Sandboxes?
+
+Autonomous agents execute commands, modify files, and interact with your system. Sandboxes provide:
+
+* **Security** - Limit agent access to specific directories and resources
+* **Isolation** - Prevent unintended changes to the host system
+* **Reproducibility** - Consistent execution environment
+* **Safety** - Contain failures and errors
+
+== Sandbox Types
+
+Spring AI Agents supports two sandbox implementations:
+
+=== LocalSandbox
+
+Direct execution on the host system:
+
+* **Fast startup** - No container overhead
+* **Development friendly** - Easy debugging
+* **No isolation** - ⚠️ Agent has full host access
+* **Default choice** - Used when Docker is not available
+
+[source,properties]
+----
+spring.ai.agents.sandbox.docker.enabled=false
+spring.ai.agents.sandbox.local.working-directory=/path/to/workspace
+----
+
+=== DockerSandbox
+
+Container-based isolation (recommended for production):
+
+* **Complete isolation** - Agent runs in container
+* **Secure** - Limited host access
+* **Reproducible** - Consistent environment
+* **Requires Docker** - Docker daemon must be running
+
+[source,properties]
+----
+spring.ai.agents.sandbox.docker.enabled=true
+spring.ai.agents.sandbox.docker.image-tag=ghcr.io/spring-ai-community/agents-runtime:latest
+----
+
+== Working Directory
+
+The working directory defines the agent's workspace:
+
+[source,java]
+----
+AgentClientResponse response = agentClient
+    .goal("Create a REST API")
+    .workingDirectory(Path.of("/projects/my-api"))  // ← Workspace boundary
+    .run();
+----
+
+Agents operate within this directory:
+
+* Read and write files
+* Execute commands
+* Navigate subdirectories
+* Store intermediate results
+
+== Best Practices
+
+* **Use DockerSandbox in production** - Provides proper isolation
+* **Use LocalSandbox for development** - Faster iteration, easier debugging
+* **Scope working directory appropriately** - Only include files the agent needs
+* **Test with both sandboxes** - Ensure your agents work in either environment
+
+== Next Steps
+
+* xref:goals.adoc[Goals] - Defining agent objectives
+* xref:context-engineering.adoc[Context Engineering] - Providing information to agents
+* xref:../getting-started.adoc[Getting Started] - Build your first agent
+* xref:cli-agents.adoc[CLI Agents] - Understanding autonomous agents
