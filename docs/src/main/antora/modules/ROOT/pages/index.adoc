@@ -13,49 +13,97 @@ Spring AI Agents is a community-maintained library that brings autonomous agents
 
 At the core, every agent is an **LLM executing a loop**: think → act (via tools) → observe → repeat until the goal is achieved.
 
-=== You Can Build This Yourself
+The key components:
+* **LLM as the workflow engine** - The LLM plans and decides what to do next
+* **Tools** - Actions the agent can take (call APIs, run commands, read files)
+* **Context** - Information the agent needs to make decisions
 
-Spring AI provides the building blocks to create your own "LLM in a loop":
+=== The Paradigm Shift
 
-* **`@Tool` annotations** - Define custom tools as Java methods
-* **Model Context Protocol (MCP)** - https://spring.io/blog/2025/03/17/model-context-protocol-mcp-in-spring-ai[First-class MCP integration] for standard tool interfaces
-* **Linear conversation history** - Manage context and tool-calling interactions
+Building agents is hard. The industry has gone through a fundamental shift:
+
+**Old paradigm**: _"The LLM can't plan workflows, so we must code them"_
+
+* Developer writes the workflow logic in code
+* Developer defines which tool to call when
+* Developer handles error cases and retries
+* Heavy scaffolding to compensate for model limitations
+
+**New paradigm**: _"The LLM IS the workflow engine"_
+
+* Developer provides goals, context, and available tools
+* LLM decides the plan and execution steps
+* LLM adapts when things go wrong
+* Minimal scaffolding - trust the reasoning model
+
+This shift makes agent development almost **declarative** (describe what you want) rather than **imperative** (code every step).
+
+=== Two Paths Forward
+
+Both approaches are valid and coexist:
+
+==== Path 1: Build Your Own Agent
+
+Spring AI provides the building blocks to create custom "LLM in a loop" agents:
+
+* **`@Tool` annotations** - Define tools as Java methods
+* **Model Context Protocol (MCP)** - https://spring.io/blog/2025/03/17/model-context-protocol-mcp-in-spring-ai[First-class MCP support]
+* **Conversation history** - Manage context and tool interactions
 * **Spring integration** - Familiar Spring Boot patterns
 
-You have complete control to build custom agent loops for your specific needs.
+**When to build your own**:
+* Domain-specific workflows
+* Custom tool integrations
+* Full control over agent behavior
 
-=== Or Use Production-Ready CLI Agents
+**The challenge**: Building effective agents is **hard**. You're solving problems that companies like Anthropic, Google, and OpenAI invest heavily in: context management, error recovery, planning, tool selection, performance optimization.
 
-Here's the key question: **Why reinvent the wheel?**
+==== Path 2: Use Production-Ready CLI Agents
 
-Leading AI companies have invested heavily in production-ready autonomous agents:
+Here's the key realization: **Leading AI companies have figured this out.**
 
-* **Claude Agent SDK** (Anthropic) - https://www.anthropic.com/engineering/building-agents-with-the-claude-agent-sdk[Renamed from Claude Code SDK in Sept 2025]
-* **Gemini CLI** (Google) - Multimodal agent with direct computer access
-* **Amazon Q Developer** - AWS-integrated autonomous coding
-* **OpenAI Codex agents** - GPT-powered development tools
+Production CLI agents like Claude Agent SDK, Gemini CLI, Amazon Q Developer, and OpenAI Codex agents have:
 
-These tools are:
+* Sophisticated context engineering
+* Proven planning and execution strategies
+* Constant model improvements
+* Battle-tested on millions of tasks
+* Massive ongoing R&D investment
 
-* **Cutting-edge** - Built by teams pushing the frontier of AI
-* **Battle-tested** - Used by millions of developers
-* **Constantly improving** - New models, capabilities, optimizations
+**Why not take advantage of this?**
 
-At their core, they're all "LLMs in a loop" too—but with massive R&D investment, sophisticated optimizations, and production polish.
+Using these tools is **declarative**:
 
-=== The Spring AI Agents Approach
+[source,java]
+----
+// Declarative: Describe the goal
+agentClientBuilder
+    .goal("Upgrade Spring Boot from 2.7 to 3.2 and fix breaking changes")
+    .workingDirectory(projectRoot)
+    .call();
 
-**Spring AI Agents makes these powerful CLI agents accessible to Spring developers.**
+// vs Imperative: Code every step
+public void upgrade() {
+    updatePomVersion();
+    runBuild();
+    if (buildFails()) {
+        List<File> affectedFiles = findJavaxImports();
+        replaceJavaxWithJakarta(affectedFiles);
+        runBuild();
+    }
+    // ... dozens more conditional branches
+}
+----
 
-Instead of building everything from scratch, we provide:
+**The Spring AI Agents Approach**: Make production CLI agents accessible to Spring developers with:
 
-* **Lightweight integration** - Thin Spring Boot abstraction over CLI agents
-* **Vendor flexibility** - Switch between Claude, Gemini, etc. as tools evolve
-* **Evaluation infrastructure** - Judge API for verifying agent work
+* **Lightweight integration** - Thin Spring Boot abstraction
+* **Vendor flexibility** - Switch between Claude, Gemini, etc.
+* **Evaluation infrastructure** - Judge API for verification
 * **Safety layers** - Sandboxes, permissions, monitoring
-* **Spring patterns** - Familiar `AgentClient` API mirroring `ChatClient`
+* **Spring patterns** - Familiar `AgentClient` API
 
-**The philosophy**: Use cutting-edge production agents where they excel. Build custom tools with Spring AI's `@Tool`/MCP where you need control. Combine both as needed.
+**Both paths coexist**: Use CLI agents for general development tasks. Build custom agents with Spring AI's `@Tool`/MCP for specialized needs. Combine both when appropriate.
 
 == Why CLI Agents?
 
