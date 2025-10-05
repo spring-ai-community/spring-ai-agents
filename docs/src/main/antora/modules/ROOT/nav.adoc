@@ -32,9 +32,11 @@
 ** xref:api/agentclient-vs-chatclient.adoc[AgentClient vs ChatClient]
 
 * Provider SDKs
-** xref:api/claude-code-sdk.adoc[Claude Code SDK]
-** xref:api/gemini-cli-sdk.adoc[Gemini CLI SDK]
-** xref:api/amp-cli-sdk.adoc[Amp CLI SDK]
+** xref:api/claude-code-sdk.adoc[Claude Agent SDK]
+** xref:api/gemini-cli-sdk.adoc[Gemini CLI Agent SDK]
+** xref:api/amp-cli-sdk.adoc[Amp Agent SDK]
+** xref:api/codex-cli-sdk.adoc[Codex Agent SDK]
+** xref:api/amazon-q-cli-sdk.adoc[Amazon Q Developer Agent SDK]
 
 * JBang Runner
 ** xref:jbang-runner.adoc[Overview]

@@ -1,0 +1,667 @@
+= Amazon Q Developer CLI SDK
+:page-title: Amazon Q Developer CLI SDK Documentation
+:toc: left
+:tabsize: 2
+:sectnums:
+
+The Amazon Q CLI SDK provides Java integration with AWS's Amazon Q Developer CLI, enabling autonomous coding capabilities in Spring applications.
+
+== Overview
+
+Amazon Q Developer is AWS's autonomous coding agent that can read, write, and execute code across entire codebases with advanced planning and reasoning capabilities. The Spring AI Amazon Q integration makes it easy to incorporate these capabilities into Java applications.
+
+== Installation
+
+=== Prerequisites
+
+1. **Install Amazon Q CLI**:
++
+Follow the installation instructions at https://docs.aws.amazon.com/amazonq/latest/qdeveloper-ug/command-line.html[Amazon Q Developer CLI documentation].
+
+2. **Authentication** (Choose one method):
++
+**Option A: AWS Builder ID (Free Tier)**:
++
+[source,bash]
+----
+q login
+----
++
+**Option B: IAM Identity Center (Pro Tier)**:
++
+[source,bash]
+----
+q login --identity-provider https://your-identity-center.awsapps.com/start
+----
++
+NOTE: Session authentication is required for Amazon Q CLI access.
+
+3. **Verify Installation**:
++
+[source,bash]
+----
+q --version
+----
+
+=== Maven Dependencies
+
+Add the following dependencies to your `pom.xml`:
+
+[source,xml]
+----
+<dependencies>
+    <!-- Core AgentClient API -->
+    <dependency>
+        <groupId>org.springaicommunity.agents</groupId>
+        <artifactId>spring-ai-agent-client</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </dependency>
+
+    <!-- Amazon Q integration -->
+    <dependency>
+        <groupId>org.springaicommunity.agents</groupId>
+        <artifactId>spring-ai-amazon-q-agent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </dependency>
+</dependencies>
+----
+
+Or use the Spring Boot starter:
+
+[source,xml]
+----
+<dependency>
+    <groupId>org.springaicommunity.agents</groupId>
+    <artifactId>spring-ai-starter-agent-amazon-q</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+</dependency>
+----
+
+== Basic Usage
+
+=== Quick Start
+
+[source,java]
+----
+import org.springaicommunity.agents.client.AgentClient;
+import org.springaicommunity.agents.client.AgentClientResponse;
+import org.springaicommunity.agents.amazonq.AmazonQAgentModel;
+import org.springaicommunity.agents.amazonq.AmazonQAgentOptions;
+import org.springaicommunity.agents.amazonqsdk.AmazonQClient;
+
+import java.nio.file.Paths;
+
+public class AmazonQExample {
+    public static void main(String[] args) {
+        // 1. Create the Amazon Q client
+        AmazonQClient amazonQClient = AmazonQClient.create(
+            Paths.get(System.getProperty("user.dir"))
+        );
+
+        // 2. Configure agent options
+        AmazonQAgentOptions options = AmazonQAgentOptions.builder()
+            .model("amazon-q-developer")
+            .trustAllTools(true)
+            .build();
+
+        // 3. Create the agent model
+        AmazonQAgentModel agentModel = new AmazonQAgentModel(amazonQClient, options, null);
+
+        // 4. Create AgentClient
+        AgentClient agentClient = AgentClient.create(agentModel);
+
+        // 5. Execute a goal
+        AgentClientResponse response = agentClient.run(
+            "Create a simple Calculator class with add, subtract, multiply, and divide methods"
+        );
+
+        System.out.println("Result: " + response.getResult());
+        System.out.println("Success: " + response.isSuccessful());
+    }
+}
+----
+
+== Configuration
+
+=== AmazonQClient
+
+The `AmazonQClient` manages communication with the Amazon Q CLI:
+
+[source,java]
+----
+// Create with default working directory
+AmazonQClient client = AmazonQClient.create();
+
+// Create with specific working directory
+Path projectPath = Paths.get("/path/to/project");
+AmazonQClient client = AmazonQClient.create(projectPath);
+
+// Create with custom Amazon Q CLI path
+AmazonQClient client = AmazonQClient.create(
+    projectPath,
+    "/custom/path/to/q"
+);
+----
+
+=== AmazonQAgentOptions
+
+Configure Amazon Q-specific behavior:
+
+[source,java]
+----
+AmazonQAgentOptions options = AmazonQAgentOptions.builder()
+    // Model selection
+    .model("amazon-q-developer")
+
+    // Execution settings
+    .trustAllTools(true)                  // Allow all tools without confirmation
+    .timeout(Duration.ofMinutes(10))      // Execution timeout
+
+    // Advanced: Selective tool trust
+    .trustTools(List.of("fs_read", "fs_write"))
+
+    // Agent profile (context profile)
+    .agent("my-custom-profile")
+
+    // Verbose logging
+    .verbose(true)
+
+    // CLI path (for non-standard installations)
+    .executablePath("/custom/path/to/q")
+
+    .build();
+----
+
+=== Trust All Tools Mode
+
+Amazon Q provides a `trustAllTools` mode for autonomous execution:
+
+[source,java]
+----
+// Trust all tools (recommended for most use cases)
+AmazonQAgentOptions options = AmazonQAgentOptions.builder()
+    .trustAllTools(true)  // Allows all tools without prompting
+    .build();
+
+// Selective tool trust (more restrictive)
+AmazonQAgentOptions options = AmazonQAgentOptions.builder()
+    .trustTools(List.of("fs_read", "fs_write", "bash"))
+    .build();
+----
+
+=== Agent Profiles
+
+Amazon Q supports agent profiles (context profiles) for specialized behavior:
+
+[source,java]
+----
+// Use a custom agent profile
+AmazonQAgentOptions options = AmazonQAgentOptions.builder()
+    .agent("backend-developer")  // Specify agent profile
+    .build();
+----
+
+=== Model Options
+
+Currently available models:
+
+[cols="1,2,1"]
+|===
+|Model |Description |Best For
+
+|`amazon-q-developer`
+|Default Amazon Q model for coding tasks
+|General-purpose coding, refactoring, multi-file changes
+|===
+
+NOTE: Amazon Q uses AWS's foundation models optimized for autonomous development workflows.
+
+== Advanced Features
+
+=== Session Management
+
+Amazon Q supports conversation resumption for continuing interrupted tasks:
+
+[source,java]
+----
+// Execute a task
+ExecuteResult result1 = amazonQClient.execute("Start implementing the user service");
+
+// Resume with the same context
+ExecuteResult result2 = amazonQClient.resume("Add validation to the createUser method");
+----
+
+The SDK automatically manages conversation context within the current working directory.
+
+=== Working Directory Management
+
+Amazon Q operates within a specific directory context:
+
+[source,java]
+----
+// Configure working directory via client
+AmazonQClient client = AmazonQClient.create(
+    Paths.get("/path/to/microservice")
+);
+
+// Or via AgentClient fluent API
+AgentClientResponse response = agentClient
+    .goal("Add validation to the UserController")
+    .workingDirectory("/path/to/microservice")
+    .run();
+----
+
+=== Verbose Logging
+
+Enable detailed logging for debugging:
+
+[source,java]
+----
+AmazonQAgentOptions options = AmazonQAgentOptions.builder()
+    .verbose(true)  // Enable verbose CLI output
+    .build();
+----
+
+=== Timeout Configuration
+
+Set appropriate timeouts for different goal complexities:
+
+[source,java]
+----
+// Quick tasks
+AmazonQAgentOptions quickOptions = AmazonQAgentOptions.builder()
+    .timeout(Duration.ofMinutes(2))
+    .build();
+
+// Complex refactoring
+AmazonQAgentOptions complexOptions = AmazonQAgentOptions.builder()
+    .timeout(Duration.ofMinutes(30))
+    .build();
+----
+
+== Error Handling
+
+=== Common Exceptions
+
+[source,java]
+----
+import org.springaicommunity.agents.amazonqsdk.exceptions.AmazonQSDKException;
+
+try {
+    AgentClientResponse response = agentClient.run("Complex refactoring goal");
+
+    if (!response.isSuccessful()) {
+        System.err.println("Goal failed: " + response.getResult());
+    }
+
+} catch (AmazonQSDKException e) {
+    // Amazon Q CLI process failed
+    System.err.println("Amazon Q execution error: " + e.getMessage());
+
+} catch (RuntimeException e) {
+    // Other runtime errors (timeout, etc.)
+    System.err.println("Unexpected error: " + e.getMessage());
+}
+----
+
+=== Validation and Recovery
+
+[source,java]
+----
+@Service
+public class AmazonQService {
+
+    private final AgentClient agentClient;
+
+    public AmazonQService(AgentClient agentClient) {
+        this.agentClient = agentClient;
+    }
+
+    public String refactorCode(String className, String requirements) {
+        // Validate inputs
+        if (className == null || className.trim().isEmpty()) {
+            throw new IllegalArgumentException("Class name is required");
+        }
+
+        try {
+            // First, analyze the code (read-only)
+            AgentClientResponse analysis = agentClient
+                .goal("Analyze " + className + " and suggest improvements")
+                .options(AmazonQAgentOptions.builder()
+                    .trustTools(List.of("fs_read"))  // Read-only
+                    .build())
+                .run();
+
+            if (!analysis.isSuccessful()) {
+                throw new ServiceException("Analysis failed: " + analysis.getResult());
+            }
+
+            // Then perform refactoring
+            AgentClientResponse refactoring = agentClient
+                .goal("Refactor " + className + " based on: " + requirements)
+                .options(AmazonQAgentOptions.builder()
+                    .trustAllTools(true)
+                    .build())
+                .run();
+
+            return refactoring.getResult();
+
+        } catch (Exception e) {
+            // Log error and return meaningful message
+            log.error("Refactoring failed for class: {}", className, e);
+            throw new ServiceException("Unable to refactor " + className + ": " + e.getMessage());
+        }
+    }
+}
+----
+
+== Spring Boot Integration
+
+=== Auto-Configuration
+
+The Spring Boot starter provides automatic configuration:
+
+[source,java]
+----
+@SpringBootApplication
+public class Application {
+
+    public static void main(String[] args) {
+        SpringApplication.run(Application.class, args);
+    }
+
+    // AmazonQClient, AmazonQAgentModel, and AgentClient are auto-configured
+
+    @Bean
+    public CommandLineRunner demo(AgentClient agentClient) {
+        return args -> {
+            AgentClientResponse response = agentClient.run(
+                "Create a REST controller for managing users"
+            );
+            System.out.println(response.getResult());
+        };
+    }
+}
+----
+
+=== Application Properties
+
+Configure Amazon Q via `application.yml`:
+
+[source,yaml]
+----
+spring:
+  ai:
+    agents:
+      amazon-q:
+        model: amazon-q-developer
+        timeout: PT10M
+        trust-all-tools: true
+        verbose: false
+        executable-path: /custom/path/to/q  # Optional
+----
+
+Or `application.properties`:
+
+[source,properties]
+----
+spring.ai.agents.amazon-q.model=amazon-q-developer
+spring.ai.agents.amazon-q.timeout=PT10M
+spring.ai.agents.amazon-q.trust-all-tools=true
+spring.ai.agents.amazon-q.verbose=false
+spring.ai.agents.amazon-q.executable-path=/custom/path/to/q
+----
+
+=== Custom Configuration
+
+Override auto-configuration with custom beans:
+
+[source,java]
+----
+@Configuration
+public class AmazonQConfiguration {
+
+    @Bean
+    public AmazonQAgentOptions customAmazonQOptions() {
+        return AmazonQAgentOptions.builder()
+            .model("amazon-q-developer")
+            .trustAllTools(true)
+            .timeout(Duration.ofMinutes(15))
+            .build();
+    }
+
+    @Bean
+    public AmazonQClient customAmazonQClient() {
+        return AmazonQClient.create(
+            Paths.get("/path/to/project"),
+            "/custom/path/to/q"
+        );
+    }
+}
+----
+
+== Best Practices
+
+=== Goal Formulation
+
+Write specific, actionable goals for Amazon Q:
+
+[source,java]
+----
+// Good: Specific and contextual
+agentClient.run("Add input validation to UserController.createUser() method using Bean Validation annotations");
+
+// Good: Clear scope and requirements
+agentClient.run("Refactor PaymentService to use the Strategy pattern for different payment processors");
+
+// Avoid: Vague requests
+agentClient.run("Fix the code");
+
+// Avoid: Overly broad scope
+agentClient.run("Rewrite the entire application");
+----
+
+=== Security Considerations
+
+Always be cautious with autonomous mode in production:
+
+[source,java]
+----
+@Profile("development")
+@Configuration
+public class DevelopmentAmazonQConfig {
+
+    @Bean
+    public AmazonQAgentOptions devAmazonQOptions() {
+        return AmazonQAgentOptions.builder()
+            .trustAllTools(true) // OK for development
+            .build();
+    }
+}
+
+@Profile("production")
+@Configuration
+public class ProductionAmazonQConfig {
+
+    @Bean
+    public AmazonQAgentOptions prodAmazonQOptions() {
+        return AmazonQAgentOptions.builder()
+            .trustTools(List.of("fs_read"))  // Read-only for production
+            .build();
+    }
+}
+----
+
+=== Resource Management
+
+Monitor and limit resource usage:
+
+[source,java]
+----
+@Component
+public class AmazonQMonitor {
+
+    private final MeterRegistry meterRegistry;
+    private final AgentClient agentClient;
+
+    public AmazonQMonitor(MeterRegistry meterRegistry, AgentClient agentClient) {
+        this.meterRegistry = meterRegistry;
+        this.agentClient = agentClient;
+    }
+
+    public String executeWithMetrics(String goal) {
+        return Timer.Sample.start(meterRegistry)
+            .stop(Timer.builder("amazonq.goal.duration")
+                .tag("goal", goal.substring(0, Math.min(goal.length(), 50)))
+                .register(meterRegistry))
+            .recordCallable(() -> {
+                Counter.builder("amazonq.goal.count").register(meterRegistry).increment();
+
+                AgentClientResponse response = agentClient.run(goal);
+
+                Counter.builder("amazonq.goal.result")
+                    .tag("success", String.valueOf(response.isSuccessful()))
+                    .register(meterRegistry)
+                    .increment();
+
+                return response.getResult();
+            });
+    }
+}
+----
+
+== Troubleshooting
+
+=== Common Issues
+
+**Amazon Q CLI Not Found**
+
+Ensure Amazon Q is installed and in your PATH:
+
+[source,bash]
+----
+# Verify installation
+q --version
+
+# Check PATH
+which q  # macOS/Linux
+where q  # Windows
+
+# Set Q_CLI_PATH for custom installation
+export Q_CLI_PATH=/path/to/q
+----
+
+**Authentication Issues**
+
+Verify your authentication:
+
+[source,bash]
+----
+# Login with AWS Builder ID
+q login
+
+# Login with IAM Identity Center
+q login --identity-provider https://your-identity-center.awsapps.com/start
+
+# Test authentication
+q chat "Hello"
+----
+
+**Permission Denied**
+
+Ensure proper file permissions in working directory:
+
+[source,bash]
+----
+# Check directory permissions
+ls -la /path/to/project
+
+# Fix if needed
+chmod -R u+rw /path/to/project
+----
+
+**Timeout Issues**
+
+Increase timeout for complex tasks:
+
+[source,java]
+----
+AmazonQAgentOptions options = AmazonQAgentOptions.builder()
+    .timeout(Duration.ofMinutes(30)) // Longer timeout
+    .build();
+----
+
+=== Debugging
+
+Enable debug logging to troubleshoot issues:
+
+[source,yaml]
+----
+logging:
+  level:
+    org.springaicommunity.agents.amazonq: DEBUG
+    org.springaicommunity.agents.amazonqsdk: DEBUG
+    org.springaicommunity.agents.client: DEBUG
+----
+
+=== Environment Variables
+
+Key environment variables for testing and configuration:
+
+[cols="1,2"]
+|===
+|Variable |Purpose
+
+|`Q_CLI_PATH`
+|Custom path to Amazon Q CLI executable (for non-standard installations)
+|===
+
+== Differences from Other Agents
+
+If you're familiar with other agent integrations, note these differences:
+
+[cols="1,1,1,1"]
+|===
+|Feature |Claude |Gemini |Amazon Q
+
+|Authentication
+|`claude auth login` or `ANTHROPIC_API_KEY`
+|`gemini auth login` or `GEMINI_API_KEY`
+|`q login` (AWS Builder ID or IAM Identity Center)
+
+|Autonomous mode
+|`yolo(true)`
+|`yolo(true)`
+|`trustAllTools(true)`
+
+|Tool trust
+|All or nothing
+|All or nothing
+|Selective via `trustTools(List<String>)`
+
+|Model
+|claude-sonnet-4, etc.
+|gemini-2.0-flash-exp, etc.
+|amazon-q-developer
+
+|Default timeout
+|10 minutes
+|10 minutes
+|10 minutes
+
+|Agent profiles
+|No
+|No
+|Yes (via `--agent` flag)
+
+|Resume mode
+|Via session ID
+|Via `--resume`
+|Via `--resume` in working directory
+|===
+
+== Next Steps
+
+* Learn about other agent integrations in xref:api/claude-code-sdk.adoc[Claude Agent SDK]
+* See practical examples in xref:samples.adoc[Sample Agents]
+* Compare with the standard API in xref:api/agentclient-vs-chatclient.adoc[AgentClient vs ChatClient]
