@@ -48,11 +48,13 @@
         <module>provider-sdks/claude-agent-sdk</module>
         <module>provider-sdks/gemini-cli-sdk</module>
         <module>provider-sdks/swe-agent-sdk</module>
+        <module>provider-sdks/amp-cli-sdk</module>
 
         <!-- Agent models that depend on base + SDKs -->
         <module>agent-models/spring-ai-claude-agent</module>
         <module>agent-models/spring-ai-gemini</module>
         <module>agent-models/spring-ai-swe-agent</module>
+        <module>agent-models/spring-ai-amp-agent</module>
 
         <!-- Advisor modules -->
         <module>advisors/spring-ai-advisors-judge</module>
@@ -325,6 +327,11 @@
             </dependency>
             <dependency>
                 <groupId>org.springaicommunity.agents</groupId>
+                <artifactId>amp-cli-sdk</artifactId>
+                <version>${spring-ai-agents.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springaicommunity.agents</groupId>
                 <artifactId>spring-ai-claude-agent</artifactId>
                 <version>${spring-ai-agents.version}</version>
             </dependency>
@@ -336,6 +343,11 @@
             <dependency>
                 <groupId>org.springaicommunity.agents</groupId>
                 <artifactId>spring-ai-swe-agent</artifactId>
+                <version>${spring-ai-agents.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springaicommunity.agents</groupId>
+                <artifactId>spring-ai-amp-agent</artifactId>
                 <version>${spring-ai-agents.version}</version>
             </dependency>
             <dependency>

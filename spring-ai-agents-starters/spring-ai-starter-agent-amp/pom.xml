@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springaicommunity.agents</groupId>
+        <artifactId>spring-ai-agents-starters</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>spring-ai-starter-agent-amp</artifactId>
+    <packaging>jar</packaging>
+
+    <name>Spring AI Starter - Amp Agent</name>
+    <description>Spring Boot starter for Sourcegraph Amp agent integration</description>
+
+    <dependencies>
+        <!-- Agent Client (includes AgentClient.Builder autoconfiguration) -->
+        <dependency>
+            <groupId>org.springaicommunity.agents</groupId>
+            <artifactId>spring-ai-agent-client</artifactId>
+        </dependency>
+
+        <!-- Amp Agent Model (includes autoconfiguration) -->
+        <dependency>
+            <groupId>org.springaicommunity.agents</groupId>
+            <artifactId>spring-ai-amp-agent</artifactId>
+        </dependency>
+
+        <!-- Provider SDK (transitively included) -->
+        <dependency>
+            <groupId>org.springaicommunity.agents</groupId>
+            <artifactId>amp-cli-sdk</artifactId>
+        </dependency>
+    </dependencies>
+
+</project>

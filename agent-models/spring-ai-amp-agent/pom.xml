@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springaicommunity.agents</groupId>
+        <artifactId>spring-ai-agents-parent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>spring-ai-amp-agent</artifactId>
+    <packaging>jar</packaging>
+
+    <name>Spring AI Amp Agent Model</name>
+    <description>Spring AI Agent Model implementation for Sourcegraph Amp CLI</description>
+
+    <dependencies>
+        <!-- Agent Model Core -->
+        <dependency>
+            <groupId>org.springaicommunity.agents</groupId>
+            <artifactId>spring-ai-agent-model</artifactId>
+        </dependency>
+
+        <!-- Amp CLI SDK -->
+        <dependency>
+            <groupId>org.springaicommunity.agents</groupId>
+            <artifactId>amp-cli-sdk</artifactId>
+        </dependency>
+
+        <!-- Spring Boot AutoConfiguration -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+        </dependency>
+
+        <!-- Slf4j API -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+
+        <!-- Testing: TCK for agent model testing -->
+        <dependency>
+            <groupId>org.springaicommunity.agents</groupId>
+            <artifactId>spring-ai-agent-tck</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+</project>
