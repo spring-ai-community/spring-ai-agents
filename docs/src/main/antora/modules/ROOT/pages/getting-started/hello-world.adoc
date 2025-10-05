@@ -7,16 +7,18 @@ Spring AI Agents provides a fluent API for executing autonomous agent tasks. Let
 
 == Prerequisites
 
-Add the following dependency to your `pom.xml`:
+Add the Spring AI Claude Agent starter to your `pom.xml`:
 
 [source,xml]
 ----
 <dependency>
     <groupId>org.springaicommunity.agents</groupId>
-    <artifactId>spring-ai-claude-agent</artifactId>
+    <artifactId>spring-ai-starter-agent-claude</artifactId>
     <version>0.1.0-SNAPSHOT</version>
 </dependency>
 ----
+
+This starter includes everything you need: AgentClient, Claude integration, and Judge support.
 
 **Authentication**: Run `claude auth login` or set the `ANTHROPIC_API_KEY` environment variable.
 
@@ -28,8 +30,11 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springaicommunity.agents.advisors.judge.JudgeAdvisor;
 import org.springaicommunity.agents.client.AgentClient;
 import org.springaicommunity.agents.client.AgentClientResponse;
+import org.springaicommunity.agents.judge.fs.FileExistsJudge;
+import org.springaicommunity.agents.judge.result.Judgment;
 
 import java.nio.file.Path;
 
@@ -43,15 +48,16 @@ public class HelloWorldApplication {
     @Bean
     CommandLineRunner demo(AgentClient.Builder agentClientBuilder) {
         return args -> {
-            AgentClient client = agentClientBuilder.build();
-
-            AgentClientResponse response = client
+            AgentClientResponse response = agentClientBuilder.build()
                 .goal("Create a file named hello.txt with content 'Hello World'")
                 .workingDirectory(Path.of("/tmp/hello"))
+                .advisors(JudgeAdvisor.builder().judge(new FileExistsJudge("hello.txt")).build())
                 .run();
 
+            Judgment judgment = response.getJudgment();
             System.out.println("Agent completed!");
-            System.out.println("Output: " + response.getResult());
+            System.out.println("Result: " + response.getResult());
+            System.out.println("Judge: " + (judgment != null && judgment.pass() ? "PASSED" : "FAILED"));
         };
     }
 }
@@ -63,12 +69,13 @@ Let's break down what the agent did:
 
 1. **Goal** - We specified what we want: "Create a file named hello.txt with content 'Hello World'"
 2. **Working Directory** - The agent operates in `/tmp/hello`
-3. **Agent Execution** - Claude Code autonomously:
+3. **Judge Advisor** - We added a `FileExistsJudge` to verify the file was created
+4. **Agent Execution** - Claude Code autonomously:
    * Created the directory `/tmp/hello` if it didn't exist
    * Created `hello.txt` inside that directory
    * Wrote "Hello World" to the file
-   * Verified the file was created successfully
-4. **Response** - We received the agent's final output describing what it accomplished
+5. **Verification** - The judge verified the file exists and returned a passing judgment
+6. **Response** - We received the agent's final output and judge verdict
 
 == Verify It Worked
 
@@ -95,10 +102,10 @@ Files.createDirectories(path);
 Files.writeString(path.resolve("hello.txt"), "Hello World");
 
 // ✅ Agent approach: specify WHAT (declarative)
-agentClientBuilder
+agentClientBuilder.build()
     .goal("Create a file named hello.txt with content 'Hello World'")
     .workingDirectory(path)
-    .call();
+    .run();
 ----
 
 === Autonomous Execution
@@ -113,9 +120,9 @@ The agent figures out the steps needed to achieve your goal. It might:
 
 You don't write the steps—the agent does.
 
-== Understanding the AgentClient.Builder
+== Understanding the AgentClient Fluent API
 
-The `AgentClient.Builder` provides a fluent API for configuring agent tasks:
+The `AgentClient` provides a clean fluent API for configuring agent tasks:
 
 [cols="1,3"]
 |===
@@ -127,53 +134,16 @@ The `AgentClient.Builder` provides a fluent API for configuring agent tasks:
 |`workingDirectory(Path)`
 |**Required.** The directory where the agent will operate (file operations are scoped here).
 
-|`call()`
+|`advisors(AgentCallAdvisor...)`
+|**Optional.** Add advisors to verify, log, or augment agent execution (e.g., judges).
+
+|`run()`
 |Execute the agent task and return the response.
 |===
 
-More advanced options (advisors, context engineering) will be covered in later guides.
+The fluent chain makes it easy to build up your agent request step by step.
 
-== Spring Boot Integration
-
-Spring Boot autoconfiguration provides `AgentClient.Builder` automatically. Just add the dependency and inject:
-
-[source,xml]
-----
-<dependency>
-    <groupId>org.springaicommunity.agents</groupId>
-    <artifactId>spring-ai-claude-agent</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
-</dependency>
-----
-
-Then use it in your components:
-
-[source,java]
-----
-@Component
-public class MyService implements CommandLineRunner {
-
-    private final AgentClient.Builder agentClientBuilder;
-
-    public MyService(AgentClient.Builder agentClientBuilder) {
-        this.agentClientBuilder = agentClientBuilder;
-    }
-
-    @Override
-    public void run(String... args) {
-        AgentClient client = agentClientBuilder.build();
-
-        AgentClientResponse response = client
-            .goal("Create hello.txt with content 'Hello World'")
-            .workingDirectory(Path.of(System.getProperty("user.dir")))
-            .run();
-
-        System.out.println("Completed: " + response.getResult());
-    }
-}
-----
-
-Spring Boot provides:
+Spring Boot autoconfiguration handles everything automatically:
 
 * `AgentClient.Builder` bean (prototype scope)
 * Claude agent (model: claude-sonnet-4.5, yolo: true)

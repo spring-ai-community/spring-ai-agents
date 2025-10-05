@@ -18,6 +18,7 @@ package org.springaicommunity.agents.claude.autoconfigure;
 import org.springaicommunity.agents.claude.ClaudeAgentModel;
 import org.springaicommunity.agents.claude.ClaudeAgentOptions;
 import org.springaicommunity.agents.claude.sdk.ClaudeAgentClient;
+import org.springaicommunity.agents.model.AgentModel;
 import org.springaicommunity.agents.model.sandbox.Sandbox;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -67,7 +68,7 @@ public class ClaudeAgentAutoConfiguration {
 	 */
 	@Bean
 	@ConditionalOnMissingBean
-	public ClaudeAgentModel claudeCodeAgentModel(ClaudeAgentClient claudeCodeClient, ClaudeAgentProperties properties,
+	public AgentModel agentModel(ClaudeAgentClient claudeCodeClient, ClaudeAgentProperties properties,
 			ObjectProvider<Sandbox> sandboxProvider) {
 
 		ClaudeAgentOptions options = ClaudeAgentOptions.builder()

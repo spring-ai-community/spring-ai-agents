@@ -29,37 +29,10 @@
     </properties>
 
     <dependencies>
-        <!-- Spring Boot Starter -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
-        </dependency>
-
-        <!-- Spring AI Agents Core -->
+        <!-- Spring AI Claude Agent Starter (includes all necessary dependencies) -->
         <dependency>
             <groupId>org.springaicommunity.agents</groupId>
-            <artifactId>spring-ai-agent-client</artifactId>
-            <version>${spring-ai-agents.version}</version>
-        </dependency>
-
-        <!-- Claude Agent Model -->
-        <dependency>
-            <groupId>org.springaicommunity.agents</groupId>
-            <artifactId>spring-ai-claude-agent</artifactId>
-            <version>${spring-ai-agents.version}</version>
-        </dependency>
-
-        <!-- Judge API for verification -->
-        <dependency>
-            <groupId>org.springaicommunity.agents</groupId>
-            <artifactId>spring-ai-agents-judge</artifactId>
-            <version>${spring-ai-agents.version}</version>
-        </dependency>
-
-        <!-- Judge Advisor for AgentClient integration -->
-        <dependency>
-            <groupId>org.springaicommunity.agents</groupId>
-            <artifactId>spring-ai-advisors-judge</artifactId>
+            <artifactId>spring-ai-starter-agent-claude</artifactId>
             <version>${spring-ai-agents.version}</version>
         </dependency>
 

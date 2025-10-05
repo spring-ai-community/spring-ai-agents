@@ -57,6 +57,9 @@
         <!-- Advisor modules -->
         <module>advisors/spring-ai-advisors-judge</module>
 
+        <!-- Spring Boot Starters -->
+        <module>spring-ai-agents-starters</module>
+
         <!-- Core and agents that depend on everything -->
         <module>spring-ai-agents-core</module>
         <module>agents/hello-world-agent</module>
