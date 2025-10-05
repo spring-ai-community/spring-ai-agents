@@ -2,6 +2,7 @@
 
 * Getting Started
 ** xref:getting-started/hello-world.adoc[Hello World]
+** xref:getting-started/autoconfiguration.adoc[Spring Boot Autoconfiguration]
 ** xref:getting-started/goals-and-workspaces.adoc[Goals and Workspaces]
 ** xref:getting-started/first-judge.adoc[Your First Judge]
 

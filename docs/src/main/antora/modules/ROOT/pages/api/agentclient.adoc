@@ -8,9 +8,60 @@ The `AgentClient` offers a fluent API for communicating with autonomous agents. 
 
 The fluent API allows you to build up goal requests that are passed to autonomous agents. Unlike traditional chat models that process conversational prompts, autonomous agents execute goals that can involve reading files, running commands, and making code changes.
 
-== Creating an AgentClient
+== Quick Start with Spring Boot
 
-The `AgentClient` is created using an `AgentModel` instance. Here is a simple example showing the complete flow:
+The fastest way to get started is using a Spring Boot starter:
+
+[source,xml]
+----
+<dependency>
+    <groupId>org.springaicommunity.agents</groupId>
+    <artifactId>spring-ai-starter-agent-claude</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+</dependency>
+----
+
+With the starter, Spring Boot automatically configures `AgentClient.Builder` (prototype scope):
+
+[source,java]
+----
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
+import org.springaicommunity.agents.client.AgentClient;
+import org.springaicommunity.agents.client.AgentClientResponse;
+
+import java.nio.file.Path;
+
+@SpringBootApplication
+public class HelloAgentWorld {
+
+    public static void main(String[] args) {
+        SpringApplication.run(HelloAgentWorld.class, args);
+    }
+
+    @Bean
+    CommandLineRunner demo(AgentClient.Builder agentClientBuilder) {
+        return args -> {
+            // Use the autoconfigured builder
+            AgentClientResponse response = agentClientBuilder.build()
+                .goal("Create a simple Hello World Java class")
+                .workingDirectory(Path.of(System.getProperty("user.dir")))
+                .run();
+
+            System.out.println("Goal completed: " + response.isSuccessful());
+            System.out.println("Result: " + response.getResult());
+        };
+    }
+}
+----
+
+See xref:getting-started/autoconfiguration.adoc[Spring Boot Autoconfiguration] for complete setup details.
+
+== Standalone Usage (No Spring Boot)
+
+Without Spring Boot, create `AgentClient` manually:
 
 [source,java]
 ----
@@ -20,43 +71,32 @@ import org.springaicommunity.agents.claude.ClaudeAgentModel;
 import org.springaicommunity.agents.claude.ClaudeAgentOptions;
 import org.springaicommunity.agents.claude.sdk.ClaudeAgentClient;
 
-public class HelloAgentWorld {
+public class StandaloneExample {
     public static void main(String[] args) {
-        // 1. Create the Claude Code client
+        // 1. Create the Claude CLI client
         ClaudeAgentClient claudeClient = ClaudeAgentClient.create();
 
         // 2. Configure agent options
         ClaudeAgentOptions options = ClaudeAgentOptions.builder()
-            .model("claude-sonnet-4-0")
+            .model("claude-sonnet-4.5")
             .yolo(true)
             .build();
 
         // 3. Create the agent model
         ClaudeAgentModel agentModel = new ClaudeAgentModel(claudeClient, options);
-        
+
         // 4. Create AgentClient
         AgentClient agentClient = AgentClient.create(agentModel);
-        
+
         // 5. Execute a goal
         AgentClientResponse response = agentClient.run(
             "Create a simple Hello World Java class"
         );
-        
-        // 6. Use the result
+
         System.out.println("Goal completed: " + response.isSuccessful());
-        System.out.println("Result: " + response.getResult());
     }
 }
 ----
-
-In this example:
-
-1. We create a `ClaudeAgentClient` that manages communication with the Claude CLI
-2. We configure options like the model to use and whether to allow changes (`yolo`)
-3. We wrap the client in a `ClaudeAgentModel` for Spring AI integration
-4. We create an `AgentClient` using the agent model
-5. We run a simple goal using the `.run()` method
-6. We access the results and check if the goal was successful
 
 == Basic Usage
 
@@ -190,66 +230,87 @@ try {
 
 == Spring Boot Integration
 
-=== Dependency Injection
+=== Using Spring Boot Starters
 
-Configure AgentClient as a Spring bean:
+Add the Claude or Gemini starter to your project:
+
+[source,xml]
+----
+<!-- Claude Agent -->
+<dependency>
+    <groupId>org.springaicommunity.agents</groupId>
+    <artifactId>spring-ai-starter-agent-claude</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+</dependency>
+
+<!-- OR Gemini Agent -->
+<dependency>
+    <groupId>org.springaicommunity.agents</groupId>
+    <artifactId>spring-ai-starter-agent-gemini</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+</dependency>
+----
+
+Spring Boot automatically configures:
+
+* `AgentClient.Builder` (prototype scope)
+* `AgentModel` (ClaudeAgentModel or GeminiAgentModel)
+* `Sandbox` (Docker or Local)
+
+Simply inject `AgentClient.Builder` into your components:
 
 [source,java]
 ----
-@Configuration
-public class AgentConfiguration {
+@Service
+public class CodeGenerationService {
 
-    @Bean
-    public ClaudeAgentClient claudeAgentClient() {
-        return ClaudeAgentClient.create();
+    private final AgentClient.Builder agentClientBuilder;
+
+    public CodeGenerationService(AgentClient.Builder agentClientBuilder) {
+        this.agentClientBuilder = agentClientBuilder;
     }
 
-    @Bean
-    public ClaudeAgentModel claudeAgentModel(ClaudeAgentClient client) {
-        ClaudeAgentOptions options = ClaudeAgentOptions.builder()
-            .model("claude-sonnet-4-0")
-            .yolo(false) // Safe for production
-            .build();
-        return new ClaudeAgentModel(client, options);
-    }
-
-    @Bean
-    public AgentClient agentClient(ClaudeAgentModel agentModel) {
-        return AgentClient.create(agentModel);
+    public String generateController(String entityName) {
+        AgentClientResponse response = agentClientBuilder.build()
+            .goal("Generate REST controller for " + entityName)
+            .workingDirectory(Path.of(System.getProperty("user.dir")))
+            .run();
+        return response.getResult();
     }
 }
 ----
 
+See xref:getting-started/autoconfiguration.adoc[Spring Boot Autoconfiguration] for configuration properties and customization options
+
 === Controller Usage
 
-Use in REST controllers:
+Use `AgentClient.Builder` in REST controllers:
 
 [source,java]
 ----
 @RestController
 public class DevelopmentController {
-    
-    private final AgentClient agentClient;
-    
-    public DevelopmentController(AgentClient agentClient) {
-        this.agentClient = agentClient;
+
+    private final AgentClient.Builder agentClientBuilder;
+
+    public DevelopmentController(AgentClient.Builder agentClientBuilder) {
+        this.agentClientBuilder = agentClientBuilder;
     }
-    
+
     @PostMapping("/generate-tests")
     public ResponseEntity<String> generateTests(@RequestBody GenerateTestsRequest request) {
         try {
-            AgentClientResponse response = agentClient
+            AgentClientResponse response = agentClientBuilder.build()
                 .goal("Generate unit tests for " + request.getClassName())
-                .workingDirectory(request.getProjectPath())
-                .yolo(false) // Safe mode for production
+                .workingDirectory(Path.of(request.getProjectPath()))
                 .run();
-                
+
             if (response.isSuccessful()) {
                 return ResponseEntity.ok(response.getResult());
             } else {
                 return ResponseEntity.badRequest().body(response.getResult());
             }
-            
+
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Goal execution failed: " + e.getMessage());
         }
@@ -286,26 +347,33 @@ client.goal("Generate integration tests")
 
 === Resource Management
 
-AgentClient instances are thread-safe and can be reused:
+`AgentClient.Builder` is prototype-scoped. Build new clients as needed:
 
 [source,java]
 ----
 @Component
 public class CodeGenerationService {
-    
-    private final AgentClient agentClient;
-    
-    public CodeGenerationService(AgentClient agentClient) {
-        this.agentClient = agentClient;
+
+    private final AgentClient.Builder agentClientBuilder;
+
+    public CodeGenerationService(AgentClient.Builder agentClientBuilder) {
+        this.agentClientBuilder = agentClientBuilder;
     }
-    
-    // Reuse the same client instance across methods
-    public String generateController(String entityName) {
-        return agentClient.run("Generate REST controller for " + entityName).getResult();
+
+    public String generateController(String entityName, Path projectPath) {
+        AgentClientResponse response = agentClientBuilder.build()
+            .goal("Generate REST controller for " + entityName)
+            .workingDirectory(projectPath)
+            .run();
+        return response.getResult();
     }
-    
-    public String generateTests(String className) {
-        return agentClient.run("Generate unit tests for " + className).getResult();
+
+    public String generateTests(String className, Path projectPath) {
+        AgentClientResponse response = agentClientBuilder.build()
+            .goal("Generate unit tests for " + className)
+            .workingDirectory(projectPath)
+            .run();
+        return response.getResult();
     }
 }
 ----
@@ -560,7 +628,7 @@ public class GoalValidationAdvisor implements AgentCallAdvisor {
 
 === Spring Boot Integration
 
-Register advisors as Spring beans for automatic discovery:
+Register advisors as Spring beans and configure them with `AgentClient.Builder`:
 
 [source,java]
 ----
@@ -578,12 +646,12 @@ public class AgentAdvisorConfiguration {
 	}
 
 	@Bean
-	public AgentClient agentClient(
+	@Scope("prototype")
+	public AgentClient.Builder agentClientBuilder(
 			AgentModel agentModel,
-			List<AgentCallAdvisor> advisors) { // Auto-injects all advisor beans
+			List<AgentCallAdvisor> advisors) {
 		return AgentClient.builder(agentModel)
-			.defaultAdvisors(advisors)
-			.build();
+			.defaultAdvisors(advisors);
 	}
 }
 ----

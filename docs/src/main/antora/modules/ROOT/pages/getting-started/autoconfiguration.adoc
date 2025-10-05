@@ -1,0 +1,264 @@
+= Spring Boot Autoconfiguration
+:page-title: Spring Boot Autoconfiguration
+:toc: left
+:tabsize: 2
+
+Spring AI Agents provides Spring Boot starters that automatically configure all necessary components for agent execution.
+
+== Quick Start with Starters
+
+Add one of the agent starters to your `pom.xml`:
+
+=== Claude Agent Starter
+
+[source,xml]
+----
+<dependency>
+    <groupId>org.springaicommunity.agents</groupId>
+    <artifactId>spring-ai-starter-agent-claude</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+</dependency>
+----
+
+=== Gemini Agent Starter
+
+[source,xml]
+----
+<dependency>
+    <groupId>org.springaicommunity.agents</groupId>
+    <artifactId>spring-ai-starter-agent-gemini</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+</dependency>
+----
+
+That's it! The starter handles all configuration automatically.
+
+== What Gets Autoconfigured
+
+When you add a starter dependency, Spring Boot automatically configures:
+
+[cols="1,3"]
+|===
+|Component |Description
+
+|`AgentClient.Builder`
+|**Prototype-scoped** builder bean injected into your components. Each injection point receives a new instance.
+
+|`AgentModel`
+|The underlying agent model (ClaudeAgentModel or GeminiAgentModel) configured with sensible defaults.
+
+|`Sandbox`
+|Secure execution environment - DockerSandbox (if Docker available) or LocalSandbox (fallback).
+
+|CLI Client
+|Provider-specific CLI client (ClaudeAgentClient or GeminiAgentClient) with automatic CLI discovery.
+|===
+
+== Using Autoconfigured Components
+
+Simply inject `AgentClient.Builder` into your Spring components:
+
+[source,java]
+----
+@Service
+public class MyAgentService {
+
+    private final AgentClient.Builder agentClientBuilder;
+
+    public MyAgentService(AgentClient.Builder agentClientBuilder) {
+        this.agentClientBuilder = agentClientBuilder;
+    }
+
+    public void executeTask() {
+        AgentClientResponse response = agentClientBuilder.build()
+            .goal("Create a file named output.txt with content 'Success'")
+            .workingDirectory(Path.of("/tmp"))
+            .run();
+
+        System.out.println("Result: " + response.getResult());
+    }
+}
+----
+
+The builder is **prototype-scoped**, so each injection point receives a fresh instance pre-configured with the agent model.
+
+== Configuration Properties
+
+=== Claude Agent Properties
+
+Configure Claude agent behavior via `application.properties` or `application.yml`:
+
+[source,yaml]
+----
+spring:
+  ai:
+    agents:
+      claude-code:
+        model: "claude-sonnet-4.5"      # Claude model to use
+        timeout: "PT5M"                  # Task execution timeout (5 minutes)
+        yolo: true                       # Bypass permission checks (default: true)
+        executable-path: "/usr/local/bin/claude"  # Optional: custom CLI path
+----
+
+[cols="1,1,2"]
+|===
+|Property |Default |Description
+
+|`spring.ai.agents.claude-code.model`
+|`claude-sonnet-4.5`
+|Claude model for agent tasks
+
+|`spring.ai.agents.claude-code.timeout`
+|`PT5M` (5 minutes)
+|Maximum execution time per task
+
+|`spring.ai.agents.claude-code.yolo`
+|`true`
+|Enable autonomous mode (bypass permission checks)
+
+|`spring.ai.agents.claude-code.executable-path`
+|Auto-discovered
+|Path to Claude CLI executable
+|===
+
+=== Gemini Agent Properties
+
+[source,yaml]
+----
+spring:
+  ai:
+    agents:
+      gemini:
+        model: "gemini-2.0-flash-exp"
+        timeout: "PT5M"
+        yolo: true
+        executable-path: "/usr/local/bin/gemini"
+----
+
+=== Sandbox Configuration
+
+Control sandbox behavior for secure command execution:
+
+[source,yaml]
+----
+spring:
+  ai:
+    agents:
+      sandbox:
+        docker:
+          enabled: true                    # Use Docker sandbox (default: true)
+          image-tag: "ghcr.io/spring-ai-community/agents-runtime:latest"
+        local:
+          working-directory: "/tmp/agents" # Fallback local sandbox directory
+----
+
+[cols="1,1,2"]
+|===
+|Property |Default |Description
+
+|`spring.ai.agents.sandbox.docker.enabled`
+|`true`
+|Enable Docker sandbox (requires Docker daemon)
+
+|`spring.ai.agents.sandbox.docker.image-tag`
+|`ghcr.io/.../agents-runtime:latest`
+|Docker image for sandbox execution
+
+|`spring.ai.agents.sandbox.local.working-directory`
+|System temp dir
+|Working directory for local sandbox fallback
+|===
+
+== Authentication
+
+Both Claude and Gemini agents require authentication:
+
+=== Claude Authentication
+
+**Recommended:** Use Claude CLI session authentication:
+
+[source,bash]
+----
+claude auth login
+----
+
+**Alternative:** Set environment variable:
+
+[source,bash]
+----
+export ANTHROPIC_API_KEY=your-api-key-here
+----
+
+=== Gemini Authentication
+
+Set environment variable:
+
+[source,bash]
+----
+export GEMINI_API_KEY=your-api-key-here
+----
+
+== Customizing Autoconfiguration
+
+=== Replacing Default Beans
+
+You can override any autoconfigured bean by providing your own:
+
+[source,java]
+----
+@Configuration
+public class CustomAgentConfiguration {
+
+    @Bean
+    public AgentModel agentModel() {
+        // Your custom agent model configuration
+        ClaudeAgentOptions options = ClaudeAgentOptions.builder()
+            .model("claude-opus-4")
+            .timeout(Duration.ofMinutes(10))
+            .yolo(false)
+            .build();
+
+        ClaudeAgentClient client = ClaudeAgentClient.create();
+        return new ClaudeAgentModel(client, options, null);
+    }
+}
+----
+
+When you provide your own bean, autoconfiguration steps aside due to `@ConditionalOnMissingBean`.
+
+=== Conditional Configuration
+
+Autoconfiguration activates based on:
+
+1. **Class presence:** `@ConditionalOnClass` checks if agent classes are on the classpath
+2. **Bean presence:** `@ConditionalOnBean(AgentModel.class)` ensures AgentClient.Builder only configures when an agent model exists
+3. **Missing beans:** `@ConditionalOnMissingBean` allows you to override defaults
+
+== How It Works
+
+The starters follow Spring AI's established patterns:
+
+1. **Starter POM** - Aggregates all required dependencies (no code)
+2. **Autoconfiguration** - Configures beans automatically via `spring.factories` or `@AutoConfiguration`
+3. **Builder Pattern** - AgentClient.Builder (prototype scope) follows Spring AI ChatClient.Builder pattern
+4. **Properties** - Externalized configuration via Spring Boot properties
+
+=== Dependency Chain
+
+When you add `spring-ai-starter-agent-claude`:
+
+```
+spring-ai-starter-agent-claude (POM only)
+├── spring-ai-agent-client (AgentClient + AgentClientAutoConfiguration)
+├── spring-ai-claude-agent (ClaudeAgentModel + ClaudeAgentAutoConfiguration)
+├── spring-ai-agent-model (Core abstractions: AgentModel, Sandbox)
+└── claude-agent-sdk (ClaudeAgentClient CLI wrapper)
+```
+
+Spring Boot detects autoconfiguration classes and wires everything together automatically.
+
+== Next Steps
+
+* xref:getting-started/hello-world.adoc[Build your first agent application]
+* xref:api/agentclient.adoc[Learn the AgentClient API]
+* xref:getting-started/first-judge.adoc[Verify agent success with judges]
