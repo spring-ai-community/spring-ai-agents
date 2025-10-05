@@ -230,6 +230,75 @@ Judgment review = codeReviewer.judge(context);
 
 See xref:judges/agent-as-judge/overview.adoc[Agent as Judge] for details.
 
+== Configuration for Driver Programs
+
+Driver programs (like spring-ai-bench) can use `JudgeSpec` for YAML-based judge configuration:
+
+[source,java]
+----
+// JudgeSpec - Pure data class for configuration
+public class JudgeSpec {
+    private String type;        // "file-exists", "file-content", etc.
+    private String path;        // File path
+    private String expected;    // Expected content
+    private String matchMode;   // "EXACT", "CONTAINS", etc.
+    private Map<String, Object> config; // Additional configuration
+
+    // Getters and setters
+}
+----
+
+**YAML configuration example:**
+
+[source,yaml]
+----
+judge:
+  type: file-content
+  path: hello.txt
+  expected: "Hello World!"
+  matchMode: EXACT
+----
+
+**Driver program instantiation pattern:**
+
+Driver programs load `JudgeSpec` from YAML and instantiate judges using their preferred dependency injection mechanism:
+
+[source,java]
+----
+// Spring DI pattern (recommended)
+@Configuration
+public class JudgeConfiguration {
+
+    @Bean(name = "hello-world")
+    public Judge helloWorldJudge() {
+        return Judges.allOf(
+            new FileExistsJudge("hello.txt"),
+            new FileContentJudge("hello.txt", "Hello World!",
+                                 FileContentJudge.MatchMode.EXACT)
+        );
+    }
+}
+
+// Or manual instantiation from JudgeSpec
+JudgeSpec spec = loadFromYaml("judge.yaml");
+Judge judge = switch (spec.getType()) {
+    case "file-exists" -> new FileExistsJudge(spec.getPath());
+    case "file-content" -> new FileContentJudge(
+        spec.getPath(),
+        spec.getExpected(),
+        FileContentJudge.MatchMode.valueOf(spec.getMatchMode())
+    );
+    default -> throw new IllegalArgumentException("Unknown judge type");
+};
+----
+
+**Design principle:**
+
+* `JudgeSpec` is a **pure data class** with no behavior
+* Judge instantiation is left to driver programs
+* Supports any dependency injection mechanism
+* Framework-agnostic configuration
+
 == Integration with AgentClient
 
 Judges integrate via the `JudgeAdvisor`:
