@@ -241,11 +241,11 @@ Get started using Spring AI Agents by following our xref:getting-started.adoc[Ge
 * xref:jbang-runner.adoc[JBang Agent Runner] - Primary developer entry point for trying agents locally
 * xref:api/agentclient.adoc[AgentClient API] - Learn the core API for running autonomous tasks
 * xref:api/agentclient-vs-chatclient.adoc[AgentClient vs ChatClient] - See how AgentClient follows ChatClient patterns
-* xref:api/claude-code-sdk.adoc[Claude Agent SDK] - Java integration with Claude Agent SDK
-* xref:api/gemini-cli-sdk.adoc[Gemini CLI Agent SDK] - Java integration with Gemini CLI Agent SDK
-* xref:api/amp-cli-sdk.adoc[Amp Agent SDK] - Java integration with Sourcegraph Amp
-* xref:api/codex-cli-sdk.adoc[Codex Agent SDK] - Java integration with OpenAI Codex
-* xref:api/amazon-q-cli-sdk.adoc[Amazon Q Developer Agent SDK] - Java integration with Amazon Q Developer
+* xref:api/claude-code-sdk.adoc[Claude Agent SDK]
+* xref:api/gemini-cli-sdk.adoc[Gemini CLI Agent SDK]
+* xref:api/amp-cli-sdk.adoc[Amp Agent SDK]
+* xref:api/codex-cli-sdk.adoc[Codex Agent SDK]
+* xref:api/amazon-q-cli-sdk.adoc[Amazon Q Developer Agent SDK]
 * xref:samples.adoc[Sample Agents] - Real-world agent examples and patterns
 
 == Contributing
