@@ -344,7 +344,7 @@ public class ProjectSetupService {
 
 Now that you understand how to design effective goals and use workspaces, learn how to **verify** that your agent achieved its goal:
 
-→ xref:first-judge.adoc[Your First Judge]
+→ xref:getting-started/first-judge.adoc[Your First Judge]
 
 You can also explore:
 

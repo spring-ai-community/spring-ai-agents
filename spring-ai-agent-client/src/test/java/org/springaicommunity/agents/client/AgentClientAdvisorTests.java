@@ -247,4 +247,75 @@ class AgentClientAdvisorTests {
 
 	}
 
+	@Test
+	void requestAdvisorsCanBeAddedViaFluentAPI() {
+		AgentModel agentModel = mock(AgentModel.class);
+		List<String> executionLog = new ArrayList<>();
+
+		// Create mock response
+		AgentResponse agentResponse = new AgentResponse(List.of(mock(AgentGeneration.class)));
+		given(agentModel.call(any(AgentTaskRequest.class))).willReturn(agentResponse);
+
+		// Create advisors
+		AgentCallAdvisor requestAdvisor1 = new LoggingAdvisor("request1", 100, executionLog);
+		AgentCallAdvisor requestAdvisor2 = new LoggingAdvisor("request2", 200, executionLog);
+
+		// Build client and add request-level advisors via fluent API
+		AgentClient client = AgentClient.builder(agentModel).build();
+
+		// Execute with advisors in the request spec
+		client.goal("Test goal").workingDirectory(Path.of(".")).advisors(requestAdvisor1, requestAdvisor2).run();
+
+		// Verify advisors executed
+		assertThat(executionLog).containsExactly("request1-before", "request2-before", "request2-after",
+				"request1-after");
+	}
+
+	@Test
+	void requestAdvisorsCanBeAddedViaListAPI() {
+		AgentModel agentModel = mock(AgentModel.class);
+		List<String> executionLog = new ArrayList<>();
+
+		// Create mock response
+		AgentResponse agentResponse = new AgentResponse(List.of(mock(AgentGeneration.class)));
+		given(agentModel.call(any(AgentTaskRequest.class))).willReturn(agentResponse);
+
+		// Create advisors
+		List<AgentCallAdvisor> advisorList = List.of(new LoggingAdvisor("advisor1", 100, executionLog),
+				new LoggingAdvisor("advisor2", 200, executionLog));
+
+		// Build client and add request-level advisors via List API
+		AgentClient client = AgentClient.builder(agentModel).build();
+
+		// Execute with advisors in the request spec
+		client.goal("Test goal").workingDirectory(Path.of(".")).advisors(advisorList).run();
+
+		// Verify advisors executed
+		assertThat(executionLog).containsExactly("advisor1-before", "advisor2-before", "advisor2-after",
+				"advisor1-after");
+	}
+
+	@Test
+	void requestAdvisorsAreCombinedWithDefaultAdvisors() {
+		AgentModel agentModel = mock(AgentModel.class);
+		List<String> executionLog = new ArrayList<>();
+
+		// Create mock response
+		AgentResponse agentResponse = new AgentResponse(List.of(mock(AgentGeneration.class)));
+		given(agentModel.call(any(AgentTaskRequest.class))).willReturn(agentResponse);
+
+		// Create advisors
+		AgentCallAdvisor defaultAdvisor = new LoggingAdvisor("default", 100, executionLog);
+		AgentCallAdvisor requestAdvisor = new LoggingAdvisor("request", 200, executionLog);
+
+		// Build client with default advisor
+		AgentClient client = AgentClient.builder(agentModel).defaultAdvisor(defaultAdvisor).build();
+
+		// Execute with request advisor
+		client.goal("Test goal").workingDirectory(Path.of(".")).advisors(requestAdvisor).run();
+
+		// Verify both advisors executed in order
+		assertThat(executionLog).containsExactly("default-before", "request-before", "request-after", "default-after");
+	}
+
 }

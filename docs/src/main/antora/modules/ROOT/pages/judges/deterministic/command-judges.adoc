@@ -709,10 +709,10 @@ BuildSuccessJudge.maven("clean", "install");
 
 == Next Steps
 
-* **File Judges**: xref:file-judges.adoc[File verification and content checks]
-* **LLM Judges**: xref:../llm-powered/overview.adoc[AI-based evaluation]
-* **Judge Advisor**: xref:../judge-advisor.adoc[Integration with AgentClient]
-* **Deterministic Overview**: xref:overview.adoc[All deterministic judge types]
+* **File Judges**: xref:judges/deterministic/file-judges.adoc[File verification and content checks]
+* **LLM Judges**: xref:judges/llm-powered/overview.adoc[AI-based evaluation]
+* **Judge Advisor**: xref:judges/judge-advisor.adoc[Integration with AgentClient]
+* **Deterministic Overview**: xref:judges/deterministic/overview.adoc[All deterministic judge types]
 
 == Further Reading
 

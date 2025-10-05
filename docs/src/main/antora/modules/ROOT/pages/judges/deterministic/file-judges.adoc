@@ -734,10 +734,10 @@ new FileContentJudge("file.txt", "{.*}", MatchMode.REGEX)
 
 == Next Steps
 
-* **Command Judges**: xref:command-judges.adoc[Build and test verification]
-* **Custom Judges**: xref:custom-judges.adoc[Creating your own file judges]
-* **Judge Advisor**: xref:../judge-advisor.adoc[Integration with AgentClient]
-* **Deterministic Overview**: xref:overview.adoc[All deterministic judge types]
+* **Command Judges**: xref:judges/deterministic/command-judges.adoc[Build and test verification]
+* **Custom Judges**: Creating your own file judges (see deterministic judge examples)
+* **Judge Advisor**: xref:judges/judge-advisor.adoc[Integration with AgentClient]
+* **Deterministic Overview**: xref:judges/deterministic/overview.adoc[All deterministic judge types]
 
 == Further Reading
 

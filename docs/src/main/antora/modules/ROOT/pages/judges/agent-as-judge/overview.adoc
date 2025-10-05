@@ -631,10 +631,10 @@ Like LLM judges, agent judges may vary in their assessments. Consider using voti
 
 == Next Steps
 
-* **Jury Pattern**: xref:../jury/overview.adoc[Combine multiple judges for robust evaluation]
-* **LLM Judges**: xref:../llm-powered/overview.adoc[Simpler semantic evaluation]
-* **Deterministic Judges**: xref:../deterministic/overview.adoc[Fast, free rule-based checks]
-* **Judge Advisor**: xref:../judge-advisor.adoc[Integration with AgentClient]
+* **Jury Pattern**: xref:judges/jury/overview.adoc[Combine multiple judges for robust evaluation]
+* **LLM Judges**: xref:judges/llm-powered/overview.adoc[Simpler semantic evaluation]
+* **Deterministic Judges**: xref:judges/deterministic/overview.adoc[Fast, free rule-based checks]
+* **Judge Advisor**: xref:judges/judge-advisor.adoc[Integration with AgentClient]
 
 == Further Reading
 

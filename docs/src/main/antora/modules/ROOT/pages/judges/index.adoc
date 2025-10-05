@@ -72,7 +72,7 @@ public interface Judge {
 * **Single responsibility** - One method: `judge()`
 * **Async support** - Default async implementation via `CompletableFuture`
 * **Stateless** - Judges don't maintain state between calls
-* **Composable** - Judges can be combined (see xref:jury/overview.adoc[Jury Pattern])
+* **Composable** - Judges can be combined (see xref:judges/jury/overview.adoc[Jury Pattern])
 
 === JudgmentContext
 
@@ -185,7 +185,7 @@ Rule-based evaluation using file system checks, command execution, or assertions
 |`judge.assertThat(output).contains("Hello")`
 |===
 
-See xref:deterministic/overview.adoc[Deterministic Judges] for details.
+See xref:judges/deterministic/overview.adoc[Deterministic Judges] for details.
 
 === LLM-Powered Judges
 
@@ -212,7 +212,7 @@ AI-based evaluation using language models:
 |`new SimpleCriteriaJudge(chatClient, "API returns valid JSON")`
 |===
 
-See xref:llm-powered/overview.adoc[LLM-Powered Judges] for details.
+See xref:judges/llm-powered/overview.adoc[LLM-Powered Judges] for details.
 
 === Agent as Judge
 
@@ -228,7 +228,7 @@ AgentJudge codeReviewer = AgentJudge.builder()
 Judgment review = codeReviewer.judge(context);
 ----
 
-See xref:agent-as-judge/overview.adoc[Agent as Judge] for details.
+See xref:judges/agent-as-judge/overview.adoc[Agent as Judge] for details.
 
 == Integration with AgentClient
 
@@ -259,7 +259,7 @@ AgentClientResponse response = agentClientBuilder
     .call();
 ----
 
-See xref:judge-advisor.adoc[JudgeAdvisor] for integration details.
+See xref:judges/judge-advisor.adoc[JudgeAdvisor] for integration details.
 
 == Ensemble Evaluation: The Jury Pattern
 
@@ -291,7 +291,7 @@ verdict.individual().forEach(judgment -> {
 });
 ----
 
-See xref:jury/overview.adoc[Jury Pattern] for ensemble evaluation.
+See xref:judges/jury/overview.adoc[Jury Pattern] for ensemble evaluation.
 
 == Research Foundations
 
@@ -400,7 +400,7 @@ Native Spring Boot integration with `ChatClient` from Spring AI, bean-based conf
 
 For detailed analysis of how each framework influenced specific design decisions, see:
 
-* xref:research-foundations.adoc[Research Foundations] - Complete design rationale with code examples from each framework
+* Research Foundations (coming soon) - Complete design rationale with code examples from each framework
 
 == Production Patterns
 
@@ -492,12 +492,12 @@ if (!judgment.pass()) {
 
 Explore the Judge API in depth:
 
-* **Start here**: xref:judge-advisor.adoc[JudgeAdvisor] - Integration with AgentClient (primary entry point)
-* **Deterministic**: xref:deterministic/overview.adoc[Deterministic Judges] - Rule-based evaluation
-* **LLM-Powered**: xref:llm-powered/overview.adoc[LLM-Powered Judges] - AI-based evaluation
-* **Agent as Judge**: xref:agent-as-judge/overview.adoc[Agent as Judge] - Agents evaluating agents
-* **Ensemble**: xref:jury/overview.adoc[Jury Pattern] - Combine judges for robust evaluation
-* **Research**: xref:research-foundations.adoc[Research Foundations] - Complete design rationale
+* **Start here**: xref:judges/judge-advisor.adoc[JudgeAdvisor] - Integration with AgentClient (primary entry point)
+* **Deterministic**: xref:judges/deterministic/overview.adoc[Deterministic Judges] - Rule-based evaluation
+* **LLM-Powered**: xref:judges/llm-powered/overview.adoc[LLM-Powered Judges] - AI-based evaluation
+* **Agent as Judge**: xref:judges/agent-as-judge/overview.adoc[Agent as Judge] - Agents evaluating agents
+* **Ensemble**: xref:judges/jury/overview.adoc[Jury Pattern] - Combine judges for robust evaluation
+* **Research**: Research Foundations (coming soon) - Complete design rationale
 
 == Further Reading
 

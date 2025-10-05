@@ -117,38 +117,68 @@ Here's a simple example using Spring AI Agents with Claude Code:
 
 [source,java]
 ----
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+import org.springaicommunity.agents.advisors.judge.JudgeAdvisor;
 import org.springaicommunity.agents.client.AgentClient;
 import org.springaicommunity.agents.client.AgentClientResponse;
 import org.springaicommunity.agents.claude.ClaudeAgentModel;
 import org.springaicommunity.agents.claude.ClaudeAgentOptions;
 import org.springaicommunity.agents.claude.sdk.ClaudeAgentClient;
+import org.springaicommunity.agents.claude.sdk.transport.CLIOptions;
+import org.springaicommunity.agents.judge.fs.FileExistsJudge;
+import org.springaicommunity.agents.judge.result.Judgment;
+import org.springaicommunity.agents.model.sandbox.LocalSandbox;
 
 public class HelloAgentWorld {
     public static void main(String[] args) {
-        // 1. Create the Claude Code client
-        ClaudeAgentClient claudeClient = ClaudeAgentClient.create();
+        // 1. Set up workspace
+        Path workingDir = Paths.get(System.getProperty("user.dir"));
 
-        // 2. Configure agent options
+        // 2. Create the Claude Agent client
+        ClaudeAgentClient claudeClient = ClaudeAgentClient.create(
+            CLIOptions.defaultOptions(),
+            workingDir
+        );
+
+        // 3. Configure agent options
         ClaudeAgentOptions options = ClaudeAgentOptions.builder()
-            .model("claude-sonnet-4-0")
+            .model("claude-sonnet-4-20250514")
             .yolo(true) // Allow agent to make changes
             .build();
 
-        // 3. Create the agent model
-        ClaudeAgentModel agentModel = new ClaudeAgentModel(claudeClient, options);
-        
-        // 4. Create the AgentClient
-        AgentClient agentClient = AgentClient.create(agentModel);
-        
-        // 5. Run a simple goal
-        AgentClientResponse response = agentClient.run(
-            "Create a simple Hello World Java class in a file called HelloWorld.java"
-        );
-        
-        // 6. Get the result
-        System.out.println("Agent completed the goal:");
-        System.out.println(response.getResult());
+        // 4. Create sandbox and agent model
+        LocalSandbox sandbox = new LocalSandbox(workingDir);
+        ClaudeAgentModel agentModel = new ClaudeAgentModel(claudeClient, options, sandbox);
+
+        // 5. Create judge to verify file creation
+        FileExistsJudge fileJudge = new FileExistsJudge("HelloWorld.java");
+        JudgeAdvisor judgeAdvisor = JudgeAdvisor.builder().judge(fileJudge).build();
+
+        // 6. Create AgentClient with judge advisor
+        AgentClient client = AgentClient.builder(agentModel)
+            .defaultAdvisor(judgeAdvisor)
+            .build();
+
+        // 7. Execute the goal
+        String goal = "Create a simple Hello World Java class in a file called HelloWorld.java";
+        AgentClientResponse response = client.goal(goal)
+            .workingDirectory(workingDir)
+            .run();
+
+        // 8. Get results and verification
+        System.out.println("Agent execution completed");
         System.out.println("Success: " + response.isSuccessful());
+        System.out.println("Result: " + response.getResult());
+
+        // 9. Check judge verification
+        Judgment judgment = response.getJudgment();
+        if (judgment != null) {
+            System.out.println("Judge verification: " +
+                (judgment.pass() ? "PASSED" : "FAILED"));
+            System.out.println("Reasoning: " + judgment.reasoning());
+        }
     }
 }
 ----
@@ -157,48 +187,106 @@ public class HelloAgentWorld {
 
 Let's break down what happened in the example:
 
-1. **Client Creation**: We created a `ClaudeAgentClient` to communicate with the Claude CLI (uses current directory by default)
-2. **Agent Options**: We configured the agent with a model and enabled "yolo" mode (allows modifications)
-3. **Agent Model**: We wrapped the client in a `ClaudeAgentModel` for Spring AI integration
-4. **AgentClient**: We created an `AgentClient` - the main API for running tasks
-5. **Goal Execution**: We ran a goal using the simple `.run()` method
-6. **Result Access**: We got the result using `.getResult()` and checked success
+1. **Workspace Setup**: We define the working directory where the agent will operate
+2. **Client Creation**: We create a `ClaudeAgentClient` to communicate with the Claude CLI
+3. **Agent Options**: We configure the agent with a model and enable "yolo" mode (allows modifications)
+4. **Sandbox and Model**: We create a `LocalSandbox` for execution and wrap everything in a `ClaudeAgentModel`
+5. **Judge Setup**: We create a `FileExistsJudge` to verify the file was created, wrapped in a `JudgeAdvisor`
+6. **AgentClient Builder**: We use `AgentClient.builder()` to configure the client with the judge advisor
+7. **Goal Execution**: We execute the goal using the fluent API: `goal().workingDirectory().run()`
+8. **Result Access**: We get the result using `.getResult()` and check success
+9. **Judge Verification**: We retrieve the judgment using `.getJudgment()` to verify the agent's work
 
 == Spring Boot Integration
 
-For Spring Boot applications, you can use dependency injection:
+For Spring Boot applications, you can use dependency injection. Here's the configuration from our working sample:
 
 [source,java]
 ----
-@RestController
-public class AgentController {
-
-    private final AgentClient agentClient;
-
-    public AgentController(ClaudeAgentModel agentModel) {
-        this.agentClient = AgentClient.create(agentModel);
-    }
-    
-    @PostMapping("/execute-goal")
-    public String executeTask(@RequestBody String goal) {
-        AgentClientResponse response = agentClient.run(goal);
-        return response.getResult();
-    }
-}
-
 @Configuration
 public class AgentConfiguration {
 
     @Bean
-    public ClaudeAgentModel claudeAgentModel() {
-        ClaudeAgentClient client = ClaudeAgentClient.create();
-        ClaudeAgentOptions options = ClaudeAgentOptions.builder()
-            .model("claude-sonnet-4-0")
+    public Path workingDirectory(
+        @Value("${agent.working-directory:#{systemProperties['user.dir']}}") String workingDir
+    ) {
+        return Paths.get(workingDir);
+    }
+
+    @Bean
+    public LocalSandbox sandbox(Path workingDirectory) {
+        return new LocalSandbox(workingDirectory);
+    }
+
+    @Bean
+    public ClaudeAgentOptions claudeAgentOptions() {
+        return ClaudeAgentOptions.builder()
+            .model("claude-sonnet-4-20250514")
+            .yolo(true)
             .build();
-        return new ClaudeAgentModel(client, options);
+    }
+
+    @Bean
+    public ClaudeAgentClient claudeAgentClient(Path workingDirectory) {
+        return ClaudeAgentClient.create(CLIOptions.defaultOptions(), workingDirectory);
+    }
+
+    @Bean
+    public AgentModel agentModel(
+        ClaudeAgentClient claudeClient,
+        ClaudeAgentOptions options,
+        LocalSandbox sandbox
+    ) {
+        return new ClaudeAgentModel(claudeClient, options, sandbox);
     }
 }
 ----
+
+Then use it in a CommandLineRunner or Controller:
+
+[source,java]
+----
+@Component
+public class HelloWorldRunner implements CommandLineRunner {
+
+    private final AgentModel agentModel;
+    private final Path workingDirectory;
+
+    public HelloWorldRunner(AgentModel agentModel, Path workingDirectory) {
+        this.agentModel = agentModel;
+        this.workingDirectory = workingDirectory;
+    }
+
+    @Override
+    public void run(String... args) throws Exception {
+        String goal = "Create a simple Hello World Java class in HelloWorld.java";
+
+        // Create judge and advisor
+        FileExistsJudge fileJudge = new FileExistsJudge("HelloWorld.java");
+        JudgeAdvisor judgeAdvisor = JudgeAdvisor.builder()
+            .judge(fileJudge)
+            .build();
+
+        // Create AgentClient with advisor
+        AgentClient client = AgentClient.builder(agentModel)
+            .defaultAdvisor(judgeAdvisor)
+            .build();
+
+        // Execute goal
+        AgentClientResponse response = client.goal(goal)
+            .workingDirectory(workingDirectory)
+            .run();
+
+        // Check results
+        Judgment judgment = response.getJudgment();
+        if (judgment != null && judgment.pass()) {
+            System.out.println("Task completed successfully!");
+        }
+    }
+}
+----
+
+TIP: See the complete working sample in `samples/getting-started-hello-world/`
 
 == Next Steps
 

@@ -18,6 +18,7 @@ package org.springaicommunity.agents.client;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
@@ -116,6 +117,8 @@ public class DefaultAgentClient implements AgentClient {
 
 		private Path workingDirectory;
 
+		private List<AgentCallAdvisor> requestAdvisors = new ArrayList<>();
+
 		public DefaultAgentClientRequestSpec(Goal goal) {
 			this.goal = goal; // Can be null for goal() method
 			this.workingDirectory = goal != null ? goal.getWorkingDirectory() : null;
@@ -130,6 +133,18 @@ public class DefaultAgentClient implements AgentClient {
 		@Override
 		public AgentClientRequestSpec workingDirectory(Path workingDirectory) {
 			this.workingDirectory = workingDirectory;
+			return this;
+		}
+
+		@Override
+		public AgentClientRequestSpec advisors(AgentCallAdvisor... advisors) {
+			this.requestAdvisors.addAll(Arrays.asList(advisors));
+			return this;
+		}
+
+		@Override
+		public AgentClientRequestSpec advisors(List<AgentCallAdvisor> advisors) {
+			this.requestAdvisors.addAll(advisors);
 			return this;
 		}
 
@@ -154,6 +169,7 @@ public class DefaultAgentClient implements AgentClient {
 
 			// Build advisor chain with terminal advisor
 			List<AgentCallAdvisor> advisors = new ArrayList<>(DefaultAgentClient.this.defaultAdvisors);
+			advisors.addAll(this.requestAdvisors);
 			advisors.add(new AgentModelCallAdvisor(DefaultAgentClient.this.agentModel));
 
 			var chain = DefaultAgentCallAdvisorChain.builder().pushAll(advisors).build();

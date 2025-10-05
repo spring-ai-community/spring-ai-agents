@@ -49,7 +49,7 @@ Verify file and directory operations:
 |`new FileNotExistsJudge("temp.log")`
 |===
 
-See xref:file-judges.adoc[File Judges] for complete details.
+See xref:judges/deterministic/file-judges.adoc[File Judges] for complete details.
 
 === 2. Command Execution Judges
 
@@ -72,7 +72,7 @@ Verify command success and output:
 |`new TestSuccessJudge()`
 |===
 
-See xref:command-judges.adoc[Command Judges] for complete details.
+See xref:judges/deterministic/command-judges.adoc[Command Judges] for complete details.
 
 === 3. Assertion-Based Judges
 
@@ -479,16 +479,16 @@ return Judgment.builder()
 
 Explore specific deterministic judge types:
 
-* xref:file-judges.adoc[File Judges] - FileExists, FileContent, FileNotExists
-* xref:command-judges.adoc[Command Judges] - Command, BuildSuccess, TestSuccess
-* xref:custom-judges.adoc[Custom Judges] - Creating your own deterministic judges
+* xref:judges/deterministic/file-judges.adoc[File Judges] - FileExists, FileContent, FileNotExists
+* xref:judges/deterministic/command-judges.adoc[Command Judges] - Command, BuildSuccess, TestSuccess
+* Custom Judges (coming soon) - Creating your own deterministic judges
 
 == Next Steps
 
-* **File Judges**: xref:file-judges.adoc[Complete file system verification]
-* **Command Judges**: xref:command-judges.adoc[Build and test verification]
-* **LLM Judges**: xref:../llm-powered/overview.adoc[AI-based evaluation]
-* **Judge Advisor**: xref:../judge-advisor.adoc[Integration with AgentClient]
+* **File Judges**: xref:judges/deterministic/file-judges.adoc[Complete file system verification]
+* **Command Judges**: xref:judges/deterministic/command-judges.adoc[Build and test verification]
+* **LLM Judges**: xref:judges/llm-powered/overview.adoc[AI-based evaluation]
+* **Judge Advisor**: xref:judges/judge-advisor.adoc[Integration with AgentClient]
 
 == Further Reading
 

@@ -76,7 +76,7 @@ Agents operate within this directory:
 
 == Next Steps
 
-* xref:goals.adoc[Goals] - Defining agent objectives
-* xref:context-engineering.adoc[Context Engineering] - Providing information to agents
+* xref:concepts/goals.adoc[Goals] - Defining agent objectives
+* xref:concepts/context-engineering.adoc[Context Engineering] - Providing information to agents
 * xref:../getting-started.adoc[Getting Started] - Build your first agent
-* xref:cli-agents.adoc[CLI Agents] - Understanding autonomous agents
+* xref:concepts/cli-agents.adoc[CLI Agents] - Understanding autonomous agents

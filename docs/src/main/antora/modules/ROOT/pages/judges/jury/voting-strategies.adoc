@@ -848,10 +848,10 @@ verdict.individual().forEach(j -> {
 
 == Next Steps
 
-* **Jury Overview**: xref:overview.adoc[Ensemble evaluation pattern]
-* **JudgeAdvisor**: xref:../judge-advisor.adoc[Integration with AgentClient]
-* **LLM Judges**: xref:../llm-powered/overview.adoc[AI-powered evaluation]
-* **Agent as Judge**: xref:../agent-as-judge/overview.adoc[Agent evaluating agent]
+* **Jury Overview**: xref:judges/jury/overview.adoc[Ensemble evaluation pattern]
+* **JudgeAdvisor**: xref:judges/judge-advisor.adoc[Integration with AgentClient]
+* **LLM Judges**: xref:judges/llm-powered/overview.adoc[AI-powered evaluation]
+* **Agent as Judge**: xref:judges/agent-as-judge/overview.adoc[Agent evaluating agent]
 
 == Further Reading
 

@@ -128,6 +128,20 @@ public interface AgentClient {
 		AgentClientRequestSpec workingDirectory(Path workingDirectory);
 
 		/**
+		 * Add advisors for this agent request.
+		 * @param advisors the advisors to add
+		 * @return this request spec for chaining
+		 */
+		AgentClientRequestSpec advisors(AgentCallAdvisor... advisors);
+
+		/**
+		 * Add advisors for this agent request.
+		 * @param advisors the advisors to add
+		 * @return this request spec for chaining
+		 */
+		AgentClientRequestSpec advisors(List<AgentCallAdvisor> advisors);
+
+		/**
 		 * Execute the agent task and return the result.
 		 *
 		 * In agent terminology, we **run a goal** (task execution). This differs from

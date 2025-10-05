@@ -93,7 +93,7 @@ boolean allPassed = judgment.pass();
 ====
 When using multiple `JudgeAdvisor` instances, each executes independently. The final `response.getJudgment()` returns the last judgment.
 
-For **ensemble evaluation** where you want to aggregate multiple judgments into a single verdict, use xref:jury/overview.adoc[Jury] instead.
+For **ensemble evaluation** where you want to aggregate multiple judgments into a single verdict, use xref:judges/jury/overview.adoc[Jury] instead.
 ====
 
 == JudgeAdvisor Builder
@@ -611,7 +611,7 @@ if (jury.getLastVerdict() != null) {
 }
 ----
 
-See xref:jury/overview.adoc[Jury Pattern] for ensemble evaluation details.
+See xref:judges/jury/overview.adoc[Jury Pattern] for ensemble evaluation details.
 
 == Best Practices
 
@@ -706,10 +706,10 @@ try {
 
 == Next Steps
 
-* **Deterministic Judges**: xref:deterministic/overview.adoc[File, Command, and Build judges]
-* **LLM-Powered Judges**: xref:llm-powered/overview.adoc[AI-based evaluation]
-* **Agent as Judge**: xref:agent-as-judge/overview.adoc[Agents evaluating agents]
-* **Jury Pattern**: xref:jury/overview.adoc[Ensemble evaluation]
+* **Deterministic Judges**: xref:judges/deterministic/overview.adoc[File, Command, and Build judges]
+* **LLM-Powered Judges**: xref:judges/llm-powered/overview.adoc[AI-based evaluation]
+* **Agent as Judge**: xref:judges/agent-as-judge/overview.adoc[Agents evaluating agents]
+* **Jury Pattern**: xref:judges/jury/overview.adoc[Ensemble evaluation]
 * **Judge API Overview**: xref:index.adoc[Complete Judge API documentation]
 
 == Further Reading

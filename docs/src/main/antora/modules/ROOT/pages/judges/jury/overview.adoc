@@ -186,7 +186,7 @@ verdict.weights().forEach((name, weight) -> {
 
 == Voting Strategies
 
-Voting strategies determine how individual judgments aggregate. See xref:voting-strategies.adoc[Voting Strategies] for complete details.
+Voting strategies determine how individual judgments aggregate. See xref:judges/jury/voting-strategies.adoc[Voting Strategies] for complete details.
 
 === Majority Voting
 
@@ -631,10 +631,10 @@ if (verdict.aggregated().pass()) {
 
 ## Next Steps
 
-* **Voting Strategies**: xref:voting-strategies.adoc[Complete voting strategy reference]
+* **Voting Strategies**: xref:judges/jury/voting-strategies.adoc[Complete voting strategy reference]
 * **Judge API**: xref:../index.adoc[All judge types and patterns]
-* **JudgeAdvisor**: xref:../judge-advisor.adoc[Integration with AgentClient]
-* **Deterministic Judges**: xref:../deterministic/overview.adoc[Fast, objective evaluation]
+* **JudgeAdvisor**: xref:judges/judge-advisor.adoc[Integration with AgentClient]
+* **Deterministic Judges**: xref:judges/deterministic/overview.adoc[Fast, objective evaluation]
 
 == Further Reading
 

@@ -559,10 +559,10 @@ if (!judgment.pass()) {
 
 == Next Steps
 
-* **LLM Judges Overview**: xref:overview.adoc[Complete LLM judge patterns]
-* **Agent as Judge**: xref:../agent-as-judge/overview.adoc[Use agents to evaluate agents]
-* **Jury Pattern**: xref:../jury/overview.adoc[Combine multiple judges]
-* **Deterministic Judges**: xref:../deterministic/overview.adoc[Fast, free rule-based evaluation]
+* **LLM Judges Overview**: xref:judges/llm-powered/overview.adoc[Complete LLM judge patterns]
+* **Agent as Judge**: xref:judges/agent-as-judge/overview.adoc[Use agents to evaluate agents]
+* **Jury Pattern**: xref:judges/jury/overview.adoc[Combine multiple judges]
+* **Deterministic Judges**: xref:judges/deterministic/overview.adoc[Fast, free rule-based evaluation]
 
 == Further Reading
 

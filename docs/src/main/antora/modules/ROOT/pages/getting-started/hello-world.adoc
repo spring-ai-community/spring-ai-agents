@@ -43,10 +43,12 @@ public class HelloWorldApplication {
     @Bean
     CommandLineRunner demo(AgentClient.Builder agentClientBuilder) {
         return args -> {
-            AgentClientResponse response = agentClientBuilder
+            AgentClient client = agentClientBuilder.build();
+
+            AgentClientResponse response = client
                 .goal("Create a file named hello.txt with content 'Hello World'")
                 .workingDirectory(Path.of("/tmp/hello"))
-                .call();
+                .run();
 
             System.out.println("Agent completed!");
             System.out.println("Output: " + response.getResult());
@@ -131,45 +133,25 @@ The `AgentClient.Builder` provides a fluent API for configuring agent tasks:
 
 More advanced options (advisors, context engineering) will be covered in later guides.
 
-== Creating AgentClient.Builder
+== Spring Boot Integration
 
-You need to manually create the `AgentClient.Builder` by configuring an `AgentModel`:
+Spring Boot autoconfiguration provides `AgentClient.Builder` automatically. Just add the dependency and inject:
+
+[source,xml]
+----
+<dependency>
+    <groupId>org.springaicommunity.agents</groupId>
+    <artifactId>spring-ai-claude-agent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+</dependency>
+----
+
+Then use it in your components:
 
 [source,java]
 ----
-import org.springaicommunity.agents.claude.ClaudeAgentModel;
-import org.springaicommunity.agents.claude.ClaudeAgentOptions;
-import org.springaicommunity.agents.claude.sdk.ClaudeClient;
-
-@Configuration
-public class AgentConfiguration {
-
-    @Bean
-    public AgentClient.Builder agentClientBuilder() {
-        // Create Claude client
-        ClaudeClient claudeClient = ClaudeClient.create();
-
-        // Configure options
-        ClaudeAgentOptions options = ClaudeAgentOptions.builder()
-            .model("claude-sonnet-4-20250514")
-            .yoloMode(true)  // Allow agent to make changes
-            .build();
-
-        // Create agent model
-        ClaudeAgentModel agentModel = new ClaudeAgentModel(claudeClient, options);
-
-        // Return builder
-        return AgentClient.builder(agentModel);
-    }
-}
-----
-
-Then inject the builder into your components:
-
-[source,java]
-----
-@Service
-public class MyService {
+@Component
+public class MyService implements CommandLineRunner {
 
     private final AgentClient.Builder agentClientBuilder;
 
@@ -177,21 +159,34 @@ public class MyService {
         this.agentClientBuilder = agentClientBuilder;
     }
 
-    public void doSomething() {
-        AgentClientResponse response = agentClientBuilder
-            .goal("...")
-            .workingDirectory(...)
-            .call();
+    @Override
+    public void run(String... args) {
+        AgentClient client = agentClientBuilder.build();
+
+        AgentClientResponse response = client
+            .goal("Create hello.txt with content 'Hello World'")
+            .workingDirectory(Path.of(System.getProperty("user.dir")))
+            .run();
+
+        System.out.println("Completed: " + response.getResult());
     }
 }
 ----
+
+Spring Boot provides:
+
+* `AgentClient.Builder` bean (prototype scope)
+* Claude agent (model: claude-sonnet-4.5, yolo: true)
+* LocalSandbox for secure execution
+
+No manual configuration required!
 
 == Next Steps
 
 Now that you understand basic agent execution, learn how to:
 
-* xref:goals-and-workspaces.adoc[Design effective goals and use workspaces]
-* xref:first-judge.adoc[Verify agent success with judges]
+* xref:getting-started/goals-and-workspaces.adoc[Design effective goals and use workspaces]
+* xref:getting-started/first-judge.adoc[Verify agent success with judges]
 * xref:../concepts/cli-agents.adoc[Understand CLI agents and their architecture]
 
 [TIP]

@@ -31,6 +31,12 @@
             <artifactId>spring-ai-model</artifactId>
         </dependency>
 
+        <!-- Spring Boot AutoConfiguration -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+        </dependency>
+
         <!-- Agent model dependencies for testing -->
         <dependency>
             <groupId>org.springaicommunity.agents</groupId>

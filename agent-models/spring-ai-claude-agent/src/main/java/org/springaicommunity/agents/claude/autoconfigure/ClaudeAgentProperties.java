@@ -35,7 +35,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *   ai:
  *     agents:
  *       claude-code:
- *         model: "claude-sonnet-4-20250514"
+ *         model: "claude-sonnet-4.5"
  *         timeout: "PT5M"
  *         yolo: true
  *         executable-path: "/usr/local/bin/claude"
@@ -50,7 +50,7 @@ public class ClaudeAgentProperties {
 	/**
 	 * Claude model to use for agent tasks.
 	 */
-	private String model = "claude-sonnet-4-20250514";
+	private String model = "claude-sonnet-4.5";
 
 	/**
 	 * Timeout for agent task execution.

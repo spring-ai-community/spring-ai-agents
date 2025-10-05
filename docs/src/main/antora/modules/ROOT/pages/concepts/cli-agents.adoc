@@ -456,9 +456,9 @@ CLI agents are less suitable for:
 
 Now that you understand the foundation, explore how to use CLI agents effectively:
 
-* xref:goals.adoc[Goals] - Designing effective agent objectives
-* xref:context-engineering.adoc[Context Engineering] - Providing information to agents
-* xref:sandboxes.adoc[Sandboxes] - Safe execution environments
+* xref:concepts/goals.adoc[Goals] - Designing effective agent objectives
+* xref:concepts/context-engineering.adoc[Context Engineering] - Providing information to agents
+* xref:concepts/sandboxes.adoc[Sandboxes] - Safe execution environments
 * xref:../getting-started/hello-world.adoc[Hello World] - Build your first agent task
 * xref:../judges/index.adoc[Judges] - Automated verification
 
