@@ -77,7 +77,7 @@ ____
 
 **Spring AI Agents applies the same principle to autonomous agents:**
 
-* **Agent SDK portability layer** - Java wrappers for leading agentic CLI tools: xref:api/claude-code-sdk.adoc[Claude Agent SDK], xref:api/gemini-cli-sdk.adoc[Gemini CLI Agent SDK], xref:api/amp-cli-sdk.adoc[Amp CLI SDK], https://github.com/SWE-agent/mini-swe-agent[mini-swe-agent], with planned support for https://block.github.io/goose/[Goose], https://github.blog/news-insights/product-news/github-copilot-meet-the-new-coding-agent/[GitHub Copilot Agent], https://aws.amazon.com/q/developer/[Amazon Q Developer], and https://openai.com/index/introducing-upgrades-to-codex/[OpenAI Codex]
+* **Agent SDK portability layer** - Java wrappers for leading agentic CLI tools: xref:api/claude-code-sdk.adoc[Claude Agent SDK], xref:api/gemini-cli-sdk.adoc[Gemini CLI Agent SDK], xref:api/amp-cli-sdk.adoc[Amp CLI SDK], xref:api/codex-cli-sdk.adoc[OpenAI Codex CLI SDK], https://github.com/SWE-agent/mini-swe-agent[mini-swe-agent], with planned support for https://block.github.io/goose/[Goose], https://github.blog/news-insights/product-news/github-copilot-meet-the-new-coding-agent/[GitHub Copilot Agent], and https://aws.amazon.com/q/developer/[Amazon Q Developer]
 * **Familiar Spring AI patterns** - xref:api/agentclient.adoc[AgentClient] API following xref:api/agentclient-vs-chatclient.adoc[ChatClient design]
 * **Advisor pattern** - Extend agent behavior with xref:concepts/context-engineering.adoc[context] and xref:judges/index.adoc[judges] as advisors, just like ChatClient
 * **Agent sandbox** - xref:concepts/sandboxes.adoc[Isolated execution]
@@ -221,7 +221,7 @@ Spring AI Agents provides Java integration for leading autonomous agentic CLI to
 |AWS's autonomous /dev agent. Multi-file implementation with natural language, autonomous planning and execution across codebases.
 
 |https://openai.com/index/introducing-upgrades-to-codex/[**OpenAI Codex**]
-|🚧 Planned
+|✅ Available
 |OpenAI's GPT-5-Codex optimized for agentic coding. Handles both quick sessions and long autonomous tasks.
 |===
 
@@ -244,6 +244,7 @@ Get started using Spring AI Agents by following our xref:getting-started.adoc[Ge
 * xref:api/claude-code-sdk.adoc[Claude Agent SDK] - Java integration with Claude Agent SDK
 * xref:api/gemini-cli-sdk.adoc[Gemini CLI Agent SDK] - Java integration with Gemini CLI Agent SDK
 * xref:api/amp-cli-sdk.adoc[Amp CLI SDK] - Java integration with Sourcegraph Amp CLI
+* xref:api/codex-cli-sdk.adoc[OpenAI Codex CLI SDK] - Java integration with OpenAI Codex CLI
 * xref:samples.adoc[Sample Agents] - Real-world agent examples and patterns
 
 == Contributing
