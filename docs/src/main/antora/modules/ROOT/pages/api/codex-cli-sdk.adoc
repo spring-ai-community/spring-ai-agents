@@ -1,0 +1,773 @@
+= OpenAI Codex CLI SDK
+:page-title: OpenAI Codex CLI SDK Documentation
+:toc: left
+:tabsize: 2
+:sectnums:
+
+The Codex CLI SDK provides Java integration with OpenAI's Codex CLI, enabling autonomous coding capabilities in Spring applications.
+
+== Overview
+
+OpenAI Codex is an autonomous coding agent optimized for agentic tasks. It can read, write, and execute code across entire codebases with advanced planning and reasoning capabilities. The Spring AI Codex integration makes it easy to incorporate these capabilities into Java applications.
+
+== Installation
+
+=== Prerequisites
+
+1. **Install Codex CLI**:
++
+Follow the installation instructions at https://openai.com/index/introducing-upgrades-to-codex/[OpenAI Codex].
+
+2. **Authentication** (Choose one method):
++
+**Option A: Session Authentication (Recommended)**:
++
+[source,bash]
+----
+codex auth login
+----
++
+**Option B: API Key**:
++
+[source,bash]
+----
+export CODEX_API_KEY="your-api-key-here"
+----
++
+Get your API key from the https://platform.openai.com/api-keys[OpenAI Platform].
++
+NOTE: Session authentication is preferred to avoid conflicts between authentication methods.
+
+3. **Verify Installation**:
++
+[source,bash]
+----
+codex --version
+----
+
+=== Maven Dependencies
+
+Add the following dependencies to your `pom.xml`:
+
+[source,xml]
+----
+<dependencies>
+    <!-- Core AgentClient API -->
+    <dependency>
+        <groupId>org.springaicommunity.agents</groupId>
+        <artifactId>spring-ai-agent-client</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </dependency>
+
+    <!-- Codex integration -->
+    <dependency>
+        <groupId>org.springaicommunity.agents</groupId>
+        <artifactId>spring-ai-codex-agent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </dependency>
+</dependencies>
+----
+
+Or use the Spring Boot starter:
+
+[source,xml]
+----
+<dependency>
+    <groupId>org.springaicommunity.agents</groupId>
+    <artifactId>spring-ai-starter-agent-codex</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+</dependency>
+----
+
+== Basic Usage
+
+=== Quick Start
+
+[source,java]
+----
+import org.springaicommunity.agents.client.AgentClient;
+import org.springaicommunity.agents.client.AgentClientResponse;
+import org.springaicommunity.agents.codex.CodexAgentModel;
+import org.springaicommunity.agents.codex.CodexAgentOptions;
+import org.springaicommunity.agents.codexsdk.CodexClient;
+
+import java.nio.file.Paths;
+
+public class CodexExample {
+    public static void main(String[] args) {
+        // 1. Create the Codex client
+        CodexClient codexClient = CodexClient.create(
+            Paths.get(System.getProperty("user.dir"))
+        );
+
+        // 2. Configure agent options
+        CodexAgentOptions options = CodexAgentOptions.builder()
+            .model("gpt-5-codex")
+            .fullAuto(true)
+            .build();
+
+        // 3. Create the agent model
+        CodexAgentModel agentModel = new CodexAgentModel(codexClient, options, null);
+
+        // 4. Create AgentClient
+        AgentClient agentClient = AgentClient.create(agentModel);
+
+        // 5. Execute a goal
+        AgentClientResponse response = agentClient.run(
+            "Create a simple Calculator class with add, subtract, multiply, and divide methods"
+        );
+
+        System.out.println("Result: " + response.getResult());
+        System.out.println("Success: " + response.isSuccessful());
+    }
+}
+----
+
+== Configuration
+
+=== CodexClient
+
+The `CodexClient` manages communication with the Codex CLI:
+
+[source,java]
+----
+// Create with default working directory
+CodexClient client = CodexClient.create();
+
+// Create with specific working directory
+Path projectPath = Paths.get("/path/to/project");
+CodexClient client = CodexClient.create(projectPath);
+
+// Create with custom Codex CLI path
+CodexClient client = CodexClient.create(
+    projectPath,
+    "/custom/path/to/codex"
+);
+----
+
+=== CodexAgentOptions
+
+Configure Codex-specific behavior:
+
+[source,java]
+----
+CodexAgentOptions options = CodexAgentOptions.builder()
+    // Model selection
+    .model("gpt-5-codex")
+
+    // Execution settings
+    .fullAuto(true)                       // Enable full autonomous mode
+    .timeout(Duration.ofMinutes(10))      // Execution timeout
+    .skipGitCheck(false)                  // Require git repository
+
+    // Advanced: Manual sandbox/approval configuration
+    .sandboxMode(SandboxMode.WORKSPACE_WRITE)
+    .approvalPolicy(ApprovalPolicy.NEVER)
+
+    // CLI path (for non-standard installations)
+    .executablePath("/custom/path/to/codex")
+
+    .build();
+----
+
+=== Full-Auto Mode
+
+Codex provides a convenient `fullAuto` mode that combines workspace-write sandbox and never approval policy:
+
+[source,java]
+----
+// Full-auto mode (recommended for most use cases)
+CodexAgentOptions options = CodexAgentOptions.builder()
+    .fullAuto(true)  // Sets sandbox=workspace-write, approval=never
+    .build();
+
+// Equivalent to:
+CodexAgentOptions options = CodexAgentOptions.builder()
+    .sandboxMode(SandboxMode.WORKSPACE_WRITE)
+    .approvalPolicy(ApprovalPolicy.NEVER)
+    .build();
+----
+
+=== Sandbox Modes
+
+Control file system access:
+
+[cols="1,2"]
+|===
+|Mode |Description
+
+|`READ_ONLY`
+|Agent can read files but not make changes
+
+|`WORKSPACE_WRITE`
+|Agent can read and write files in the working directory
+
+|`DANGER_FULL_ACCESS`
+|Agent has unrestricted file system access
+|===
+
+[source,java]
+----
+// Read-only mode for analysis
+CodexAgentOptions analysisOptions = CodexAgentOptions.builder()
+    .sandboxMode(SandboxMode.READ_ONLY)
+    .build();
+
+// Workspace write for development (recommended)
+CodexAgentOptions devOptions = CodexAgentOptions.builder()
+    .sandboxMode(SandboxMode.WORKSPACE_WRITE)
+    .build();
+
+// Full access (use with caution)
+CodexAgentOptions fullOptions = CodexAgentOptions.builder()
+    .sandboxMode(SandboxMode.DANGER_FULL_ACCESS)
+    .build();
+----
+
+=== Approval Policies
+
+Control command execution approval:
+
+[cols="1,2"]
+|===
+|Policy |Description
+
+|`NEVER`
+|Execute commands without prompting
+
+|`SMART`
+|Prompt for potentially dangerous commands
+
+|`ALWAYS`
+|Prompt for all commands
+|===
+
+[source,java]
+----
+// Autonomous execution (recommended with workspace-write)
+CodexAgentOptions autoOptions = CodexAgentOptions.builder()
+    .approvalPolicy(ApprovalPolicy.NEVER)
+    .build();
+
+// Smart prompting for safety
+CodexAgentOptions smartOptions = CodexAgentOptions.builder()
+    .approvalPolicy(ApprovalPolicy.SMART)
+    .build();
+
+// Full control (requires manual approval)
+CodexAgentOptions manualOptions = CodexAgentOptions.builder()
+    .approvalPolicy(ApprovalPolicy.ALWAYS)
+    .build();
+----
+
+=== Model Options
+
+Currently available models:
+
+[cols="1,2,1"]
+|===
+|Model |Description |Best For
+
+|`gpt-5-codex`
+|GPT-5 optimized for agentic coding tasks
+|General-purpose coding, complex refactoring, multi-file changes
+|===
+
+NOTE: Codex uses OpenAI's GPT-5-Codex model optimized for autonomous development workflows.
+
+== Advanced Features
+
+=== Session Management
+
+Codex supports session resumption for continuing interrupted tasks:
+
+[source,java]
+----
+// Execute a task
+ExecuteResult result1 = codexClient.execute("Start implementing the user service");
+
+// Resume with the session ID
+String sessionId = result1.getSessionId();
+ExecuteResult result2 = codexClient.resume(sessionId, "Add validation to the createUser method");
+----
+
+The SDK automatically extracts session IDs from Codex output for seamless continuity.
+
+=== Git Repository Management
+
+Codex enforces git repository presence by default for safety:
+
+[source,java]
+----
+// Require git repository (default, recommended)
+CodexAgentOptions gitOptions = CodexAgentOptions.builder()
+    .skipGitCheck(false)
+    .build();
+
+// Skip git check (use only for temporary/throwaway directories)
+CodexAgentOptions noGitOptions = CodexAgentOptions.builder()
+    .skipGitCheck(true)
+    .build();
+----
+
+CAUTION: Skipping git checks removes an important safety mechanism. Only use for temporary test directories.
+
+=== Working Directory Management
+
+Codex operates within a specific directory context:
+
+[source,java]
+----
+// Configure working directory via client
+CodexClient client = CodexClient.create(
+    Paths.get("/path/to/microservice")
+);
+
+// Or via AgentClient fluent API
+AgentClientResponse response = agentClient
+    .goal("Add validation to the UserController")
+    .workingDirectory("/path/to/microservice")
+    .run();
+----
+
+=== Rich Metadata Capture
+
+Enable JSON output for detailed execution metadata:
+
+[source,java]
+----
+ExecuteOptions options = ExecuteOptions.builder()
+    .model("gpt-5-codex")
+    .fullAuto(true)
+    .json(true)  // Enable JSONL event streaming
+    .build();
+
+ExecuteResult result = codexClient.execute("Implement feature", options);
+
+// Access rich metadata
+String activityLog = result.getActivityLog();
+int exitCode = result.getExitCode();
+Duration duration = result.getDuration();
+String sessionId = result.getSessionId();
+----
+
+=== Timeout Configuration
+
+Set appropriate timeouts for different goal complexities:
+
+[source,java]
+----
+// Quick tasks
+CodexAgentOptions quickOptions = CodexAgentOptions.builder()
+    .timeout(Duration.ofMinutes(2))
+    .build();
+
+// Complex refactoring
+CodexAgentOptions complexOptions = CodexAgentOptions.builder()
+    .timeout(Duration.ofMinutes(30))
+    .build();
+----
+
+== Error Handling
+
+=== Common Exceptions
+
+[source,java]
+----
+import org.springaicommunity.agents.codexsdk.exceptions.CodexSDKException;
+
+try {
+    AgentClientResponse response = agentClient.run("Complex refactoring goal");
+
+    if (!response.isSuccessful()) {
+        System.err.println("Goal failed: " + response.getResult());
+    }
+
+} catch (CodexSDKException e) {
+    // Codex CLI process failed
+    System.err.println("Codex execution error: " + e.getMessage());
+
+} catch (RuntimeException e) {
+    // Other runtime errors (timeout, etc.)
+    System.err.println("Unexpected error: " + e.getMessage());
+}
+----
+
+=== Validation and Recovery
+
+[source,java]
+----
+@Service
+public class CodexService {
+
+    private final AgentClient agentClient;
+
+    public CodexService(AgentClient agentClient) {
+        this.agentClient = agentClient;
+    }
+
+    public String refactorCode(String className, String requirements) {
+        // Validate inputs
+        if (className == null || className.trim().isEmpty()) {
+            throw new IllegalArgumentException("Class name is required");
+        }
+
+        try {
+            // First, analyze the code
+            AgentClientResponse analysis = agentClient
+                .goal("Analyze " + className + " and suggest improvements")
+                .options(CodexAgentOptions.builder()
+                    .sandboxMode(SandboxMode.READ_ONLY)
+                    .build())
+                .run();
+
+            if (!analysis.isSuccessful()) {
+                throw new ServiceException("Analysis failed: " + analysis.getResult());
+            }
+
+            // Then perform refactoring
+            AgentClientResponse refactoring = agentClient
+                .goal("Refactor " + className + " based on: " + requirements)
+                .options(CodexAgentOptions.builder()
+                    .fullAuto(true)
+                    .build())
+                .run();
+
+            return refactoring.getResult();
+
+        } catch (Exception e) {
+            // Log error and return meaningful message
+            log.error("Refactoring failed for class: {}", className, e);
+            throw new ServiceException("Unable to refactor " + className + ": " + e.getMessage());
+        }
+    }
+}
+----
+
+== Spring Boot Integration
+
+=== Auto-Configuration
+
+The Spring Boot starter provides automatic configuration:
+
+[source,java]
+----
+@SpringBootApplication
+public class Application {
+
+    public static void main(String[] args) {
+        SpringApplication.run(Application.class, args);
+    }
+
+    // CodexClient, CodexAgentModel, and AgentClient are auto-configured
+
+    @Bean
+    public CommandLineRunner demo(AgentClient agentClient) {
+        return args -> {
+            AgentClientResponse response = agentClient.run(
+                "Create a REST controller for managing users"
+            );
+            System.out.println(response.getResult());
+        };
+    }
+}
+----
+
+=== Application Properties
+
+Configure Codex via `application.yml`:
+
+[source,yaml]
+----
+spring:
+  ai:
+    agents:
+      codex:
+        model: gpt-5-codex
+        timeout: PT10M
+        full-auto: true
+        skip-git-check: false
+        executable-path: /custom/path/to/codex  # Optional
+----
+
+Or `application.properties`:
+
+[source,properties]
+----
+spring.ai.agents.codex.model=gpt-5-codex
+spring.ai.agents.codex.timeout=PT10M
+spring.ai.agents.codex.full-auto=true
+spring.ai.agents.codex.skip-git-check=false
+spring.ai.agents.codex.executable-path=/custom/path/to/codex
+----
+
+=== Custom Configuration
+
+Override auto-configuration with custom beans:
+
+[source,java]
+----
+@Configuration
+public class CodexConfiguration {
+
+    @Bean
+    public CodexAgentOptions customCodexOptions() {
+        return CodexAgentOptions.builder()
+            .model("gpt-5-codex")
+            .fullAuto(true)
+            .timeout(Duration.ofMinutes(15))
+            .build();
+    }
+
+    @Bean
+    public CodexClient customCodexClient() {
+        return CodexClient.create(
+            Paths.get("/path/to/project"),
+            "/custom/path/to/codex"
+        );
+    }
+}
+----
+
+== Best Practices
+
+=== Goal Formulation
+
+Write specific, actionable goals for Codex:
+
+[source,java]
+----
+// Good: Specific and contextual
+agentClient.run("Add input validation to UserController.createUser() method using Bean Validation annotations");
+
+// Good: Clear scope and requirements
+agentClient.run("Refactor PaymentService to use the Strategy pattern for different payment processors");
+
+// Avoid: Vague requests
+agentClient.run("Fix the code");
+
+// Avoid: Overly broad scope
+agentClient.run("Rewrite the entire application");
+----
+
+=== Security Considerations
+
+Always be cautious with autonomous mode in production:
+
+[source,java]
+----
+@Profile("development")
+@Configuration
+public class DevelopmentCodexConfig {
+
+    @Bean
+    public CodexAgentOptions devCodexOptions() {
+        return CodexAgentOptions.builder()
+            .fullAuto(true) // OK for development
+            .build();
+    }
+}
+
+@Profile("production")
+@Configuration
+public class ProductionCodexConfig {
+
+    @Bean
+    public CodexAgentOptions prodCodexOptions() {
+        return CodexAgentOptions.builder()
+            .sandboxMode(SandboxMode.READ_ONLY) // Safe for production
+            .build();
+    }
+}
+----
+
+=== Resource Management
+
+Monitor and limit resource usage:
+
+[source,java]
+----
+@Component
+public class CodexMonitor {
+
+    private final MeterRegistry meterRegistry;
+    private final AgentClient agentClient;
+
+    public CodexMonitor(MeterRegistry meterRegistry, AgentClient agentClient) {
+        this.meterRegistry = meterRegistry;
+        this.agentClient = agentClient;
+    }
+
+    public String executeWithMetrics(String goal) {
+        return Timer.Sample.start(meterRegistry)
+            .stop(Timer.builder("codex.goal.duration")
+                .tag("goal", goal.substring(0, Math.min(goal.length(), 50)))
+                .register(meterRegistry))
+            .recordCallable(() -> {
+                Counter.builder("codex.goal.count").register(meterRegistry).increment();
+
+                AgentClientResponse response = agentClient.run(goal);
+
+                Counter.builder("codex.goal.result")
+                    .tag("success", String.valueOf(response.isSuccessful()))
+                    .register(meterRegistry)
+                    .increment();
+
+                return response.getResult();
+            });
+    }
+}
+----
+
+== Troubleshooting
+
+=== Common Issues
+
+**Codex CLI Not Found**
+
+Ensure Codex is installed and in your PATH:
+
+[source,bash]
+----
+# Verify installation
+codex --version
+
+# Check PATH
+which codex  # macOS/Linux
+where codex  # Windows
+
+# Set CODEX_CLI_PATH for custom installation
+export CODEX_CLI_PATH=/path/to/codex
+----
+
+**API Key Issues**
+
+Verify your API key configuration:
+
+[source,bash]
+----
+# Check environment variable
+echo $CODEX_API_KEY
+
+# Test with Codex CLI directly
+codex --help
+
+# Or use session authentication
+codex auth login
+----
+
+**Git Repository Required**
+
+Codex requires a git repository by default:
+
+[source,bash]
+----
+# Initialize git in your working directory
+cd /path/to/project
+git init
+
+# Or skip the check (not recommended)
+# Set skipGitCheck(true) in CodexAgentOptions
+----
+
+**Permission Denied**
+
+Ensure proper file permissions in working directory:
+
+[source,bash]
+----
+# Check directory permissions
+ls -la /path/to/project
+
+# Fix if needed
+chmod -R u+rw /path/to/project
+----
+
+**Timeout Issues**
+
+Increase timeout for complex tasks:
+
+[source,java]
+----
+CodexAgentOptions options = CodexAgentOptions.builder()
+    .timeout(Duration.ofMinutes(30)) // Longer timeout
+    .build();
+----
+
+=== Debugging
+
+Enable debug logging to troubleshoot issues:
+
+[source,yaml]
+----
+logging:
+  level:
+    org.springaicommunity.agents.codex: DEBUG
+    org.springaicommunity.agents.codexsdk: DEBUG
+    org.springaicommunity.agents.client: DEBUG
+----
+
+=== Environment Variables
+
+Key environment variables for testing and configuration:
+
+[cols="1,2"]
+|===
+|Variable |Purpose
+
+|`CODEX_API_KEY`
+|OpenAI API key for authentication (alternative to `codex auth login`)
+
+|`CODEX_CLI_PATH`
+|Custom path to Codex CLI executable (for non-standard installations)
+|===
+
+== Differences from Other Agents
+
+If you're familiar with other agent integrations, note these differences:
+
+[cols="1,1,1,1"]
+|===
+|Feature |Claude |Gemini |Codex
+
+|Authentication
+|`claude auth login` or `ANTHROPIC_API_KEY`
+|`gemini auth login` or `GEMINI_API_KEY`
+|`codex auth login` or `CODEX_API_KEY`
+
+|Autonomous mode
+|`yolo(true)`
+|`yolo(true)`
+|`fullAuto(true)`
+
+|Sandbox modes
+|Similar
+|Similar
+|READ_ONLY, WORKSPACE_WRITE, DANGER_FULL_ACCESS
+
+|Approval policies
+|Similar
+|Similar
+|NEVER, SMART, ALWAYS
+
+|Model
+|claude-sonnet-4, etc.
+|gemini-2.0-flash-exp, etc.
+|gpt-5-codex
+
+|Default timeout
+|10 minutes
+|10 minutes
+|10 minutes
+
+|Git requirement
+|No
+|No
+|Yes (can be skipped)
+|===
+
+== Next Steps
+
+* Learn about other agent integrations in xref:api/claude-code-sdk.adoc[Claude Agent SDK]
+* See practical examples in xref:samples.adoc[Sample Agents]
+* Compare with the standard API in xref:api/agentclient-vs-chatclient.adoc[AgentClient vs ChatClient]
