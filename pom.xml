@@ -50,6 +50,7 @@
         <module>provider-sdks/swe-agent-sdk</module>
         <module>provider-sdks/amp-cli-sdk</module>
         <module>provider-sdks/codex-cli-sdk</module>
+        <module>provider-sdks/amazon-q-cli-sdk</module>
 
         <!-- Agent models that depend on base + SDKs -->
         <module>agent-models/spring-ai-claude-agent</module>
@@ -57,6 +58,7 @@
         <module>agent-models/spring-ai-swe-agent</module>
         <module>agent-models/spring-ai-amp-agent</module>
         <module>agent-models/spring-ai-codex-agent</module>
+        <module>agent-models/spring-ai-amazon-q-agent</module>
 
         <!-- Advisor modules -->
         <module>advisors/spring-ai-advisors-judge</module>

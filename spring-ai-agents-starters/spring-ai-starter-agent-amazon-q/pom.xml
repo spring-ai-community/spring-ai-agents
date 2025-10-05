@@ -16,28 +16,28 @@
   -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>org.springaicommunity.agents</groupId>
-        <artifactId>spring-ai-agents-parent</artifactId>
+        <artifactId>spring-ai-agents-starters</artifactId>
         <version>0.1.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>spring-ai-agents-starters</artifactId>
-    <packaging>pom</packaging>
+    <artifactId>spring-ai-starter-agent-amazon-q</artifactId>
+    <packaging>jar</packaging>
 
-    <name>Spring AI Agents Starters</name>
-    <description>Spring Boot Starters for Spring AI Agents</description>
+    <name>Spring AI Starter - Amazon Q Agent</name>
+    <description>Spring Boot Starter for Amazon Q Developer CLI Agent</description>
 
-    <modules>
-        <module>spring-ai-starter-agent-claude</module>
-        <module>spring-ai-starter-agent-gemini</module>
-        <module>spring-ai-starter-agent-amp</module>
-        <module>spring-ai-starter-agent-codex</module>
-        <module>spring-ai-starter-agent-amazon-q</module>
-    </modules>
+    <dependencies>
+        <dependency>
+            <groupId>org.springaicommunity.agents</groupId>
+            <artifactId>spring-ai-amazon-q-agent</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
 
 </project>
