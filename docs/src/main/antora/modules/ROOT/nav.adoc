@@ -34,6 +34,7 @@
 * Provider SDKs
 ** xref:api/claude-code-sdk.adoc[Claude Code SDK]
 ** xref:api/gemini-cli-sdk.adoc[Gemini CLI SDK]
+** xref:api/amp-cli-sdk.adoc[Amp CLI SDK]
 
 * JBang Runner
 ** xref:jbang-runner.adoc[Overview]

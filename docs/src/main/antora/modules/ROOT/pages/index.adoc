@@ -77,7 +77,7 @@ ____
 
 **Spring AI Agents applies the same principle to autonomous agents:**
 
-* **Agent SDK portability layer** - Java wrappers for leading agentic CLI tools: xref:api/claude-code-sdk.adoc[Claude Agent SDK], xref:api/gemini-cli-sdk.adoc[Gemini CLI Agent SDK], https://github.com/SWE-agent/mini-swe-agent[mini-swe-agent], with planned support for https://block.github.io/goose/[Goose], https://github.blog/news-insights/product-news/github-copilot-meet-the-new-coding-agent/[GitHub Copilot Agent], https://aws.amazon.com/q/developer/[Amazon Q Developer], and https://openai.com/index/introducing-upgrades-to-codex/[OpenAI Codex]
+* **Agent SDK portability layer** - Java wrappers for leading agentic CLI tools: xref:api/claude-code-sdk.adoc[Claude Agent SDK], xref:api/gemini-cli-sdk.adoc[Gemini CLI Agent SDK], xref:api/amp-cli-sdk.adoc[Amp CLI SDK], https://github.com/SWE-agent/mini-swe-agent[mini-swe-agent], with planned support for https://block.github.io/goose/[Goose], https://github.blog/news-insights/product-news/github-copilot-meet-the-new-coding-agent/[GitHub Copilot Agent], https://aws.amazon.com/q/developer/[Amazon Q Developer], and https://openai.com/index/introducing-upgrades-to-codex/[OpenAI Codex]
 * **Familiar Spring AI patterns** - xref:api/agentclient.adoc[AgentClient] API following xref:api/agentclient-vs-chatclient.adoc[ChatClient design]
 * **Advisor pattern** - Extend agent behavior with xref:concepts/context-engineering.adoc[context] and xref:judges/index.adoc[judges] as advisors, just like ChatClient
 * **Agent sandbox** - xref:concepts/sandboxes.adoc[Isolated execution]
@@ -126,7 +126,7 @@ CLI agents are uniquely effective because they:
 
 **Human-in-the-Loop vs Autonomous**: Chatbots like ChatGPT and code completion tools like Copilot excel at exploration and pair programming. Autonomous CLI agents excel at executing well-defined goals end-to-end without human intervention. Different tools for different needs.
 
-**The space is evolving**. Both paths coexist: use agentic CLI tools (like Claude Agent SDK, Gemini CLI) for general development tasks, or build custom agents with Spring AI's `@Tool`/MCP for specialized needs. Leading companies invest heavily in context engineering, planning strategies, and continuous model improvements—Spring AI Agents lets you leverage that R&D while maintaining flexibility to build custom solutions when appropriate.
+**The space is evolving**. Both paths coexist: use agentic CLI tools (like Claude Agent SDK, Gemini CLI, Amp) for general development tasks, or build custom agents with Spring AI's `@Tool`/MCP for specialized needs. Leading companies invest heavily in context engineering, planning strategies, and continuous model improvements—Spring AI Agents lets you leverage that R&D while maintaining flexibility to build custom solutions when appropriate.
 
 Spring AI Agents makes autonomous agents as easy to use in Spring Boot as ChatClient is for conversational AI.
 
@@ -135,7 +135,7 @@ Spring AI Agents makes autonomous agents as easy to use in Spring Boot as ChatCl
 * **Zero-Setup Quick Start** - Try agents via JBang catalog without cloning or building
 * **ChatClient-style API** - Same fluent patterns Spring developers already know
 * **JBang Agent Runner** - Primary developer entry point for trying agents locally with LocalSandbox
-* **Multiple agent providers** - Claude Code, Gemini CLI, SWE Agent support (more to come!)
+* **Multiple agent providers** - Claude Code, Gemini CLI, Amp, and SWE Agent support (more to come!)
 * **Fluent API design** - Clean, intuitive interface following Spring patterns
 * **Spring Boot ready** - Auto-configuration and dependency injection support
 * **Production essentials** - Built-in error handling, timeouts, and metadata
@@ -159,7 +159,7 @@ For a detailed analysis of these benchmarking issues, see the https://spring-ai-
 
 We're building https://github.com/spring-ai-community/spring-ai-bench[**Spring AI Bench**]—an open-source benchmark suite for Java that evaluates agents on goal-directed, enterprise workflows. Following Stanford's https://betterbench.stanford.edu/[BetterBench] principles for reproducibility and contamination resistance.
 
-Spring AI Bench and Spring AI Agents work hand-in-hand: **Spring AI Agents provides the integration layer**, making it easy to run different agents (Claude, Gemini, custom solutions). **Spring AI Bench provides the measurement framework**, evaluating agents across multiple dimensions.
+Spring AI Bench and Spring AI Agents work hand-in-hand: **Spring AI Agents provides the integration layer**, making it easy to run different agents (Claude, Gemini, Amp, custom solutions). **Spring AI Bench provides the measurement framework**, evaluating agents across multiple dimensions.
 
 **Philosophy**: Let the best agent per use case win. Benchmark ALL approaches—annotation-based tools, CLI agents, custom solutions—and measure what actually matters.
 
@@ -200,6 +200,10 @@ Spring AI Agents provides Java integration for leading autonomous agentic CLI to
 |✅ Available
 |Google's command-line coding agent with multimodal capabilities.
 
+|https://ampcode.com/[**Amp CLI**]
+|✅ Available
+|Sourcegraph's autonomous coding agent. Full-featured CLI tool for code generation, refactoring, and debugging.
+
 |https://github.com/SWE-agent/mini-swe-agent[**mini-swe-agent**]
 |✅ Available
 |Lightweight 100-line autonomous agent for benchmarking. Simpler alternative to the original SWE-agent (thousands of lines of Python).
@@ -225,7 +229,7 @@ Spring AI Agents provides Java integration for leading autonomous agentic CLI to
 
 * Java 17 or higher
 * Maven 3.6.3 or higher
-* Agent CLI tools installed (Claude, Gemini, etc.)
+* Agent CLI tools installed (Claude, Gemini, Amp, etc.)
 * Valid API keys for your chosen providers
 
 == Getting Started
@@ -239,6 +243,7 @@ Get started using Spring AI Agents by following our xref:getting-started.adoc[Ge
 * xref:api/agentclient-vs-chatclient.adoc[AgentClient vs ChatClient] - See how AgentClient follows ChatClient patterns
 * xref:api/claude-code-sdk.adoc[Claude Agent SDK] - Java integration with Claude Agent SDK
 * xref:api/gemini-cli-sdk.adoc[Gemini CLI Agent SDK] - Java integration with Gemini CLI Agent SDK
+* xref:api/amp-cli-sdk.adoc[Amp CLI SDK] - Java integration with Sourcegraph Amp CLI
 * xref:samples.adoc[Sample Agents] - Real-world agent examples and patterns
 
 == Contributing
