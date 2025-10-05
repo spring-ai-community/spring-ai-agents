@@ -50,7 +50,7 @@ public class HelloWorldApplication {
         return args -> {
             AgentClientResponse response = agentClientBuilder.build()
                 .goal("Create a file named hello.txt with content 'Hello World'")
-                .workingDirectory(Path.of("/tmp/hello"))
+                .workingDirectory(Path.of(System.getProperty("user.dir")))
                 .advisors(JudgeAdvisor.builder().judge(new FileExistsJudge("hello.txt")).build())
                 .run();
 
@@ -68,22 +68,21 @@ public class HelloWorldApplication {
 Let's break down what the agent did:
 
 1. **Goal** - We specified what we want: "Create a file named hello.txt with content 'Hello World'"
-2. **Working Directory** - The agent operates in `/tmp/hello`
+2. **Working Directory** - The agent operates in the current directory (`user.dir`)
 3. **Judge Advisor** - We added a `FileExistsJudge` to verify the file was created
 4. **Agent Execution** - Claude Code autonomously:
-   * Created the directory `/tmp/hello` if it didn't exist
-   * Created `hello.txt` inside that directory
+   * Created `hello.txt` in the working directory
    * Wrote "Hello World" to the file
 5. **Verification** - The judge verified the file exists and returned a passing judgment
 6. **Response** - We received the agent's final output and judge verdict
 
 == Verify It Worked
 
-Check that the file was created:
+Check that the file was created in your current directory:
 
 [source,bash]
 ----
-$ cat /tmp/hello/hello.txt
+$ cat hello.txt
 Hello World
 ----
 
