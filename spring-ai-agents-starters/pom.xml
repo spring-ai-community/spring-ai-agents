@@ -36,6 +36,7 @@
         <module>spring-ai-starter-agent-claude</module>
         <module>spring-ai-starter-agent-gemini</module>
         <module>spring-ai-starter-agent-amp</module>
+        <module>spring-ai-starter-agent-codex</module>
     </modules>
 
 </project>

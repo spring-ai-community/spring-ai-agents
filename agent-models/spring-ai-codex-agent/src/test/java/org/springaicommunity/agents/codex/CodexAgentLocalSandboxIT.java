@@ -14,81 +14,74 @@
  * limitations under the License.
  */
 
-package org.springaicommunity.agents.amp;
+package org.springaicommunity.agents.codex;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
-import org.springaicommunity.agents.ampsdk.AmpClient;
-import org.springaicommunity.agents.ampsdk.types.ExecuteOptions;
-import org.springaicommunity.agents.tck.AbstractAgentModelTCK;
+import org.springaicommunity.agents.codexsdk.CodexClient;
+import org.springaicommunity.agents.codexsdk.types.ExecuteOptions;
 import org.springaicommunity.agents.model.AgentOptions;
 import org.springaicommunity.agents.model.sandbox.LocalSandbox;
+import org.springaicommunity.agents.tck.AbstractAgentModelTCK;
+import org.zeroturnaround.exec.ProcessExecutor;
 
 import java.time.Duration;
 
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
- * TCK test implementation for AmpAgentModel with LocalSandbox.
- *
- * <p>
- * Tests the AmpAgentModel implementation against the standard agent model TCK test suite
- * using LocalSandbox for command execution. These tests verify that Amp CLI integration
- * works correctly with local execution.
- * </p>
- *
- * <p>
- * Requirements:
- * </p>
- * <ul>
- * <li>Amp CLI to be installed and discoverable</li>
- * <li>Amp authentication configured (via `amp login` or AMP_API_KEY)</li>
- * </ul>
+ * TCK test implementation for CodexAgentModel with LocalSandbox.
  *
  * @author Spring AI Community
  */
 @DisabledIfEnvironmentVariable(named = "CI", matches = "true",
-		disabledReason = "Amp CLI not available in CI environment")
-class AmpAgentLocalSandboxIT extends AbstractAgentModelTCK {
+		disabledReason = "Codex CLI not available in CI environment")
+class CodexAgentLocalSandboxIT extends AbstractAgentModelTCK {
 
 	@BeforeEach
 	void setUp() {
 		try {
+			// Initialize git repository (Codex requires this)
+			new ProcessExecutor().command("git", "init").directory(tempDir.toFile()).execute();
+
 			// Create LocalSandbox with temp directory
 			this.sandbox = new LocalSandbox(tempDir);
 
-			// Create Amp client with default options
+			// Create Codex client with default options
 			ExecuteOptions executeOptions = ExecuteOptions.builder()
-				.dangerouslyAllowAll(true)
+				.fullAuto(true)
 				.timeout(Duration.ofMinutes(3))
+				.skipGitCheck(false)
 				.build();
 
-			AmpClient ampClient = AmpClient.create(executeOptions, tempDir);
+			CodexClient codexClient = CodexClient.create(executeOptions, tempDir);
 
 			// Create agent options
-			AmpAgentOptions options = AmpAgentOptions.builder()
-				.model("amp-default")
+			CodexAgentOptions options = CodexAgentOptions.builder()
+				.model("gpt-5-codex")
 				.timeout(Duration.ofMinutes(3))
-				.dangerouslyAllowAll(true)
+				.fullAuto(true)
+				.skipGitCheck(false)
 				.build();
 
 			// Create agent model
-			this.agentModel = new AmpAgentModel(ampClient, options, sandbox);
+			this.agentModel = new CodexAgentModel(codexClient, options, sandbox);
 
-			// Verify Amp CLI is available before running tests
-			assumeTrue(agentModel.isAvailable(), "Amp CLI must be available for integration tests");
+			// Verify Codex CLI is available before running tests
+			assumeTrue(agentModel.isAvailable(), "Codex CLI must be available for integration tests");
 		}
 		catch (Exception e) {
-			assumeTrue(false, "Failed to initialize Amp CLI: " + e.getMessage());
+			assumeTrue(false, "Failed to initialize Codex CLI: " + e.getMessage());
 		}
 	}
 
 	@Override
 	protected AgentOptions createShortTimeoutOptions() {
-		return AmpAgentOptions.builder()
-			.model("amp-default")
+		return CodexAgentOptions.builder()
+			.model("gpt-5-codex")
 			.timeout(Duration.ofSeconds(10)) // Short timeout for timeout testing
-			.dangerouslyAllowAll(true)
+			.fullAuto(true)
+			.skipGitCheck(false)
 			.build();
 	}
 

@@ -18,7 +18,7 @@ package org.springaicommunity.agents.ampsdk;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import org.junit.jupiter.api.io.TempDir;
 import org.springaicommunity.agents.ampsdk.types.ExecuteOptions;
 import org.springaicommunity.agents.ampsdk.types.ExecuteResult;
@@ -42,8 +42,8 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  *
  * @author Spring AI Community
  */
-// Temporarily not requiring AMP_API_KEY since session auth works
-// @EnabledIfEnvironmentVariable(named = "AMP_API_KEY", matches = ".+")
+@DisabledIfEnvironmentVariable(named = "CI", matches = "true",
+		disabledReason = "Amp CLI not available in CI environment")
 class AmpClientIT {
 
 	private AmpClient client;
