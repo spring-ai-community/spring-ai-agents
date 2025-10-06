@@ -1,0 +1,414 @@
+= Code Coverage Agent: Real-World Results
+:page-title: Code Coverage Agent
+:toc: left
+:tabsize: 2
+:sectnums:
+
+The code coverage agent is Spring AI Agents' **first real-world agent beyond "Hello World"**. It autonomously increases JaCoCo test coverage by analyzing code, generating comprehensive tests, and validating Spring OSS best practices.
+
+== Real Results
+
+We tested the agent on Spring's https://spring.io/guides/gs/rest-service[gs-rest-service] tutorial (a simple REST API):
+
+[cols="1,3"]
+|===
+|Metric |Result
+
+|**Baseline Coverage**
+|0% (no tests initially)
+
+|**Final Coverage**
+|71.4% line coverage, 87.5% instruction coverage
+
+|**Target**
+|20% (exceeded by 3.5x)
+
+|**Execution Time**
+|~6 minutes
+
+|**Tests Generated**
+|8 comprehensive test methods
+
+|**Repository**
+|https://github.com/spring-guides/gs-rest-service
+|===
+
+== Claude vs Gemini: Best Practices Adherence
+
+Both models achieved **71.4% coverage**, but **Claude followed ALL Spring WebMVC best practices** while Gemini did not—despite receiving identical prompts.
+
+[cols="2,1,1,3"]
+|===
+|Practice |Claude |Gemini |Why It Matters
+
+|**@WebMvcTest**
+|✅
+|❌ @SpringBootTest
+|10x faster startup, loads only web layer instead of entire application context
+
+|**jsonPath()**
+|✅
+|❌ ObjectMapper
+|Cleaner API, less boilerplate, better readability
+
+|**AssertJ**
+|✅
+|✅
+|Both used fluent assertions correctly
+
+|**BDD naming**
+|✅
+|❌
+|Tests read like specifications: `greetingShouldReturnDefaultMessageWhenNoParameterProvided()`
+
+|**Edge cases**
+|✅
+|✅
+|Both tested empty strings, special characters, Unicode, long inputs
+|===
+
+=== Generated Test Code (Claude)
+
+Claude generated production-quality tests following Spring conventions:
+
+[source,java]
+----
+@WebMvcTest(GreetingController.class)  // <1>
+public class GreetingControllerTests {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Test
+    public void greetingShouldReturnDefaultMessageWhenNoParameterProvided() throws Exception {  // <2>
+        mockMvc.perform(get("/greeting"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.content").value("Hello, World!"))  // <3>
+            .andExpect(jsonPath("$.id").isNumber());
+    }
+
+    @Test
+    public void greetingShouldHandleSpecialCharactersInName() throws Exception {
+        mockMvc.perform(get("/greeting").param("name", "José & María"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content").value("Hello, José & María!"));
+    }
+
+    @Test
+    public void greetingShouldHandleUnicodeCharactersInName() throws Exception {  // <4>
+        mockMvc.perform(get("/greeting").param("name", "世界"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content").value("Hello, 世界!"));
+    }
+
+    // ... 5 more comprehensive tests
+}
+----
+<1> **@WebMvcTest** - Loads only web layer (fast, focused)
+<2> **BDD naming** - Test name describes behavior clearly
+<3> **jsonPath()** - Clean JSON validation without manual parsing
+<4> **Edge cases** - Unicode, special characters, long inputs
+
+== How It Works: Two-Phase Architecture
+
+The code coverage agent uses a **setup/execute lifecycle** for complex workflows requiring workspace preparation:
+
+=== Phase 1: Setup
+
+The setup phase prepares the workspace and validates preconditions:
+
+[source,java]
+----
+@Override
+public SetupContext setup(LauncherSpec spec) throws Exception {
+    // 1. Clone git repository
+    syncVendir(spec.cwd(), gitUrl, gitRef, gitSubdir);
+
+    // 2. Verify code compiles (FAIL FAST)
+    BuildResult compileResult = MavenBuildRunner.runBuild(workspace, 5, "clean", "compile");
+    if (!compileResult.success()) {
+        return SetupContext.builder()
+            .workspace(workspace)
+            .successful(false)
+            .error("Code does not compile")
+            .build();
+    }
+
+    // 3. Run existing tests (FAIL FAST)
+    TestRunResult testResult = MavenTestRunner.runTests(workspace, 5);
+    if (!testResult.passed()) {
+        return SetupContext.builder()
+            .workspace(workspace)
+            .successful(false)
+            .error("Existing tests fail")
+            .build();
+    }
+
+    // 4. Measure baseline coverage
+    CoverageMetrics baseline = tryMeasureBaseline(workspace);
+
+    return SetupContext.builder()
+        .workspace(workspace)
+        .successful(true)
+        .metadata("baseline_coverage", baseline)
+        .metadata("has_jacoco", baseline.lineCoverage() > 0)
+        .build();
+}
+----
+
+**Setup responsibilities**:
+
+* **Workspace preparation** - Clone repository, verify structure
+* **Validation** - Ensure code compiles and tests pass before agent runs
+* **Baseline measurement** - Capture initial coverage metrics
+* **Fast failure** - Stop immediately if preconditions aren't met
+
+=== Phase 2: Execute
+
+The execute phase runs the agent autonomously:
+
+[source,java]
+----
+@Override
+public Result run(SetupContext setup, LauncherSpec spec) throws Exception {
+    // Get baseline from setup
+    CoverageMetrics baseline = setup.getMetadata("baseline_coverage");
+    boolean hasJaCoCo = setup.getMetadata("has_jacoco");
+
+    // Build AI goal with context
+    String goal = CoveragePromptBuilder.create(baseline, hasJaCoCo, targetCoverage).build();
+
+    // Create agent and run autonomously
+    AgentModel agentModel = createAgentModel(provider, model, setup.getWorkspace());
+    AgentClient client = AgentClient.builder(agentModel).build();
+
+    AgentClientResponse response = client
+        .goal(goal)
+        .workingDirectory(setup.getWorkspace())
+        .run();  // <1>
+
+    // Measure final coverage
+    CoverageMetrics finalCov = measureCoverage(setup.getWorkspace());
+
+    return buildResult(baseline, finalCov, response, setup.getWorkspace());
+}
+----
+<1> Agent runs autonomously with no human intervention
+
+**Execute responsibilities**:
+
+* **Goal construction** - Build prompt with baseline metrics and Spring best practices
+* **Autonomous execution** - Agent plans, implements, and validates tests
+* **Result evaluation** - Measure final coverage and compare to baseline
+
+== Prompt Engineering with Spring AI
+
+The agent uses Spring AI's `PromptTemplate` infrastructure for modular, testable prompts:
+
+[source,java]
+----
+public class CoveragePromptBuilder {
+
+    private final PromptTemplate mainPromptTemplate;
+    private final PromptTemplate jacocoPluginTemplate;
+
+    public CoveragePromptBuilder() {
+        this.mainPromptTemplate = new PromptTemplate(
+            new ClassPathResource("/META-INF/prompts/coverage-agent-prompt.txt")
+        );
+        this.jacocoPluginTemplate = new PromptTemplate(
+            new ClassPathResource("/META-INF/prompts/jacoco-plugin.xml")
+        );
+    }
+
+    public CoveragePromptBuilder withBaseline(CoverageMetrics baseline) {
+        variables.put("baseline_line_coverage", String.format("%.1f", baseline.lineCoverage()));
+        return this;
+    }
+
+    public CoveragePromptBuilder withTargetCoverage(int targetCoverage) {
+        variables.put("target_coverage", targetCoverage);
+        return this;
+    }
+
+    public String build() {
+        return mainPromptTemplate.render(variables);
+    }
+}
+----
+
+**Benefits**:
+
+* **Externalized prompts** - Stored in `/META-INF/prompts/` for easy modification
+* **Variable substitution** - Dynamic content (baseline %, target %)
+* **Modular design** - Separate templates for main prompt and JaCoCo config
+* **Testable** - Unit tests validate prompt generation
+
+=== Spring OSS Best Practices in Prompt
+
+The prompt includes explicit Spring testing conventions:
+
+[source,text]
+----
+SPRING OSS TESTING BEST PRACTICES (MANDATORY):
+
+1. ASSERTIONS - Use AssertJ for fluent, readable assertions:
+   ✅ GOOD: assertThat(greeting.id()).isEqualTo(1)
+
+2. TEST NAMING - BDD-style: methodName[whenCondition]shouldExpectation
+   ✅ GOOD: greetingShouldReturnCustomMessageWhenNameProvided()
+
+3. CONTROLLER TESTING - Use @WebMvcTest for focused, fast controller tests:
+   ✅ GOOD: @WebMvcTest(YourController.class)
+
+4. JSON RESPONSE VALIDATION - Use jsonPath() for cleaner assertions:
+   ✅ GOOD: .andExpect(jsonPath("$.content").value("Hello, World!"))
+
+5. EDGE CASES - Test boundary conditions and special inputs:
+   - Empty string parameters
+   - Special characters and URL encoding
+   - Unicode characters
+   - Very long strings
+----
+
+Claude followed these practices perfectly. Gemini achieved the same coverage but didn't follow the testing patterns.
+
+== Judge Pattern: Coverage Verification
+
+The agent uses a `CoverageJudge` for deterministic verification:
+
+[source,java]
+----
+public class CoverageJudge implements Judge {
+
+    private final double targetCoverage;
+
+    public CoverageJudge(double targetCoverage) {
+        this.targetCoverage = targetCoverage;
+    }
+
+    @Override
+    public Judgment judge(JudgmentContext context) {
+        // Parse JaCoCo report
+        Path reportPath = context.workspace().resolve("target/site/jacoco/jacoco.xml");
+        CoverageMetrics metrics = JaCoCoReportParser.parseReport(reportPath);
+
+        // Compare to target
+        boolean passed = metrics.lineCoverage() >= targetCoverage;
+
+        return Judgment.builder()
+            .status(passed ? JudgmentStatus.PASS : JudgmentStatus.FAIL)
+            .score(new NumericalScore(metrics.lineCoverage(), 0, 100))
+            .reasoning(String.format("Coverage: %.1f%% (target: %.1f%%)",
+                metrics.lineCoverage(), targetCoverage))
+            .build();
+    }
+}
+----
+
+**Verification workflow**:
+
+1. Agent completes test generation
+2. Maven runs tests and generates JaCoCo report
+3. Judge parses `jacoco.xml` report
+4. Judge compares actual vs target coverage
+5. Judge returns pass/fail with detailed score
+
+== Usage Examples
+
+=== Programmatic Usage
+
+[source,java]
+----
+// Create agent spec
+AgentSpec agentSpec = AgentSpecLoader.loadAgentSpec("coverage");
+
+// Configure inputs
+Map<String, Object> inputs = Map.of(
+    "git_url", "https://github.com/spring-guides/gs-rest-service",
+    "git_ref", "main",
+    "git_subdirectory", "complete",
+    "target_coverage", 80,
+    "provider", "claude",
+    "model", "claude-sonnet-4-20250514"
+);
+
+// Create launcher spec
+Path workingDir = Paths.get("/tmp/coverage-test");
+LauncherSpec spec = new LauncherSpec(agentSpec, inputs, workingDir, Map.of());
+
+// Run agent
+CodeCoverageAgentRunner agent = new CodeCoverageAgentRunner();
+SetupContext setup = agent.setup(spec);
+Result result = agent.run(setup, spec);
+
+// Check results
+System.out.println("Baseline: " + result.data().get("baseline_coverage_line") + "%");
+System.out.println("Final: " + result.data().get("final_coverage_line") + "%");
+System.out.println("Workspace: " + result.data().get("workspace"));
+System.out.println("Report: " + result.data().get("coverage_report"));
+----
+
+=== JBang Usage (Coming Soon)
+
+Once artifacts are published to Maven Central, you'll be able to run:
+
+[source,bash]
+----
+jbang agents@springai coverage \
+    git_url=https://github.com/spring-guides/gs-rest-service \
+    target_coverage=80 \
+    provider=claude
+----
+
+== Future Enhancements
+
+The current agent uses a **deterministic judge** (numeric coverage comparison). We're planning a **Test Quality Judge** to validate Spring best practices adherence.
+
+=== Option A: Full AI-Powered Test Quality Judge
+
+**Estimated effort**: 8-12 hours
+
+**Features**:
+
+* AI-powered analysis of generated tests
+* Validates Spring WebMVC best practices
+* Checks for @WebMvcTest, jsonPath(), AssertJ usage
+* Identifies anti-patterns (@SpringBootTest, manual JSON parsing)
+* Provides detailed feedback on test quality
+
+**Implementation**:
+
+* Custom judge using Claude/Gemini for test review
+* Prompt engineering for test quality analysis
+* Integration with coverage judge (two-tier verification)
+
+=== Option B: Simple Rule-Based Test Quality Judge
+
+**Estimated effort**: 2-3 hours
+
+**Features**:
+
+* Pattern matching for common anti-patterns
+* Regex-based validation of test conventions
+* Fast, deterministic verification
+* Lower accuracy than AI judge
+
+**Implementation**:
+
+* Regular expressions for @WebMvcTest detection
+* Simple AST parsing for assertion validation
+* Boolean pass/fail based on rule violations
+
+Both options will be explored as the project evolves. For now, the deterministic coverage judge provides reliable, measurable verification.
+
+== Key Takeaways
+
+1. **Real-World Validation** - 71.4% coverage on Spring's REST service tutorial proves agent effectiveness
+2. **Model Quality Matters** - Same prompt, different adherence to best practices (Claude > Gemini)
+3. **Setup/Execute Pattern** - Two-phase lifecycle enables complex workflows with validation
+4. **Prompt Engineering** - Spring AI PromptTemplate provides modular, testable prompt design
+5. **Judge Pattern** - Deterministic verification ensures measurable outcomes
+
+This is just the beginning. As we integrate more agents into https://github.com/spring-ai-community/spring-ai-bench[Spring AI Bench], we'll gain deeper insights into model capabilities and best practices for autonomous development.

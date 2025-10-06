@@ -86,21 +86,31 @@ ____
 
 [source,java]
 ----
-AgentClientResponse response = agentClient  // <1>
-    .goal("Increase JaCoCo test coverage to 80% for the Judge API")  // <2>
-    .workingDirectory(projectRoot)  // <3>
-    .advisors(vendirAdvisor, judgeAdvisor)  // <4>
-    .run();  // <5>
+CoverageJudge judge = new CoverageJudge(80.0);  // <1>
+
+AgentClientResponse response = agentClient  // <2>
+    .goal("Increase JaCoCo test coverage to 80%")  // <3>
+    .workingDirectory(projectRoot)  // <4>
+    .advisors(JudgeAdvisor.builder().judge(judge).build())  // <5>
+    .run();  // <6>
+
+// Real results: 0% → 71.4% coverage in 6 minutes
 ----
-<1> Start with `AgentClient` instance (auto-configured by Spring Boot)
-<2> **Goal** - What you want to accomplish (the "what", not the "how")
-<3> **Working directory** - Where the agent executes (sandbox isolation)
-<4> **Context & verification** - xref:api/context-engineering.adoc[VendirContextAdvisor] provides JaCoCo manual, xref:judges/index.adoc[JudgeAdvisor] verifies 80% coverage achieved
-<5> **Execute** - Run autonomously until goal achieved
+<1> **Judge** - Automated verification of coverage target
+<2> Start with `AgentClient` instance (auto-configured by Spring Boot)
+<3> **Goal** - What you want to accomplish (the "what", not the "how")
+<4> **Working directory** - Where the agent executes (sandbox isolation)
+<5> **Verification** - xref:judges/index.adoc[JudgeAdvisor] verifies 80% coverage achieved
+<6> **Execute** - Run autonomously until goal achieved
 
 [TIP]
 ====
 **Declarative approach**: You describe the goal and provide context. The LLM plans the workflow, decides which tools to use, and adapts when things go wrong. No coding workflows, no predefined steps—just the goal and context.
+====
+
+[NOTE]
+====
+**Real-World Results**: The xref:getting-started/code-coverage-agent.adoc[code coverage agent] increased test coverage from 0% to 71.4% on Spring's gs-rest-service tutorial. Claude Code followed all Spring WebMVC best practices (@WebMvcTest, jsonPath(), AssertJ) while Gemini achieved the same coverage but used slower patterns (@SpringBootTest). **Same coverage, different quality**—model choice matters for enterprise standards.
 ====
 
 **Or run agents directly with JBang** - no build required:
