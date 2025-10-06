@@ -110,6 +110,20 @@ public class GreetingControllerTests {
 <3> **jsonPath()** - Clean JSON validation without manual parsing
 <4> **Edge cases** - Unicode, special characters, long inputs
 
+[TIP]
+====
+**Full Test Files for Transparency**:
+
+**Claude Code** (1 test file):
+* link:{examplesdir}/code-coverage-agent/GreetingControllerTests-claude.java[GreetingControllerTests.java] - 8 tests, perfect Spring conventions (@WebMvcTest, jsonPath(), AssertJ, BDD naming)
+
+**Gemini** (2 test files):
+* link:{examplesdir}/code-coverage-agent/GreetingControllerTests-gemini.java[GreetingControllerTests.java] - 6 tests, @SpringBootTest usage
+* link:{examplesdir}/code-coverage-agent/GreetingTests-gemini.java[GreetingTests.java] - 2 tests for Greeting record
+
+All files are the actual unmodified output from the agents, showing exactly what was generated.
+====
+
 == How It Works: Two-Phase Architecture
 
 The code coverage agent uses a **setup/execute lifecycle** for complex workflows requiring workspace preparation:

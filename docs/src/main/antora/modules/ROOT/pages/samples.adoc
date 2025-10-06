@@ -133,6 +133,56 @@ public class RefactoringAssistant {
 }
 ----
 
+=== Code Coverage Improvement
+
+Autonomously increase test coverage with JaCoCo integration and judge verification:
+
+[source,java]
+----
+@Service
+public class CoverageImprovementService {
+
+    private final AgentClient agentClient;
+
+    public CoverageImprovementService(AgentClient agentClient) {
+        this.agentClient = agentClient;
+    }
+
+    public CoverageResult improveCoverage(Path projectRoot, double targetCoverage) {
+        // Create judge to verify coverage target
+        CoverageJudge judge = new CoverageJudge(targetCoverage);
+
+        AgentClientResponse response = agentClient
+            .goal(String.format("Increase JaCoCo test coverage to %.0f%%", targetCoverage))
+            .workingDirectory(projectRoot)
+            .advisors(JudgeAdvisor.builder().judge(judge).build())
+            .run();
+
+        // Extract results from judgment
+        Judgment judgment = response.getJudgment();
+        if (judgment != null && judgment.score() instanceof NumericalScore numerical) {
+            return new CoverageResult(
+                judgment.pass(),
+                numerical.value(),
+                judgment.reasoning(),
+                response.getResult()
+            );
+        }
+
+        return new CoverageResult(false, 0.0, "No coverage data", response.getResult());
+    }
+
+    public record CoverageResult(
+        boolean targetAchieved,
+        double finalCoverage,
+        String reasoning,
+        String details
+    ) {}
+}
+----
+
+**Real-world results**: This pattern achieved 71.4% coverage on Spring's gs-rest-service tutorial in 6 minutes. Claude Code generated 8 comprehensive tests following all Spring WebMVC best practices (@WebMvcTest, jsonPath(), AssertJ, BDD naming). See xref:getting-started/code-coverage-agent.adoc[Code Coverage Agent] for detailed analysis.
+
 == CI/CD Integration
 
 === Automated Code Review

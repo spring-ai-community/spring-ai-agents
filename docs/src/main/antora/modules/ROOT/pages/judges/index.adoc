@@ -48,6 +48,25 @@ if (judgment.pass()) {
 }
 ----
 
+**Real-world example**: The xref:getting-started/code-coverage-agent.adoc[code coverage agent] uses a `CoverageJudge` to verify test coverage targets:
+
+[source,java]
+----
+CoverageJudge judge = new CoverageJudge(80.0);  // Target 80% coverage
+
+AgentClientResponse response = agentClient
+    .goal("Increase JaCoCo test coverage to 80%")
+    .advisors(JudgeAdvisor.builder().judge(judge).build())
+    .run();
+
+Judgment judgment = response.getJudgment();
+if (judgment.pass() && judgment.score() instanceof NumericalScore score) {
+    System.out.println("Coverage achieved: " + score.value() + "%");
+}
+
+// Real results: 0% → 71.4% coverage on Spring gs-rest-service
+----
+
 == Core Abstractions
 
 The Judge API consists of four primary abstractions:
