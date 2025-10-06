@@ -33,6 +33,7 @@ import org.springaicommunity.agents.gemini.GeminiAgentModel;
 import org.springaicommunity.agents.gemini.GeminiAgentOptions;
 import org.springaicommunity.agents.geminisdk.GeminiClient;
 import org.springaicommunity.agents.geminisdk.util.GeminiCliDiscovery;
+import org.springaicommunity.agents.codecoverage.prompt.CoveragePromptBuilder;
 import org.springaicommunity.agents.judge.coverage.JaCoCoReportParser;
 import org.springaicommunity.agents.judge.coverage.JaCoCoReportParser.CoverageMetrics;
 import org.springaicommunity.agents.judge.exec.util.MavenBuildRunner;
@@ -65,28 +66,6 @@ import java.util.concurrent.TimeUnit;
 public class CodeCoverageAgentRunner implements AgentRunner {
 
 	private static final Logger log = LoggerFactory.getLogger(CodeCoverageAgentRunner.class);
-
-	private static final String JACOCO_PLUGIN_TEMPLATE = """
-			<plugin>
-			    <groupId>org.jacoco</groupId>
-			    <artifactId>jacoco-maven-plugin</artifactId>
-			    <version>0.8.11</version>
-			    <executions>
-			        <execution>
-			            <goals>
-			                <goal>prepare-agent</goal>
-			            </goals>
-			        </execution>
-			        <execution>
-			            <id>report</id>
-			            <phase>test</phase>
-			            <goals>
-			                <goal>report</goal>
-			            </goals>
-			        </execution>
-			    </executions>
-			</plugin>
-			""";
 
 	@Override
 	public SetupContext setup(LauncherSpec spec) throws Exception {
@@ -326,69 +305,7 @@ public class CodeCoverageAgentRunner implements AgentRunner {
 	}
 
 	private String buildCoverageGoal(CoverageMetrics baseline, boolean hasJaCoCo, int targetCoverage) {
-		String jacocoStep = hasJaCoCo ? "✓ JaCoCo already configured"
-				: "1. Add JaCoCo Maven plugin to pom.xml (configuration below)";
-
-		return String.format("""
-				You are a Java test coverage expert improving a Spring Boot REST service.
-
-				CURRENT STATE:
-				- Code: ✓ Compiles
-				- Tests: ✓ All passing
-				- Coverage: %.1f%% line, %.1f%% branch
-				- JaCoCo: %s
-				- Target: %d%% line coverage
-
-				YOUR TASK:
-				%s
-				2. Analyze uncovered code in src/main/java to identify:
-				   - Uncovered branches (conditionals, loops)
-				   - Uncovered methods
-				   - Edge cases not tested
-				3. Write HIGH-VALUE unit tests in src/test/java following Spring OSS best practices:
-				   - GreetingController endpoint variations
-				   - Greeting model edge cases
-				   - Error handling paths
-				4. Verify tests pass: ./mvnw test
-				5. Generate report: ./mvnw jacoco:report
-				6. Confirm coverage improvement
-
-				SPRING OSS TESTING BEST PRACTICES (MANDATORY):
-				- Use AssertJ assertions: assertThat(value).isEqualTo(expected)
-				  ❌ BAD: assert greeting.id() == 1
-				  ❌ BAD: assertEquals(1, greeting.id())
-				  ✅ GOOD: assertThat(greeting.id()).isEqualTo(1)
-
-				- BDD-style test naming: <method>[when<condition>]<expectation>
-				  ❌ BAD: test_greeting_with_param()
-				  ❌ BAD: testGreetingWithParam()
-				  ✅ GOOD: greetingShouldReturnCustomMessageWhenNameProvided()
-
-				- Add static import for AssertJ:
-				  import static org.assertj.core.api.Assertions.assertThat;
-
-				- DO NOT write tests for main() methods or application startup
-				- DO NOT use plain assert statements (Java keyword)
-				- Focus on behavior, not implementation details
-
-				CONSTRAINTS:
-				- DO NOT modify production code (only add/update tests)
-				- Follow existing test patterns (JUnit 5, MockMvc)
-				- Tests MUST pass (./mvnw test exits 0)
-				- Focus on meaningful tests, not coverage gaming
-				- All assertions MUST use AssertJ assertThat()
-
-				OUTPUT SUMMARY (provide at end):
-				- Baseline coverage: X%%
-				- Final coverage: Y%%
-				- Tests added: [list files]
-				- Coverage gaps addressed: [description]
-				- Build status: PASS/FAIL
-
-				JaCoCo plugin configuration (if needed):
-				%s
-				""", baseline.lineCoverage(), baseline.branchCoverage(), hasJaCoCo ? "configured" : "not configured",
-				targetCoverage, jacocoStep, JACOCO_PLUGIN_TEMPLATE);
+		return CoveragePromptBuilder.create(baseline, hasJaCoCo, targetCoverage).build();
 	}
 
 	private Result buildResult(CoverageMetrics baseline, CoverageMetrics finalCoverage, AgentClientResponse response) {

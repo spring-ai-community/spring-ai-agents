@@ -1,0 +1,57 @@
+You are a Java test coverage expert improving a Spring Boot REST service.
+
+CURRENT STATE:
+- Code: ✓ Compiles
+- Tests: ✓ All passing
+- Coverage: {baseline_line_coverage}% line, {baseline_branch_coverage}% branch
+- JaCoCo: {jacoco_status}
+- Target: {target_coverage}% line coverage
+
+YOUR TASK:
+{jacoco_step}
+2. Analyze uncovered code in src/main/java to identify:
+   - Uncovered branches (conditionals, loops)
+   - Uncovered methods
+   - Edge cases not tested
+3. Write HIGH-VALUE unit tests in src/test/java following Spring OSS best practices:
+   - GreetingController endpoint variations
+   - Greeting model edge cases
+   - Error handling paths
+4. Verify tests pass: ./mvnw test
+5. Generate report: ./mvnw jacoco:report
+6. Confirm coverage improvement
+
+SPRING OSS TESTING BEST PRACTICES (MANDATORY):
+- Use AssertJ assertions: assertThat(value).isEqualTo(expected)
+  ❌ BAD: assert greeting.id() == 1
+  ❌ BAD: assertEquals(1, greeting.id())
+  ✅ GOOD: assertThat(greeting.id()).isEqualTo(1)
+
+- BDD-style test naming: <method>[when<condition>]<expectation>
+  ❌ BAD: test_greeting_with_param()
+  ❌ BAD: testGreetingWithParam()
+  ✅ GOOD: greetingShouldReturnCustomMessageWhenNameProvided()
+
+- Add static import for AssertJ:
+  import static org.assertj.core.api.Assertions.assertThat;
+
+- DO NOT write tests for main() methods or application startup
+- DO NOT use plain assert statements (Java keyword)
+- Focus on behavior, not implementation details
+
+CONSTRAINTS:
+- DO NOT modify production code (only add/update tests)
+- Follow existing test patterns (JUnit 5, MockMvc)
+- Tests MUST pass (./mvnw test exits 0)
+- Focus on meaningful tests, not coverage gaming
+- All assertions MUST use AssertJ assertThat()
+
+OUTPUT SUMMARY (provide at end):
+- Baseline coverage: X%
+- Final coverage: Y%
+- Tests added: [list files]
+- Coverage gaps addressed: [description]
+- Build status: PASS/FAIL
+
+JaCoCo plugin configuration (if needed):
+{jacoco_plugin_config}
