@@ -83,77 +83,13 @@ AgentClientResponse response = agentClient
 
 ## Real-World Results: Code Coverage Agent
 
-Our **first real-world agent** autonomously increased test coverage from **0% to 71.4%** on Spring's [gs-rest-service](https://spring.io/guides/gs/rest-service) tutorial in just 6 minutes.
+Our **first real-world agent** autonomously increased test coverage from **0% to 71.4%** on Spring's [gs-rest-service](https://spring.io/guides/gs/rest-service) tutorial.
 
-### The Challenge
+**Key Finding**: Both Claude and Gemini achieved the same coverage percentage, but **only Claude followed all Spring WebMVC best practices** (@WebMvcTest, jsonPath(), BDD naming).
 
-Run an autonomous agent on a real Spring codebase (not a toy example) and measure:
-- **Coverage improvement** - From baseline to final percentage
-- **Test quality** - Does it follow Spring OSS best practices?
-- **Model differences** - Do Claude and Gemini perform differently with identical prompts?
+> **Model quality matters**: Same coverage, different code quality. Claude generated production-ready tests while Gemini used slower patterns (@SpringBootTest).
 
-### The Results
-
-```java
-// Simple, focused usage with judge verification
-CoverageJudge judge = new CoverageJudge(80.0);
-
-AgentClientResponse response = agentClient
-    .goal("Increase JaCoCo test coverage to 80%")
-    .workingDirectory(projectRoot)
-    .advisors(JudgeAdvisor.builder().judge(judge).build())
-    .run();
-```
-
-| Metric | Result |
-|--------|--------|
-| **Baseline Coverage** | 0% (no tests) |
-| **Final Coverage** | 71.4% line, 87.5% instruction |
-| **Target** | 20% (exceeded by 3.5x) |
-| **Tests Generated** | 8 comprehensive methods |
-| **Execution Time** | ~6 minutes |
-
-### Claude vs Gemini: Quality Matters
-
-Both models achieved **71.4% coverage**, but Claude perfectly followed Spring WebMVC best practices while Gemini didn't:
-
-| Practice | Claude | Gemini | Why It Matters |
-|----------|:------:|:------:|----------------|
-| **@WebMvcTest** | ✅ | ❌ | 10x faster, loads only web layer |
-| **jsonPath()** | ✅ | ❌ | Cleaner API, less boilerplate |
-| **AssertJ** | ✅ | ✅ | Both used fluent assertions |
-| **BDD naming** | ✅ | ❌ | Better test readability |
-| **Edge cases** | ✅ | ✅ | Both comprehensive |
-
-**Claude's generated test** (production-quality):
-
-```java
-@WebMvcTest(GreetingController.class)  // ✅ Fast, focused testing
-public class GreetingControllerTests {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Test
-    public void greetingShouldReturnDefaultMessageWhenNoParameterProvided() throws Exception {
-        mockMvc.perform(get("/greeting"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.content").value("Hello, World!"))  // ✅ Clean validation
-            .andExpect(jsonPath("$.id").isNumber());
-    }
-
-    @Test
-    public void greetingShouldHandleUnicodeCharactersInName() throws Exception {
-        mockMvc.perform(get("/greeting").param("name", "世界"))
-            .andExpect(jsonPath("$.content").value("Hello, 世界!"));  // ✅ Edge cases
-    }
-    // ... 6 more comprehensive tests
-}
-```
-
-> **Key Insight**: Same coverage percentage, different code quality. Model choice matters for enterprise standards.
-
-📖 **[Read the full analysis →](https://spring-ai-community.github.io/spring-ai-agents/getting-started/code-coverage-agent.html)**
+📖 **[Read the complete analysis with test code examples →](https://spring-ai-community.github.io/spring-ai-agents/getting-started/code-coverage-agent.html)**
 
 ### Agent Advisors
 

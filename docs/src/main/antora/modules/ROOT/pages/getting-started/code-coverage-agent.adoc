@@ -23,9 +23,6 @@ We tested the agent on Spring's https://spring.io/guides/gs/rest-service[gs-rest
 |**Target**
 |20% (exceeded by 3.5x)
 
-|**Execution Time**
-|~6 minutes
-
 |**Tests Generated**
 |8 comprehensive test methods
 
