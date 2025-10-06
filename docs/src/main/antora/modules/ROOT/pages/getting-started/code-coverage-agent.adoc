@@ -1,10 +1,10 @@
-= Code Coverage Agent: Real-World Results
+= Code Coverage Agent
 :page-title: Code Coverage Agent
 :toc: left
 :tabsize: 2
 :sectnums:
 
-The code coverage agent is Spring AI Agents' **first real-world agent beyond "Hello World"**. It autonomously increases JaCoCo test coverage by analyzing code, generating comprehensive tests, and validating Spring OSS best practices.
+The code coverage agent autonomously increases JaCoCo test coverage by analyzing code, generating comprehensive tests, and validating Spring OSS best practices.
 
 == Real Results
 
@@ -416,7 +416,7 @@ Both options will be explored as the project evolves. For now, the deterministic
 
 == Key Takeaways
 
-1. **Real-World Validation** - 71.4% coverage on Spring's REST service tutorial proves agent effectiveness
+1. **Agent Effectiveness** - 71.4% coverage on Spring's REST service tutorial demonstrates practical capability
 2. **Model Quality Matters** - Same prompt, different adherence to best practices (Claude > Gemini)
 3. **Setup/Execute Pattern** - Two-phase lifecycle enables complex workflows with validation
 4. **Prompt Engineering** - Spring AI PromptTemplate provides modular, testable prompt design

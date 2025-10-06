@@ -81,9 +81,9 @@ AgentClientResponse response = agentClient
     .run();
 ```
 
-## Real-World Results: Code Coverage Agent
+## Code Coverage Agent
 
-Our **first real-world agent** autonomously increased test coverage from **0% to 71.4%** on Spring's [gs-rest-service](https://spring.io/guides/gs/rest-service) tutorial.
+An autonomous agent that increased test coverage from **0% to 71.4%** on Spring's [gs-rest-service](https://spring.io/guides/gs/rest-service) tutorial.
 
 **Key Finding**: Both Claude and Gemini achieved the same coverage percentage, but **only Claude followed all Spring WebMVC best practices** (@WebMvcTest, jsonPath(), BDD naming).
 

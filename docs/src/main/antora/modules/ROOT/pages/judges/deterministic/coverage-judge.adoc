@@ -109,7 +109,7 @@ public Judgment judge(JudgmentContext context) {
 }
 ----
 
-== Real-World Example
+== Usage Example
 
 The xref:getting-started/code-coverage-agent.adoc[code coverage agent] uses this judge to verify coverage improvements:
 

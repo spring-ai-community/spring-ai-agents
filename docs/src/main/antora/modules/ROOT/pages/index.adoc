@@ -110,7 +110,7 @@ AgentClientResponse response = agentClient  // <2>
 
 [NOTE]
 ====
-**Real-World Results**: The xref:getting-started/code-coverage-agent.adoc[code coverage agent] increased test coverage from 0% to 71.4% on Spring's gs-rest-service tutorial. Claude Code followed all Spring WebMVC best practices (@WebMvcTest, jsonPath(), AssertJ) while Gemini achieved the same coverage but used slower patterns (@SpringBootTest). **Same coverage, different quality**—model choice matters for enterprise standards.
+The xref:getting-started/code-coverage-agent.adoc[code coverage agent] increased test coverage from 0% to 71.4% on Spring's gs-rest-service tutorial. Claude Code followed all Spring WebMVC best practices (@WebMvcTest, jsonPath(), AssertJ) while Gemini achieved the same coverage but used slower patterns (@SpringBootTest). **Same coverage, different quality**—model choice matters for enterprise standards.
 ====
 
 **Or run agents directly with JBang** - no build required:
