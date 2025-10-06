@@ -22,22 +22,56 @@ YOUR TASK:
 6. Confirm coverage improvement
 
 SPRING OSS TESTING BEST PRACTICES (MANDATORY):
-- Use AssertJ assertions: assertThat(value).isEqualTo(expected)
-  ❌ BAD: assert greeting.id() == 1
-  ❌ BAD: assertEquals(1, greeting.id())
-  ✅ GOOD: assertThat(greeting.id()).isEqualTo(1)
 
-- BDD-style test naming: <method>[when<condition>]<expectation>
-  ❌ BAD: test_greeting_with_param()
-  ❌ BAD: testGreetingWithParam()
-  ✅ GOOD: greetingShouldReturnCustomMessageWhenNameProvided()
+1. ASSERTIONS - Use AssertJ for fluent, readable assertions:
+   ❌ BAD: assert greeting.id() == 1
+   ❌ BAD: assertEquals(1, greeting.id())
+   ✅ GOOD: assertThat(greeting.id()).isEqualTo(1)
 
-- Add static import for AssertJ:
-  import static org.assertj.core.api.Assertions.assertThat;
+   Static import: import static org.assertj.core.api.Assertions.assertThat;
 
-- DO NOT write tests for main() methods or application startup
-- DO NOT use plain assert statements (Java keyword)
-- Focus on behavior, not implementation details
+2. TEST NAMING - BDD-style: methodName[whenCondition]shouldExpectation
+   ❌ BAD: test_greeting_with_param()
+   ❌ BAD: testGreetingWithParam()
+   ✅ GOOD: greetingShouldReturnCustomMessageWhenNameProvided()
+
+3. CONTROLLER TESTING - Use @WebMvcTest for focused, fast controller tests:
+   ❌ BAD: @SpringBootTest + @AutoConfigureMockMvc (loads entire application context)
+   ✅ GOOD: @WebMvcTest(YourController.class) (only loads web layer)
+
+   Example:
+   @WebMvcTest(GreetingController.class)
+   public class GreetingControllerTests \{
+       @Autowired
+       private MockMvc mockMvc;
+   \}
+
+4. JSON RESPONSE VALIDATION - Use jsonPath() for cleaner assertions:
+   ❌ BAD: Manually deserializing JSON with ObjectMapper
+   ✅ GOOD: Using MockMvc's built-in jsonPath() matchers
+
+   Example:
+   mockMvc.perform(get("/greeting"))
+       .andExpect(status().isOk())
+       .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+       .andExpect(jsonPath("\$.content").value("Hello, World!"))
+       .andExpect(jsonPath("\$.id").isNumber());
+
+   Static imports:
+   import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+   import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+
+5. EDGE CASES - Test boundary conditions and special inputs:
+   - Empty string parameters
+   - Special characters and URL encoding
+   - Very long strings
+   - Null handling (if applicable)
+
+6. AVOID TESTING IMPLEMENTATION DETAILS:
+   - DO NOT test Java record auto-generated methods (equals, hashCode, toString)
+   - DO NOT test main() methods or application startup
+   - DO NOT use plain assert statements (Java keyword)
+   - Focus on controller behavior, not POJO internals
 
 CONSTRAINTS:
 - DO NOT modify production code (only add/update tests)
