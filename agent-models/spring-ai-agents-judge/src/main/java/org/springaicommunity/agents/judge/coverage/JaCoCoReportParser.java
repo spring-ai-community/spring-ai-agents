@@ -76,6 +76,12 @@ public class JaCoCoReportParser {
 			logger.debug("Parsing JaCoCo report: {}", reportPath);
 
 			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+			// Disable DTD validation and external entity loading for security and to
+			// avoid
+			// FileNotFoundException when DTD is not locally available
+			factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+			factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+			factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
 			DocumentBuilder builder = factory.newDocumentBuilder();
 			Document doc = builder.parse(reportPath.toFile());
 

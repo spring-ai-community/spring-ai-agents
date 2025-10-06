@@ -193,7 +193,7 @@ public class CodeCoverageAgentRunner implements AgentRunner {
 				improvement >= 0 ? "+" : "", improvement);
 
 		// Build structured result
-		return buildResult(baseline, finalCov, response);
+		return buildResult(baseline, finalCov, response, setup.getWorkspace());
 	}
 
 	private String getInputOrDefault(Map<String, Object> inputs, String key, String defaultValue) {
@@ -308,7 +308,8 @@ public class CodeCoverageAgentRunner implements AgentRunner {
 		return CoveragePromptBuilder.create(baseline, hasJaCoCo, targetCoverage).build();
 	}
 
-	private Result buildResult(CoverageMetrics baseline, CoverageMetrics finalCoverage, AgentClientResponse response) {
+	private Result buildResult(CoverageMetrics baseline, CoverageMetrics finalCoverage, AgentClientResponse response,
+			Path workspace) {
 		Map<String, Object> outputs = new HashMap<>();
 		outputs.put("baseline_coverage_line", baseline.lineCoverage());
 		outputs.put("baseline_coverage_branch", baseline.branchCoverage());
@@ -317,9 +318,17 @@ public class CodeCoverageAgentRunner implements AgentRunner {
 		outputs.put("coverage_improvement", finalCoverage.lineCoverage() - baseline.lineCoverage());
 		outputs.put("agent_response", response.getResult());
 
-		String summary = String.format("Coverage improved from %.1f%% to %.1f%% (%.1f%% improvement)",
+		// Add workspace and coverage report paths for user visibility
+		outputs.put("workspace", workspace.toString());
+		Path coverageReport = workspace.resolve("target/site/jacoco/index.html");
+		outputs.put("coverage_report", coverageReport.toString());
+
+		// Build user-friendly summary
+		String summary = String.format(
+				"Coverage improved from %.1f%% to %.1f%% (%.1f%% improvement)\n" + "\n" + "✅ Coverage Agent Complete\n"
+						+ "Workspace: %s\n" + "Coverage Report: %s",
 				baseline.lineCoverage(), finalCoverage.lineCoverage(),
-				finalCoverage.lineCoverage() - baseline.lineCoverage());
+				finalCoverage.lineCoverage() - baseline.lineCoverage(), workspace, coverageReport);
 
 		return Result.ok(summary, outputs);
 	}
