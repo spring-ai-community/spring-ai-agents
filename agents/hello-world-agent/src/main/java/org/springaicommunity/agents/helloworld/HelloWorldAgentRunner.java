@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import org.springaicommunity.agents.core.AgentRunner;
 import org.springaicommunity.agents.core.LauncherSpec;
 import org.springaicommunity.agents.core.Result;
+import org.springaicommunity.agents.core.SetupContext;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -39,7 +40,7 @@ public class HelloWorldAgentRunner implements AgentRunner {
 	private static final Logger log = LoggerFactory.getLogger(HelloWorldAgentRunner.class);
 
 	@Override
-	public Result run(LauncherSpec spec) {
+	public Result run(SetupContext setup, LauncherSpec spec) {
 		log.info("Executing hello-world agent");
 		try {
 			// Parse and validate inputs

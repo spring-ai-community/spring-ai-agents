@@ -1,12 +1,27 @@
 id: coverage
 version: 0.1
 inputs:
+  git_url:
+    type: string
+    required: false
+    default: "https://github.com/spring-guides/gs-rest-service"
+  git_ref:
+    type: string
+    required: false
+    default: "main"
+  git_subdirectory:
+    type: string
+    required: false
+    default: "complete"
   target_coverage:
     type: integer
+    required: false
     default: 80
-  module:
+  provider:
     type: string
-    default: "."
-  focus:
+    required: false
+    default: "gemini"
+  model:
     type: string
-    default: "unit"
+    required: false
+    default: "gemini-2.5-pro"

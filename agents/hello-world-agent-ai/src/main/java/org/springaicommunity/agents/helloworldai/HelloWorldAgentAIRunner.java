@@ -28,6 +28,7 @@ import org.springaicommunity.agents.claude.sdk.transport.CLIOptions;
 import org.springaicommunity.agents.core.AgentRunner;
 import org.springaicommunity.agents.core.LauncherSpec;
 import org.springaicommunity.agents.core.Result;
+import org.springaicommunity.agents.core.SetupContext;
 import org.springaicommunity.agents.gemini.GeminiAgentModel;
 import org.springaicommunity.agents.gemini.GeminiAgentOptions;
 import org.springaicommunity.agents.geminisdk.GeminiClient;
@@ -54,7 +55,7 @@ public class HelloWorldAgentAIRunner implements AgentRunner {
 	private static final String DEFAULT_GOAL = "Create a hello.txt file with creative content about the power of AI agents in software development. Make the content inspiring and informative.";
 
 	@Override
-	public Result run(LauncherSpec spec) {
+	public Result run(SetupContext setup, LauncherSpec spec) {
 		log.info("Executing hello-world-agent-ai");
 		try {
 			// Parse and validate inputs

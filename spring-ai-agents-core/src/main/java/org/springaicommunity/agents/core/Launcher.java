@@ -95,6 +95,18 @@ public class Launcher {
 				log.warn("Failed to load HelloWorldAgentAIRunner: {}", e.getMessage());
 			}
 		}
+		else if ("coverage".equals(agentId)) {
+			try {
+				Class<?> agentClass = Class
+					.forName("org.springaicommunity.agents.codecoverage.CodeCoverageAgentRunner");
+				AgentRunner agent = (AgentRunner) agentClass.getDeclaredConstructor().newInstance();
+				agents.put("coverage", agent);
+				log.info("Loaded CodeCoverageAgentRunner dynamically");
+			}
+			catch (Exception e) {
+				log.warn("Failed to load CodeCoverageAgentRunner: {}", e.getMessage());
+			}
+		}
 
 		return agents;
 	}
@@ -114,8 +126,7 @@ public class Launcher {
 			AgentSpec agentSpec = spec.agentSpec();
 			log.info("Using agent spec: {}", agentSpec);
 
-			// Execute agent (agent handles its own validation)
-			log.info("Executing agent: {}", agentSpec.id());
+			// Get agent executor
 			AgentRunner executor = agents.get(agentSpec.id());
 			if (executor == null) {
 				log.warn("No executor found for agent: {}. Available: {}", agentSpec.id(), agents.keySet());
@@ -123,7 +134,20 @@ public class Launcher {
 					.fail("No executor found for agent: " + agentSpec.id() + ". Available: " + agents.keySet());
 			}
 
-			Result result = executor.run(spec);
+			// Phase 1: Setup (deterministic)
+			log.info("=== SETUP PHASE ===");
+			SetupContext setup = executor.setup(spec);
+
+			if (!setup.isSuccessful()) {
+				// FAIL FAST - don't continue to execute phase
+				log.error("Setup failed: {}", setup.getError());
+				return Result.fail("Setup failed: " + setup.getError());
+			}
+
+			// Phase 2: Execute (AI - autonomous)
+			log.info("=== EXECUTE PHASE ===");
+			Result result = executor.run(setup, spec);
+
 			log.info("Agent execution completed: success={}", result.success());
 			if (!result.success()) {
 				log.error("Agent execution failed: {}", result.message());
