@@ -16,6 +16,8 @@
 
 package org.springaicommunity.agents.claude.sdk.transport;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springaicommunity.agents.claude.sdk.config.ClaudeCliDiscovery;
 import org.springaicommunity.agents.claude.sdk.config.OutputFormat;
 import org.springaicommunity.agents.claude.sdk.exceptions.*;
@@ -25,6 +27,7 @@ import org.springaicommunity.agents.claude.sdk.types.AssistantMessage;
 import org.springaicommunity.agents.claude.sdk.types.Message;
 import org.springaicommunity.agents.claude.sdk.types.ResultMessage;
 import org.springaicommunity.agents.claude.sdk.types.TextBlock;
+import org.springaicommunity.agents.claude.sdk.config.McpServerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zeroturnaround.exec.ProcessExecutor;
@@ -38,6 +41,8 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.LinkedHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
@@ -48,6 +53,8 @@ import java.util.function.Consumer;
 public class CLITransport implements AutoCloseable {
 
 	private static final Logger logger = LoggerFactory.getLogger(CLITransport.class);
+
+	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
 	private final String claudeCommand;
 
@@ -454,6 +461,53 @@ public class CLITransport implements AutoCloseable {
 		// Add include partial messages flag (Claude Agent SDK v0.1.0)
 		if (options.isIncludePartialMessages()) {
 			command.add("--include-partial-messages");
+		}
+
+		// Register MCP servers (stdio + http) via JSON payload
+		if (options.getMcpServers() != null && !options.getMcpServers().isEmpty()) {
+			try {
+				Map<String, Object> serversPayload = new LinkedHashMap<>();
+				for (Map.Entry<String, McpServerConfig> entry : options.getMcpServers().entrySet()) {
+					String name = entry.getKey();
+					if (name == null || name.isBlank()) {
+						continue;
+					}
+					McpServerConfig config = entry.getValue();
+					Map<String, Object> configPayload = new LinkedHashMap<>();
+					if (config.type() != null) {
+						configPayload.put("type", config.type());
+					}
+					if (config.url() != null) {
+						configPayload.put("url", config.url());
+					}
+					if (config.command() != null) {
+						configPayload.put("command", config.command());
+					}
+					if (!config.args().isEmpty()) {
+						configPayload.put("args", config.args());
+					}
+					if (!config.env().isEmpty()) {
+						configPayload.put("env", config.env());
+					}
+					if (!config.headers().isEmpty()) {
+						configPayload.put("headers", config.headers());
+					}
+					serversPayload.put(name, configPayload);
+				}
+				if (!serversPayload.isEmpty()) {
+					Map<String, Object> payload = Map.of("mcpServers", serversPayload);
+					String json = OBJECT_MAPPER.writeValueAsString(payload);
+					command.add("--mcp-config");
+					command.add(json);
+				}
+			}
+			catch (JsonProcessingException e) {
+				throw new IllegalArgumentException("Failed to serialize MCP server configuration", e);
+			}
+		}
+
+		if (options.isStrictMcpConfig()) {
+			command.add("--strict-mcp-config");
 		}
 
 		// Add the prompt using -- separator to prevent argument parsing issues

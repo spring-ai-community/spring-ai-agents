@@ -318,6 +318,13 @@ public class ClaudeAgentModel implements AgentModel {
 		// Set include partial messages (Claude Agent SDK v0.1.0)
 		builder.includePartialMessages(options.isIncludePartialMessages());
 
+		// Register MCP servers (stdio + http)
+		if (options.getMcpServers() != null && !options.getMcpServers().isEmpty()) {
+			builder.mcpServers(options.getMcpServers());
+		}
+
+		builder.strictMcpConfig(options.isStrictMcpConfig());
+
 		return builder.build();
 	}
 
