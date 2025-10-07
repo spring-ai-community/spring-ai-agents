@@ -16,11 +16,13 @@
 
 package org.springaicommunity.agents.claude;
 
+import org.springaicommunity.agents.claude.sdk.config.McpServerConfig;
 import org.springaicommunity.agents.model.AgentOptions;
 
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.LinkedHashMap;
 
 /**
  * Configuration options for Claude Code Agent Model implementations.
@@ -86,6 +88,13 @@ public class ClaudeAgentOptions implements AgentOptions {
 	 * dependencies.
 	 */
 	private Map<String, AgentDefinition> agents = Map.of();
+
+	/**
+	 * MCP servers that should be registered with the Claude CLI instance.
+	 */
+	private Map<String, McpServerConfig> mcpServers = Map.of();
+
+	private boolean strictMcpConfig = false;
 
 	/**
 	 * When true, resumed sessions will fork to a new session ID rather than continuing
@@ -175,6 +184,22 @@ public class ClaudeAgentOptions implements AgentOptions {
 
 	public void setAgents(Map<String, AgentDefinition> agents) {
 		this.agents = agents != null ? agents : Map.of();
+	}
+
+	public Map<String, McpServerConfig> getMcpServers() {
+		return mcpServers;
+	}
+
+	public void setMcpServers(Map<String, McpServerConfig> mcpServers) {
+		this.mcpServers = mcpServers != null ? Map.copyOf(mcpServers) : Map.of();
+	}
+
+	public boolean isStrictMcpConfig() {
+		return strictMcpConfig;
+	}
+
+	public void setStrictMcpConfig(boolean strictMcpConfig) {
+		this.strictMcpConfig = strictMcpConfig;
 	}
 
 	public boolean isForkSession() {
@@ -268,6 +293,23 @@ public class ClaudeAgentOptions implements AgentOptions {
 
 		public Builder agents(Map<String, AgentDefinition> agents) {
 			options.setAgents(agents);
+			return this;
+		}
+
+		public Builder mcpServers(Map<String, McpServerConfig> mcpServers) {
+			options.setMcpServers(mcpServers);
+			return this;
+		}
+
+		public Builder addMcpServer(String name, McpServerConfig config) {
+			Map<String, McpServerConfig> updated = new LinkedHashMap<>(options.getMcpServers());
+			updated.put(name, config);
+			options.setMcpServers(updated);
+			return this;
+		}
+
+		public Builder strictMcpConfig(boolean strictMcpConfig) {
+			options.setStrictMcpConfig(strictMcpConfig);
 			return this;
 		}
 
