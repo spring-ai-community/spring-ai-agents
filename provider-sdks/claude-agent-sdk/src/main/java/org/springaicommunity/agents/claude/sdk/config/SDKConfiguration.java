@@ -21,6 +21,7 @@ import org.springaicommunity.agents.claude.sdk.transport.CLIOptions;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -30,8 +31,9 @@ import java.util.Map;
  */
 public record SDKConfiguration(String model, String systemPrompt, String appendSystemPrompt, Integer maxTokens,
 		Integer maxThinkingTokens, Duration timeout, Path workingDirectory, List<String> allowedTools,
-		List<String> disallowedTools, PermissionMode permissionMode, boolean continueConversation,
-		String resumeFromSession, Integer maxTurns, Map<String, Object> additionalSettings) {
+		List<String> disallowedTools, Map<String, McpServerConfig> mcpServers, boolean strictMcpConfig,
+		PermissionMode permissionMode, boolean continueConversation, String resumeFromSession, Integer maxTurns,
+		Map<String, Object> additionalSettings) {
 
 	public SDKConfiguration {
 		// Validation and defaults
@@ -46,6 +48,12 @@ public record SDKConfiguration(String model, String systemPrompt, String appendS
 		}
 		if (disallowedTools == null) {
 			disallowedTools = List.of();
+		}
+		if (mcpServers == null) {
+			mcpServers = Map.of();
+		}
+		else {
+			mcpServers = Map.copyOf(mcpServers);
 		}
 		if (permissionMode == null) {
 			permissionMode = PermissionMode.DEFAULT;
@@ -69,6 +77,8 @@ public record SDKConfiguration(String model, String systemPrompt, String appendS
 			.timeout(timeout)
 			.allowedTools(allowedTools)
 			.disallowedTools(disallowedTools)
+			.mcpServers(mcpServers)
+			.strictMcpConfig(strictMcpConfig)
 			.build();
 	}
 
@@ -94,8 +104,8 @@ public record SDKConfiguration(String model, String systemPrompt, String appendS
 
 	public static SDKConfiguration defaultConfiguration() {
 		return new SDKConfiguration(null, null, null, null, 8000, Duration.ofMinutes(2),
-				Paths.get(System.getProperty("user.dir")), List.of(), List.of(), PermissionMode.BYPASS_PERMISSIONS,
-				false, null, null, Map.of());
+				Paths.get(System.getProperty("user.dir")), List.of(), List.of(), Map.of(), false,
+				PermissionMode.BYPASS_PERMISSIONS, false, null, null, Map.of());
 	}
 
 	// Convenience getters
@@ -129,6 +139,10 @@ public record SDKConfiguration(String model, String systemPrompt, String appendS
 
 	public List<String> getDisallowedTools() {
 		return disallowedTools;
+	}
+
+	public Map<String, McpServerConfig> getMcpServers() {
+		return mcpServers;
 	}
 
 	public PermissionMode getPermissionMode() {
@@ -170,6 +184,10 @@ public record SDKConfiguration(String model, String systemPrompt, String appendS
 		private List<String> allowedTools = List.of();
 
 		private List<String> disallowedTools = List.of();
+
+		private Map<String, McpServerConfig> mcpServers = Map.of();
+
+		private boolean strictMcpConfig = false;
 
 		private PermissionMode permissionMode = PermissionMode.BYPASS_PERMISSIONS;
 
@@ -226,6 +244,23 @@ public record SDKConfiguration(String model, String systemPrompt, String appendS
 			return this;
 		}
 
+		public Builder mcpServers(Map<String, McpServerConfig> mcpServers) {
+			this.mcpServers = mcpServers != null ? Map.copyOf(mcpServers) : Map.of();
+			return this;
+		}
+
+		public Builder addMcpServer(String name, McpServerConfig config) {
+			Map<String, McpServerConfig> updated = new LinkedHashMap<>(this.mcpServers);
+			updated.put(name, config);
+			this.mcpServers = Map.copyOf(updated);
+			return this;
+		}
+
+		public Builder strictMcpConfig(boolean strictMcpConfig) {
+			this.strictMcpConfig = strictMcpConfig;
+			return this;
+		}
+
 		public Builder permissionMode(PermissionMode permissionMode) {
 			this.permissionMode = permissionMode;
 			return this;
@@ -253,8 +288,8 @@ public record SDKConfiguration(String model, String systemPrompt, String appendS
 
 		public SDKConfiguration build() {
 			return new SDKConfiguration(model, systemPrompt, appendSystemPrompt, maxTokens, maxThinkingTokens, timeout,
-					workingDirectory, allowedTools, disallowedTools, permissionMode, continueConversation,
-					resumeFromSession, maxTurns, additionalSettings);
+					workingDirectory, allowedTools, disallowedTools, mcpServers, strictMcpConfig, permissionMode,
+					continueConversation, resumeFromSession, maxTurns, additionalSettings);
 		}
 
 	}

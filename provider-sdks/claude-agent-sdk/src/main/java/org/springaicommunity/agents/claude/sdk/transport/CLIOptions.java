@@ -20,6 +20,10 @@ import org.springaicommunity.agents.claude.sdk.config.OutputFormat;
 import org.springaicommunity.agents.claude.sdk.config.PermissionMode;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
+import java.util.LinkedHashMap;
+
+import org.springaicommunity.agents.claude.sdk.config.McpServerConfig;
 
 /**
  * Configuration options for Claude CLI commands. Corresponds to ClaudeAgentOptions in
@@ -28,7 +32,7 @@ import java.util.List;
 public record CLIOptions(String model, String systemPrompt, Integer maxTokens, Duration timeout,
 		List<String> allowedTools, List<String> disallowedTools, PermissionMode permissionMode, boolean interactive,
 		OutputFormat outputFormat, List<String> settingSources, String agents, boolean forkSession,
-		boolean includePartialMessages) {
+		boolean includePartialMessages, Map<String, McpServerConfig> mcpServers, boolean strictMcpConfig) {
 
 	public CLIOptions {
 		// Validation
@@ -50,6 +54,12 @@ public record CLIOptions(String model, String systemPrompt, Integer maxTokens, D
 		if (settingSources == null) {
 			settingSources = List.of(); // Default: no filesystem settings loaded
 		}
+		if (mcpServers == null) {
+			mcpServers = Map.of();
+		}
+		else {
+			mcpServers = Map.copyOf(mcpServers);
+		}
 	}
 
 	public static Builder builder() {
@@ -58,7 +68,8 @@ public record CLIOptions(String model, String systemPrompt, Integer maxTokens, D
 
 	public static CLIOptions defaultOptions() {
 		return new CLIOptions(null, null, null, Duration.ofMinutes(2), List.of(), List.of(),
-				PermissionMode.DANGEROUSLY_SKIP_PERMISSIONS, false, OutputFormat.JSON, List.of(), null, false, false);
+				PermissionMode.DANGEROUSLY_SKIP_PERMISSIONS, false, OutputFormat.JSON, List.of(), null, false, false,
+				Map.of(), false);
 	}
 
 	// Convenience getters
@@ -114,6 +125,14 @@ public record CLIOptions(String model, String systemPrompt, Integer maxTokens, D
 		return includePartialMessages;
 	}
 
+	public Map<String, McpServerConfig> getMcpServers() {
+		return mcpServers;
+	}
+
+	public boolean isStrictMcpConfig() {
+		return strictMcpConfig;
+	}
+
 	public static class Builder {
 
 		private String model;
@@ -141,6 +160,10 @@ public record CLIOptions(String model, String systemPrompt, Integer maxTokens, D
 		private boolean forkSession = false;
 
 		private boolean includePartialMessages = false;
+
+		private Map<String, McpServerConfig> mcpServers = Map.of();
+
+		private boolean strictMcpConfig = false;
 
 		public Builder model(String model) {
 			this.model = model;
@@ -207,10 +230,33 @@ public record CLIOptions(String model, String systemPrompt, Integer maxTokens, D
 			return this;
 		}
 
+		public Builder mcpServers(Map<String, McpServerConfig> mcpServers) {
+			this.mcpServers = mcpServers != null ? Map.copyOf(mcpServers) : Map.of();
+			return this;
+		}
+
+		public Builder addMcpServer(String name, McpServerConfig server) {
+			if (name == null || name.isBlank()) {
+				throw new IllegalArgumentException("MCP server name must not be null or blank");
+			}
+			if (server == null) {
+				throw new IllegalArgumentException("MCP server configuration must not be null");
+			}
+			Map<String, McpServerConfig> updated = new LinkedHashMap<>(this.mcpServers);
+			updated.put(name, server);
+			this.mcpServers = Map.copyOf(updated);
+			return this;
+		}
+
+		public Builder strictMcpConfig(boolean strictMcpConfig) {
+			this.strictMcpConfig = strictMcpConfig;
+			return this;
+		}
+
 		public CLIOptions build() {
 			return new CLIOptions(model, systemPrompt, maxTokens, timeout, allowedTools, disallowedTools,
 					permissionMode, interactive, outputFormat, settingSources, agents, forkSession,
-					includePartialMessages);
+					includePartialMessages, mcpServers, strictMcpConfig);
 		}
 
 	}
