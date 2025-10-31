@@ -79,13 +79,13 @@ public class ClaudeCliDiscovery {
 		String[] candidates = { "claude", // In PATH
 				"claude-code", // Alternative name in PATH
 				System.getProperty("user.home") + "/.local/bin/claude", // Local
-																		// installation
+				// installation
 				"/usr/local/bin/claude", // System-wide installation
 				"/opt/claude/bin/claude", // Alternative system location
 				System.getProperty("user.home") + "/.nvm/versions/node/v22.15.0/bin/claude", // NVM
-																								// installation
+				// installation
 				System.getProperty("user.home") + "/.nvm/versions/node/latest/bin/claude", // Latest
-																							// NVM
+				// NVM
 				"/usr/bin/claude", // Standard system path
 				FALLBACK_PATH // Development fallback
 		};
@@ -128,60 +128,19 @@ public class ClaudeCliDiscovery {
 				String version = result.outputUTF8().trim();
 				logger.debug("Found Claude CLI at {} with version: {}", path, version);
 
-				// If this is just a command name (no path separators), resolve to full
-				// path
-				if (!path.contains("/") && !path.contains("\\")) {
-					String resolvedPath = resolveCommandPath(path);
-					if (resolvedPath != null) {
-						logger.debug("Resolved command '{}' to full path: {}", path, resolvedPath);
-						return resolvedPath;
-					}
-				}
-
-				// Return the original path (already a full path)
+				// IMPORTANT FIX: Do NOT resolve command names to absolute paths
+				// Java's ProcessBuilder has issues with shebang scripts (#!/usr/bin/env
+				// node)
+				// when using absolute paths, especially on macOS. Let the shell resolve
+				// via
+				// PATH instead, which properly handles shebangs and symlinks.
+				// Just return the working path as-is (whether it's "claude" or a full
+				// path)
 				return path;
 			}
 		}
 		catch (Exception e) {
 			logger.debug("Claude CLI not found at: {} ({})", path, e.getMessage());
-		}
-		return null;
-	}
-
-	/**
-	 * Resolves a command name to its full path using platform-appropriate commands. Uses
-	 * 'which' on Unix/Linux/macOS and 'where' on Windows.
-	 */
-	private static String resolveCommandPath(String commandName) {
-		try {
-			String osName = System.getProperty("os.name").toLowerCase();
-			String[] command;
-
-			if (osName.contains("win")) {
-				// Windows uses 'where'
-				command = new String[] { "where", commandName };
-			}
-			else {
-				// Unix/Linux/macOS use 'which'
-				command = new String[] { "which", commandName };
-			}
-
-			ProcessResult result = new ProcessExecutor().command(command)
-				.timeout(3, TimeUnit.SECONDS)
-				.readOutput(true)
-				.execute();
-
-			if (result.getExitValue() == 0) {
-				String output = result.outputUTF8().trim();
-				// Windows 'where' can return multiple paths, take the first one
-				if (osName.contains("win") && output.contains("\n")) {
-					output = output.split("\n")[0].trim();
-				}
-				return output;
-			}
-		}
-		catch (Exception e) {
-			logger.debug("Failed to resolve command path for '{}': {}", commandName, e.getMessage());
 		}
 		return null;
 	}
