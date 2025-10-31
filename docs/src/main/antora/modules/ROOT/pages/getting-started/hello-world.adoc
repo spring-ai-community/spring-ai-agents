@@ -145,7 +145,7 @@ The fluent chain makes it easy to build up your agent request step by step.
 Spring Boot autoconfiguration handles everything automatically:
 
 * `AgentClient.Builder` bean (prototype scope)
-* Claude agent (model: claude-sonnet-4.5, yolo: true)
+* Claude agent (model: claude-sonnet-4-5, yolo: true)
 * LocalSandbox for secure execution
 
 No manual configuration required!
