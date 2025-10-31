@@ -55,7 +55,7 @@ The agent will:
 
 Spring Boot provides:
 - `AgentClient.Builder` bean (prototype scope) - automatically configured
-- Claude agent with sensible defaults (model: claude-sonnet-4.5, yolo: true)
+- Claude agent with sensible defaults (model: claude-sonnet-4-5, yolo: true)
 - LocalSandbox for secure command execution
 
 No manual configuration needed!
