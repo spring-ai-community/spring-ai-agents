@@ -16,11 +16,13 @@
 package org.springaicommunity.agents.model.sandbox;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,6 +74,18 @@ public final class LocalSandbox implements Sandbox {
 	public LocalSandbox(Path workingDirectory, List<ExecSpecCustomizer> customizers) {
 		this.workingDirectory = workingDirectory;
 		this.customizers = List.copyOf(customizers);
+
+		// Ensure working directory exists
+		try {
+			if (!Files.exists(workingDirectory)) {
+				Files.createDirectories(workingDirectory);
+				logger.info("Created working directory: {}", workingDirectory);
+			}
+		}
+		catch (IOException e) {
+			logger.warn("Failed to create working directory: {}", workingDirectory, e);
+		}
+
 		logger.warn("LocalSandbox created - NO ISOLATION PROVIDED. Commands execute directly on host system.");
 	}
 
@@ -98,11 +112,7 @@ public final class LocalSandbox implements Sandbox {
 		List<String> finalCommand = processCommand(command);
 
 		try {
-			// Use zt-exec for robust process execution
-			ProcessExecutor executor = new ProcessExecutor().command(finalCommand)
-				.directory(workingDirectory.toFile())
-				.readOutput(true)
-				.destroyOnExit();
+			ProcessExecutor executor = new ProcessExecutor().command(finalCommand).readOutput(true).destroyOnExit();
 
 			logger.info("LocalSandbox executing command in directory: {}", workingDirectory);
 			logger.info("LocalSandbox command size: {} args", finalCommand.size());
@@ -117,11 +127,12 @@ public final class LocalSandbox implements Sandbox {
 				}
 			}
 
-			// Apply environment variables
+			Map<String, String> mergedEnv = new HashMap<>(System.getenv());
 			if (!customizedSpec.env().isEmpty()) {
-				logger.info("LocalSandbox environment variables: {}", customizedSpec.env().keySet());
-				executor.environment(customizedSpec.env());
+				logger.info("LocalSandbox custom environment variables: {}", customizedSpec.env().keySet());
+				mergedEnv.putAll(customizedSpec.env());
 			}
+			executor.environment(mergedEnv);
 
 			// Handle timeout
 			if (customizedSpec.timeout() != null) {
@@ -156,15 +167,45 @@ public final class LocalSandbox implements Sandbox {
 		// Handle special shell command marker
 		if (command.size() >= 2 && "__SHELL_COMMAND__".equals(command.get(0))) {
 			String shellCmd = command.get(1);
-			// Use platform-appropriate shell
+			// Use platform-appropriate shell with cd to working directory
 			if (System.getProperty("os.name").toLowerCase().contains("windows")) {
-				return List.of("cmd", "/c", shellCmd);
+				// Use cd /d to change drive if needed on Windows
+				return List.of("cmd", "/c", "cd /d " + escapePath(workingDirectory.toString()) + " && " + shellCmd);
 			}
 			else {
-				return List.of("bash", "-c", shellCmd);
+				return List.of("/bin/sh", "-c", "cd " + escapePath(workingDirectory.toString()) + " && " + shellCmd);
 			}
 		}
+
+		if (!command.isEmpty()) {
+			// Build the shell command with proper escaping
+			String shellCmd = String.join(" ", command.stream().map(arg -> {
+				// Escape arguments that contain spaces or special characters
+				if (arg.contains(" ") || arg.contains("\"") || arg.contains("'") || arg.contains("\n")
+						|| arg.contains("$") || arg.contains("`")) {
+					return "'" + arg.replace("'", "'\\''") + "'";
+				}
+				return arg;
+			}).toList());
+
+			// Prepend cd to working directory
+			if (System.getProperty("os.name").toLowerCase().contains("windows")) {
+				// Use cd /d to change drive if needed on Windows
+				String fullCmd = "cd /d " + escapePath(workingDirectory.toString()) + " && " + shellCmd;
+				return List.of("cmd", "/c", fullCmd);
+			}
+			else {
+				String fullCmd = "cd " + escapePath(workingDirectory.toString()) + " && " + shellCmd;
+				return List.of("/bin/sh", "-c", fullCmd);
+			}
+		}
+
 		return command;
+	}
+
+	private String escapePath(String path) {
+		// Escape single quotes in paths for shell
+		return "'" + path.replace("'", "'\\''") + "'";
 	}
 
 	private ExecSpec applyCustomizers(ExecSpec spec) {
