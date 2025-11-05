@@ -86,6 +86,14 @@ public final class LocalSandbox implements Sandbox {
 			throw new IllegalStateException("Sandbox is closed");
 		}
 
+		// Ensure working directory exists
+		try {
+			java.nio.file.Files.createDirectories(workingDirectory);
+		}
+		catch (IOException e) {
+			throw new SandboxException("Failed to create working directory: " + workingDirectory, e);
+		}
+
 		var startTime = Instant.now();
 		var customizedSpec = applyCustomizers(spec);
 		var command = customizedSpec.command();
@@ -104,34 +112,40 @@ public final class LocalSandbox implements Sandbox {
 				.readOutput(true)
 				.destroyOnExit();
 
-			logger.info("LocalSandbox executing command in directory: {}", workingDirectory);
-			logger.info("LocalSandbox command size: {} args", finalCommand.size());
+			logger.debug("LocalSandbox executing command in directory: {}", workingDirectory);
+			logger.debug("LocalSandbox command size: {} args", finalCommand.size());
 			for (int i = 0; i < finalCommand.size(); i++) {
 				String arg = finalCommand.get(i);
 				if (i == finalCommand.size() - 1 && arg.length() > 200) {
-					logger.info("LocalSandbox arg[{}]: {} ... (truncated, length={})", i, arg.substring(0, 200),
+					logger.debug("LocalSandbox arg[{}]: {} ... (truncated, length={})", i, arg.substring(0, 200),
 							arg.length());
 				}
 				else {
-					logger.info("LocalSandbox arg[{}]: {}", i, arg);
+					logger.debug("LocalSandbox arg[{}]: {}", i, arg);
 				}
 			}
 
 			// Apply environment variables
+			// Merge parent environment with custom variables to preserve PATH and other
+			// critical variables
 			if (!customizedSpec.env().isEmpty()) {
-				logger.info("LocalSandbox environment variables: {}", customizedSpec.env().keySet());
-				executor.environment(customizedSpec.env());
+				logger.debug("LocalSandbox adding environment variables: {}", customizedSpec.env().keySet());
+				// Create merged environment: parent + custom (custom variables override
+				// parent)
+				var mergedEnv = new java.util.HashMap<>(System.getenv());
+				mergedEnv.putAll(customizedSpec.env());
+				executor.environment(mergedEnv);
 			}
 
 			// Handle timeout
 			if (customizedSpec.timeout() != null) {
-				logger.info("LocalSandbox timeout: {}", customizedSpec.timeout());
+				logger.debug("LocalSandbox timeout: {}", customizedSpec.timeout());
 				executor.timeout(customizedSpec.timeout().toMillis(), TimeUnit.MILLISECONDS);
 			}
 
-			logger.info("LocalSandbox about to execute command...");
+			logger.debug("LocalSandbox about to execute command...");
 			ProcessResult result = executor.execute();
-			logger.info("LocalSandbox command completed with exit code: {}", result.getExitValue());
+			logger.debug("LocalSandbox command completed with exit code: {}", result.getExitValue());
 			Duration duration = Duration.between(startTime, Instant.now());
 
 			return new ExecResult(result.getExitValue(), result.outputUTF8(), duration);
