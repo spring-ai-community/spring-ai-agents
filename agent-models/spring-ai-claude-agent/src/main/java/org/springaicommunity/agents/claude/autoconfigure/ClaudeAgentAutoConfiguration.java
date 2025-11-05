@@ -17,6 +17,7 @@ package org.springaicommunity.agents.claude.autoconfigure;
 
 import org.springaicommunity.agents.claude.ClaudeAgentModel;
 import org.springaicommunity.agents.claude.ClaudeAgentOptions;
+import org.springaicommunity.agents.claude.SystemPrompt;
 import org.springaicommunity.agents.claude.sdk.ClaudeAgentClient;
 import org.springaicommunity.agents.model.AgentModel;
 import org.springaicommunity.agents.model.sandbox.Sandbox;
