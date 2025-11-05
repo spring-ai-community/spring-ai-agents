@@ -204,7 +204,6 @@ public class ClaudeAgentModel implements AgentModel {
 
 		// 1. SDK builds command
 		List<String> command = claudeCodeClient.buildCommand(prompt, cliOptions);
-		logger.info("Built command: {}", String.join(" ", command));
 
 		// 2. Create ExecSpec with environment variables
 		Map<String, String> environment = new java.util.HashMap<>();
@@ -220,8 +219,6 @@ public class ClaudeAgentModel implements AgentModel {
 		ExecSpec spec = ExecSpec.builder().command(command).env(environment).timeout(cliOptions.getTimeout()).build();
 
 		// 3. Execute via sandbox
-		logger.info("About to execute command via sandbox: {}", String.join(" ", command));
-		logger.info("Timeout: {}", cliOptions.getTimeout());
 		ExecResult execResult = sandbox.exec(spec);
 		logger.info("Command execution completed with exit code: {}", execResult.exitCode());
 
