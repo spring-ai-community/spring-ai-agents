@@ -28,9 +28,8 @@ import org.springframework.context.annotation.Scope;
  * Spring Boot auto-configuration for {@link AgentClient}.
  *
  * <p>
- * This provides a prototype-scoped {@link AgentClient.Builder} bean, following Spring
- * AI's ChatClient.Builder pattern. Each injection point receives a newly cloned instance
- * of the builder.
+ * This provides both a default {@link AgentClient} bean and a prototype-scoped
+ * {@link AgentClient.Builder} bean, following Spring AI's ChatClient pattern.
  *
  * <p>
  * Requires an {@link AgentModel} bean to be present in the application context, which is
@@ -46,13 +45,24 @@ import org.springframework.context.annotation.Scope;
 public class AgentClientAutoConfiguration {
 
 	/**
+	 * Creates a default AgentClient bean.
+	 * @param agentModel the configured agent model
+	 * @return a configured AgentClient instance
+	 */
+	@Bean
+	@ConditionalOnMissingBean
+	public AgentClient agentClient(AgentModel agentModel) {
+		return AgentClient.builder(agentModel).build();
+	}
+
+	/**
 	 * Creates an AgentClient.Builder with prototype scope.
 	 * @param agentModel the configured agent model
 	 * @return a new builder instance for each injection point
 	 */
 	@Bean
 	@Scope("prototype")
-	@ConditionalOnMissingBean
+	@ConditionalOnMissingBean(name = "agentClientBuilder")
 	public AgentClient.Builder agentClientBuilder(AgentModel agentModel) {
 		return AgentClient.builder(agentModel);
 	}

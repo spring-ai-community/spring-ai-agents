@@ -168,13 +168,13 @@ class AgentJudgeTest {
 
 			@Bean
 			public GeminiClient geminiClient() {
-				CLIOptions cliOptions = CLIOptions.builder().model("gemini-2.0-flash-exp").yoloMode(true).build();
+				CLIOptions cliOptions = CLIOptions.builder().model("gemini-2.5-flash").yoloMode(true).build();
 				return GeminiClient.create(cliOptions);
 			}
 
 			@Bean
 			public GeminiAgentOptions geminiAgentOptions() {
-				return GeminiAgentOptions.builder().model("gemini-2.0-flash-exp").build();
+				return GeminiAgentOptions.builder().model("gemini-2.5-flash").build();
 			}
 
 			@Bean

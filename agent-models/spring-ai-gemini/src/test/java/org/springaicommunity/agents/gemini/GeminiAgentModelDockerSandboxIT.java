@@ -82,7 +82,7 @@ class GeminiAgentModelDockerSandboxIT extends AbstractAgentModelTCK {
 
 			// Create agent options
 			GeminiAgentOptions options = GeminiAgentOptions.builder()
-				.model("gemini-2.0-flash-exp")
+				.model("gemini-2.5-flash")
 				.timeout(Duration.ofMinutes(3))
 				.yolo(true) // Enable yolo mode for autonomous operation
 				.build();
@@ -101,7 +101,7 @@ class GeminiAgentModelDockerSandboxIT extends AbstractAgentModelTCK {
 	@Override
 	protected AgentOptions createShortTimeoutOptions() {
 		return GeminiAgentOptions.builder()
-			.model("gemini-2.0-flash-exp")
+			.model("gemini-2.5-flash")
 			.timeout(Duration.ofSeconds(10)) // Short timeout for timeout testing
 			.yolo(true)
 			.build();

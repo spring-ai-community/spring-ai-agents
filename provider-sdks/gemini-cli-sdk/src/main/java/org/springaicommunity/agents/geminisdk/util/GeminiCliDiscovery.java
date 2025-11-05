@@ -121,6 +121,14 @@ public class GeminiCliDiscovery {
 	 */
 	private static CliAvailabilityResult performCliCheck(String command) {
 		try {
+			// Create .gemini directory in current working directory for telemetry logs
+			// Gemini CLI writes telemetry to .gemini/telemetry.log in the current
+			// directory
+			java.io.File geminiDir = new java.io.File(".gemini");
+			if (!geminiDir.exists()) {
+				geminiDir.mkdirs();
+			}
+
 			ProcessExecutor executor;
 
 			// If using nvm-installed CLI, execute it with the correct Node.js to avoid

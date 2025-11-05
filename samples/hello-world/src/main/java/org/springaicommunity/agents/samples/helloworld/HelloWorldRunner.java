@@ -47,8 +47,8 @@ public class HelloWorldRunner implements CommandLineRunner {
 
 	private final AgentClient agentClient;
 
-	public HelloWorldRunner(AgentClient agentClient) {
-		this.agentClient = agentClient;
+	public HelloWorldRunner(AgentClient.Builder agentClientBuilder) {
+		this.agentClient = agentClientBuilder.build();
 	}
 
 	@Override

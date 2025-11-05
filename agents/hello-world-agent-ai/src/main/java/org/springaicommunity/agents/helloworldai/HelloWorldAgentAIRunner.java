@@ -173,7 +173,7 @@ public class HelloWorldAgentAIRunner implements AgentRunner {
 		}
 
 		GeminiAgentOptions options = GeminiAgentOptions.builder()
-			.model("gemini-2.0-flash-exp")
+			.model("gemini-2.5-flash")
 			.yolo(true) // Bypass permissions for automated execution
 			.build();
 

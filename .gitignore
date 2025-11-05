@@ -97,6 +97,9 @@ plans/
 logs/
 spring.log
 
+# Gemini CLI telemetry
+.gemini/
+
 # JRebel
 rebel.xml
 

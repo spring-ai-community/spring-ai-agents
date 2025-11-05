@@ -74,7 +74,7 @@ class CLIOptionsTest {
 	void testValidModelNames() {
 		// Valid model names should not throw exceptions
 		assertThatNoException().isThrownBy(() -> CLIOptions.builder().model("gemini-2.5-pro").build());
-		assertThatNoException().isThrownBy(() -> CLIOptions.builder().model("gemini-2.0-flash-exp").build());
+		assertThatNoException().isThrownBy(() -> CLIOptions.builder().model("gemini-2.5-flash").build());
 		assertThatNoException().isThrownBy(() -> CLIOptions.builder().model("gemini-pro").build());
 		assertThatNoException().isThrownBy(() -> CLIOptions.builder().model("gemini-flash").build());
 		assertThatNoException().isThrownBy(() -> CLIOptions.builder().model("models/gemini-2.5-pro").build());
@@ -109,7 +109,7 @@ class CLIOptionsTest {
 	@Test
 	void testPresetConfigurations() {
 		CLIOptions fastResponse = CLIOptions.fastResponse();
-		assertThat(fastResponse.model()).isEqualTo("gemini-2.0-flash-exp");
+		assertThat(fastResponse.model()).isEqualTo("gemini-2.5-flash");
 		assertThat(fastResponse.timeout()).isEqualTo(Duration.ofSeconds(30));
 		assertThat(fastResponse.yoloMode()).isTrue();
 
@@ -119,7 +119,7 @@ class CLIOptionsTest {
 		assertThat(highQuality.yoloMode()).isTrue();
 
 		CLIOptions development = CLIOptions.development();
-		assertThat(development.model()).isEqualTo("gemini-2.0-flash-exp");
+		assertThat(development.model()).isEqualTo("gemini-2.5-flash");
 		assertThat(development.timeout()).isEqualTo(Duration.ofMinutes(1));
 		assertThat(development.allFiles()).isFalse();
 		assertThat(development.yoloMode()).isTrue();

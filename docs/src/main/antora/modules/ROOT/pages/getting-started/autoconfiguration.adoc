@@ -129,7 +129,7 @@ spring:
   ai:
     agents:
       gemini:
-        model: "gemini-2.0-flash-exp"
+        model: "gemini-2.5-flash"
         timeout: "PT5M"
         yolo: true
         executable-path: "/usr/local/bin/gemini"

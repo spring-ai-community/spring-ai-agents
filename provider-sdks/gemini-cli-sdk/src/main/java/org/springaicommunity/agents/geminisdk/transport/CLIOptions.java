@@ -45,7 +45,7 @@ public record CLIOptions(
 		 * Corresponds to the {@code -m, --model} CLI flag. Supports model names like:
 		 * <ul>
 		 * <li>{@code gemini-2.5-pro} - High-quality model for complex tasks</li>
-		 * <li>{@code gemini-2.0-flash-exp} - Fast model for quick responses</li>
+		 * <li>{@code gemini-2.5-flash} - Fast model for quick responses</li>
 		 * <li>{@code models/gemini-2.5-pro} - Fully qualified model names</li>
 		 * </ul>
 		 *
@@ -227,7 +227,7 @@ public record CLIOptions(
 		// Validate against known Gemini model patterns
 		List<String> validPrefixes = List.of("gemini-", "models/gemini-");
 		boolean isValid = validPrefixes.stream().anyMatch(model::startsWith) || model.equals("gemini-pro")
-				|| model.equals("gemini-flash") || model.equals("gemini-2.0-flash-exp");
+				|| model.equals("gemini-flash") || model.equals("gemini-2.5-flash");
 
 		if (!isValid) {
 			throw new IllegalArgumentException(
@@ -474,7 +474,7 @@ public record CLIOptions(
 	 * @return CLIOptions configured for speed
 	 */
 	public static CLIOptions fastResponse() {
-		return builder().model("gemini-2.0-flash-exp").yoloMode(true).timeout(Duration.ofSeconds(30)).build();
+		return builder().model("gemini-2.5-flash").yoloMode(true).timeout(Duration.ofSeconds(30)).build();
 	}
 
 	/**
@@ -492,7 +492,7 @@ public record CLIOptions(
 	 * @return CLIOptions configured for development
 	 */
 	public static CLIOptions development() {
-		return builder().model("gemini-2.0-flash-exp")
+		return builder().model("gemini-2.5-flash")
 			.yoloMode(true)
 			.allFiles(false)
 			.debug(true)
@@ -506,10 +506,6 @@ public record CLIOptions(
 	 * @return CLIOptions configured for secure sandboxed execution
 	 */
 	public static CLIOptions sandboxed() {
-		return builder().model("gemini-2.0-flash-exp")
-			.yoloMode(true)
-			.sandbox(true)
-			.timeout(Duration.ofMinutes(3))
-			.build();
+		return builder().model("gemini-2.5-flash").yoloMode(true).sandbox(true).timeout(Duration.ofMinutes(3)).build();
 	}
 }

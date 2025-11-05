@@ -41,6 +41,11 @@
             <artifactId>spring-ai-agent-client</artifactId>
             <version>${spring-ai-agents.version}</version>
         </dependency>
+        <dependency>
+          <groupId>org.springaicommunity.agents</groupId>
+          <artifactId>spring-ai-starter-agent-claude</artifactId>
+          <version>${spring-ai-agents.version}</version>
+        </dependency>
 
         <!-- Claude Agent Model -->
         <dependency>

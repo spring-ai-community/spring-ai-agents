@@ -84,7 +84,7 @@ public abstract class BaseGeminiIT {
 				logger.warn("   - Gemini CLI not available");
 			}
 			if (!apiKeyAvailable) {
-				logger.warn("   - API key not found (set GEMINI_API_KEY or GOOGLE_API_KEY)");
+				logger.warn("   - OAuth credentials not found (run 'gemini auth login')");
 			}
 		}
 	}
@@ -111,24 +111,55 @@ public abstract class BaseGeminiIT {
 	}
 
 	/**
-	 * Checks if required API keys are available for Gemini CLI authentication. Gemini CLI
-	 * requires either GEMINI_API_KEY or GOOGLE_API_KEY environment variable.
+	 * Checks if required authentication is available for Gemini CLI. Due to the
+	 * complexity of Gemini CLI authentication (OAuth, Vertex AI, API keys), we simply
+	 * check for any valid credentials and let the CLI tests determine if they work.
+	 * <p>
+	 * Tests will be enabled if ANY of the following are present:
+	 * <ul>
+	 * <li>OAuth credentials file (~/.gemini/oauth_creds.json)</li>
+	 * <li>GEMINI_API_KEY environment variable</li>
+	 * <li>GOOGLE_API_KEY environment variable</li>
+	 * <li>Google Cloud authentication (gcloud)</li>
+	 * </ul>
 	 */
 	private static boolean checkApiKeyAvailability() {
+		// Check for OAuth credentials file
+		String home = System.getenv("HOME");
+		if (home == null) {
+			home = System.getProperty("user.home");
+		}
+
+		java.io.File oauthCredsFile = new java.io.File(home, ".gemini/oauth_creds.json");
+		if (oauthCredsFile.exists() && oauthCredsFile.canRead()) {
+			logger.info("OAuth credentials found at: {}", oauthCredsFile.getAbsolutePath());
+			logger.warn(
+					"Note: Gemini CLI tests may fail if OAuth credentials don't match the API mode (standard vs Vertex AI)");
+			return true;
+		}
+
+		// Check for API keys
 		String geminiApiKey = System.getenv("GEMINI_API_KEY");
 		String googleApiKey = System.getenv("GOOGLE_API_KEY");
-
-		boolean hasApiKey = (geminiApiKey != null && !geminiApiKey.trim().isEmpty())
-				|| (googleApiKey != null && !googleApiKey.trim().isEmpty());
-
-		if (hasApiKey) {
-			logger.info("API key found for Gemini CLI authentication");
+		if ((geminiApiKey != null && !geminiApiKey.trim().isEmpty())
+				|| (googleApiKey != null && !googleApiKey.trim().isEmpty())) {
+			logger.info("API key found in environment variables");
+			return true;
 		}
-		else {
-			logger.warn(
-					"No API key found. Set GEMINI_API_KEY or GOOGLE_API_KEY environment variable for integration testing");
+
+		// Check for gcloud authentication (for Vertex AI)
+		java.io.File gcloudCredsFile = new java.io.File(home, ".config/gcloud/application_default_credentials.json");
+		if (gcloudCredsFile.exists() && gcloudCredsFile.canRead()) {
+			logger.info("Google Cloud credentials found at: {}", gcloudCredsFile.getAbsolutePath());
+			return true;
 		}
-		return hasApiKey;
+
+		logger.warn("No authentication credentials found for Gemini CLI");
+		logger.warn("Options:");
+		logger.warn("  - Run 'gemini auth login' for OAuth authentication");
+		logger.warn("  - Run 'gcloud auth application-default login' for Vertex AI");
+		logger.warn("  - Set GEMINI_API_KEY or GOOGLE_API_KEY environment variable");
+		return false;
 	}
 
 	/**
@@ -141,7 +172,10 @@ public abstract class BaseGeminiIT {
 		if (!setupCompleted) {
 			setUpIntegrationTestPrerequisites();
 		}
-		return cliAvailable && apiKeyAvailable;
+		boolean shouldRun = cliAvailable && apiKeyAvailable;
+		logger.info("canRunIntegrationTests() returning: {} (CLI={}, OAuth={})", shouldRun, cliAvailable,
+				apiKeyAvailable);
+		return shouldRun;
 	}
 
 	/**

@@ -30,9 +30,9 @@ import java.util.Map;
 public class GeminiAgentOptions implements AgentOptions {
 
 	/**
-	 * The model name to use (e.g., "gemini-2.0-flash-exp", "gemini-pro").
+	 * The model name to use (e.g., "gemini-2.5-flash", "gemini-pro").
 	 */
-	private String model = "gemini-2.0-flash-exp";
+	private String model = "gemini-2.5-flash";
 
 	/**
 	 * Timeout for agent execution.

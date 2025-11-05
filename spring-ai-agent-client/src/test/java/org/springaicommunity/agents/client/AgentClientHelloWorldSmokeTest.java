@@ -100,7 +100,7 @@ class AgentClientHelloWorldSmokeTest {
 
 		// Create Gemini agent
 		GeminiAgentOptions options = GeminiAgentOptions.builder()
-			.model("gemini-2.0-flash-exp")
+			.model("gemini-2.5-flash")
 			.yolo(true) // Bypass permissions for test
 			.build();
 

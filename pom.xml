@@ -133,11 +133,13 @@
                         <artifactId>maven-failsafe-plugin</artifactId>
                         <version>3.1.2</version>
                         <configuration>
-                            <!-- Pass environment variables to test JVM for API keys -->
+                            <!-- Pass environment variables to test JVM for API keys and OAuth authentication -->
                             <environmentVariables>
                                 <ANTHROPIC_API_KEY>${env.ANTHROPIC_API_KEY}</ANTHROPIC_API_KEY>
                                 <GEMINI_API_KEY>${env.GEMINI_API_KEY}</GEMINI_API_KEY>
                                 <GOOGLE_API_KEY>${env.GOOGLE_API_KEY}</GOOGLE_API_KEY>
+                                <!-- HOME is required for Gemini CLI to access OAuth credentials at ~/.config/gemini-cli/oauth_creds.json -->
+                                <HOME>${user.home}</HOME>
                             </environmentVariables>
                             <!-- Rerun flaky streaming tests to handle intermittent CLI failures -->
                             <rerunFailingTestsCount>2</rerunFailingTestsCount>
@@ -434,11 +436,13 @@
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${maven-surefire-plugin.version}</version>
                     <configuration>
-                        <!-- Pass environment variables to test JVM for API keys -->
+                        <!-- Pass environment variables to test JVM for API keys and OAuth authentication -->
                         <environmentVariables>
                             <ANTHROPIC_API_KEY>${env.ANTHROPIC_API_KEY}</ANTHROPIC_API_KEY>
                             <GEMINI_API_KEY>${env.GEMINI_API_KEY}</GEMINI_API_KEY>
                             <GOOGLE_API_KEY>${env.GOOGLE_API_KEY}</GOOGLE_API_KEY>
+                            <!-- HOME is required for Gemini CLI to access OAuth credentials at ~/.config/gemini-cli/oauth_creds.json -->
+                            <HOME>${user.home}</HOME>
                         </environmentVariables>
                     </configuration>
                 </plugin>

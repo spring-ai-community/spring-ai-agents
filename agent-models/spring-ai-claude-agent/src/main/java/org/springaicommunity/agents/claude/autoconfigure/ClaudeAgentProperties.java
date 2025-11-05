@@ -50,7 +50,7 @@ public class ClaudeAgentProperties {
 	/**
 	 * Claude model to use for agent tasks.
 	 */
-	private String model = "claude-sonnet-4.5";
+	private String model = "sonnet";
 
 	/**
 	 * Timeout for agent task execution.

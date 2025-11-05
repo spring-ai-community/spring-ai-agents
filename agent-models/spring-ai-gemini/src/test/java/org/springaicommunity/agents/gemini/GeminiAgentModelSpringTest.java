@@ -38,7 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SpringBootTest(classes = GeminiAgentModelSpringTest.TestConfig.class)
 @TestPropertySource(
-		properties = { "spring.ai.agents.gemini.model=gemini-2.0-flash-exp", "spring.ai.agents.gemini.timeout=PT5M",
+		properties = { "spring.ai.agents.gemini.model=gemini-2.5-flash", "spring.ai.agents.gemini.timeout=PT5M",
 				"spring.ai.agents.gemini.yolo=true", "spring.ai.agents.sandbox.docker.enabled=false" })
 class GeminiAgentModelSpringTest {
 
@@ -88,7 +88,7 @@ class GeminiAgentModelSpringTest {
 		public GeminiAgentModel geminiAgentModel(GeminiClient geminiClient, Sandbox sandbox) {
 			// Create agent model with default options
 			GeminiAgentOptions options = GeminiAgentOptions.builder()
-				.model("gemini-2.0-flash-exp")
+				.model("gemini-2.5-flash")
 				.timeout(java.time.Duration.ofMinutes(5))
 				.yolo(true)
 				.build();

@@ -116,12 +116,39 @@ public class CLITransport {
 			String[] commandArray = GeminiCliDiscovery.getGeminiCommand(geminiCommand,
 					command.subList(1, command.size()).toArray(new String[0]));
 
-			ProcessResult result = new ProcessExecutor().command(commandArray)
+			// Build environment - inherit parent environment and ensure HOME is set for
+			// OAuth
+			java.util.Map<String, String> environment = new java.util.HashMap<>(System.getenv());
+			String home = System.getenv("HOME");
+			if (home == null) {
+				home = System.getProperty("user.home");
+				if (home != null) {
+					environment.put("HOME", home);
+				}
+			}
+
+			// Disable Vertex AI mode - use standard Gemini API with OAuth credentials
+			// The Gemini CLI will try to use Vertex AI if GOOGLE_GENAI_USE_VERTEXAI is
+			// set,
+			// but that requires gcloud auth instead of the OAuth credentials we have
+			environment.put("GOOGLE_GENAI_USE_VERTEXAI", "false");
+
+			// Create .gemini directory in working directory for telemetry logs
+			// Gemini CLI writes telemetry to .gemini/telemetry.log in the current
+			// directory
+			java.io.File geminiDir = new java.io.File(workingDirectory.toFile(), ".gemini");
+			if (!geminiDir.exists()) {
+				geminiDir.mkdirs();
+			}
+
+			ProcessExecutor executor = new ProcessExecutor().command(commandArray)
 				.directory(workingDirectory.toFile())
 				.timeout(options.getTimeout().toMillis(), java.util.concurrent.TimeUnit.MILLISECONDS)
 				.readOutput(true)
 				.exitValueNormal()
-				.execute();
+				.environment(environment);
+
+			ProcessResult result = executor.execute();
 
 			String output = result.outputUTF8();
 			logger.debug("Gemini CLI output length: {}", output.length());

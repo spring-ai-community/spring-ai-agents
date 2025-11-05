@@ -641,7 +641,7 @@ If you're familiar with other agent integrations, note these differences:
 
 |Model
 |claude-sonnet-4, etc.
-|gemini-2.0-flash-exp, etc.
+|gemini-2.5-flash, etc.
 |amazon-q-developer
 
 |Default timeout

@@ -76,13 +76,13 @@ class GeminiClientIT extends BaseGeminiIT {
 
 	@Test
 	void testConnection() throws GeminiSDKException {
-		assertThatNoException().isThrownBy(() -> client.connect(true));
+		assertThatNoException().isThrownBy(() -> client.connect(false));
 		logger.info("Connection test passed");
 	}
 
 	@Test
 	void testSimpleQuery() throws GeminiSDKException {
-		client.connect(true);
+		client.connect(false);
 
 		String prompt = "What is 2 + 2? Please provide just the number.";
 		String response = client.queryText(prompt);
@@ -95,7 +95,7 @@ class GeminiClientIT extends BaseGeminiIT {
 
 	@Test
 	void testDetailedQuery() throws GeminiSDKException {
-		client.connect(true);
+		client.connect(false);
 
 		String prompt = "Explain what a Java record is in one sentence.";
 		QueryResult result = client.query(prompt);
@@ -127,7 +127,7 @@ class GeminiClientIT extends BaseGeminiIT {
 	void testCustomConfiguration() throws GeminiSDKException {
 		// Test with flash model specifically
 		CLIOptions flashOptions = CLIOptions.builder()
-			.model("gemini-2.0-flash-exp")
+			.model("gemini-2.5-flash")
 			.yoloMode(true)
 			.timeout(Duration.ofMinutes(1))
 			.build();

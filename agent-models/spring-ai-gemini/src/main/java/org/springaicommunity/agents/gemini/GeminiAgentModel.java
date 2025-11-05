@@ -293,7 +293,7 @@ public class GeminiAgentModel implements AgentModel {
 
 		// Create response metadata
 		AgentResponseMetadata responseMetadata = AgentResponseMetadata.builder()
-			.model("gemini-2.0-flash-exp") // Default model
+			.model("gemini-2.5-flash") // Default model
 			.duration(duration)
 			.sessionId("") // Gemini CLI doesn't provide session ID
 			.providerFields(result.metadata() != null ? Map.of("gemini_metadata", result.metadata()) : Map.of())
@@ -310,7 +310,7 @@ public class GeminiAgentModel implements AgentModel {
 		List<AgentGeneration> generations = List.of(new AgentGeneration(errorMessage, generationMetadata));
 
 		AgentResponseMetadata responseMetadata = AgentResponseMetadata.builder()
-			.model("gemini-2.0-flash-exp")
+			.model("gemini-2.5-flash")
 			.duration(duration)
 			.build();
 

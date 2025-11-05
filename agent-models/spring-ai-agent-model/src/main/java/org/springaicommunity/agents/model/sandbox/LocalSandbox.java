@@ -72,6 +72,18 @@ public final class LocalSandbox implements Sandbox {
 	public LocalSandbox(Path workingDirectory, List<ExecSpecCustomizer> customizers) {
 		this.workingDirectory = workingDirectory;
 		this.customizers = List.copyOf(customizers);
+
+		// Ensure working directory exists
+		try {
+			if (!java.nio.file.Files.exists(workingDirectory)) {
+				java.nio.file.Files.createDirectories(workingDirectory);
+				logger.info("Created working directory: {}", workingDirectory);
+			}
+		}
+		catch (IOException e) {
+			throw new IllegalStateException("Failed to create working directory: " + workingDirectory, e);
+		}
+
 		logger.warn("LocalSandbox created - NO ISOLATION PROVIDED. Commands execute directly on host system.");
 	}
 
@@ -118,9 +130,21 @@ public final class LocalSandbox implements Sandbox {
 			}
 
 			// Apply environment variables
-			if (!customizedSpec.env().isEmpty()) {
-				logger.info("LocalSandbox environment variables: {}", customizedSpec.env().keySet());
-				executor.environment(customizedSpec.env());
+			// Always inherit PATH to ensure system binaries (node, etc.) are accessible
+			if (!customizedSpec.env().isEmpty() || System.getenv("PATH") != null) {
+				var envVars = new java.util.HashMap<String, String>();
+
+				// Inherit PATH from parent process
+				String parentPath = System.getenv("PATH");
+				if (parentPath != null) {
+					envVars.put("PATH", parentPath);
+				}
+
+				// Add/override with custom environment variables
+				envVars.putAll(customizedSpec.env());
+
+				logger.info("LocalSandbox environment variables: {}", envVars.keySet());
+				executor.environment(envVars);
 			}
 
 			// Handle timeout

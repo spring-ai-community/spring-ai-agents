@@ -42,10 +42,16 @@ import static org.assertj.core.api.Assertions.*;
  * This is the Gemini equivalent of {@code QuerySmokeTest.java} for Claude Code SDK,
  * containing only the 3 most basic integration tests for smoke testing.
  * </p>
+ *
+ * <p>
+ * Note: This is an integration test (IT suffix) that runs only with the failsafe profile
+ * due to complex Gemini CLI authentication requirements (OAuth vs Vertex AI). Run with:
+ * mvn verify -Pfailsafe
+ * </p>
  */
-class GeminiQuerySmokeTest extends BaseGeminiIT {
+class GeminiQuerySmokeIT extends BaseGeminiIT {
 
-	private static final Logger logger = LoggerFactory.getLogger(GeminiQuerySmokeTest.class);
+	private static final Logger logger = LoggerFactory.getLogger(GeminiQuerySmokeIT.class);
 
 	private GeminiClient client;
 
@@ -81,7 +87,7 @@ class GeminiQuerySmokeTest extends BaseGeminiIT {
 		client.connect(true);
 
 		CLIOptions options = CLIOptions.builder()
-			.model("gemini-2.0-flash-exp")
+			.model("gemini-2.5-flash")
 			.timeout(Duration.ofSeconds(30))
 			.yoloMode(true)
 			.build();

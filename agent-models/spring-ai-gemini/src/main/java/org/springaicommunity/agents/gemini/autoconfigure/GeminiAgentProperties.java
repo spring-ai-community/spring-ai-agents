@@ -35,7 +35,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *   ai:
  *     agents:
  *       gemini:
- *         model: "gemini-2.0-flash-exp"
+ *         model: "gemini-2.5-flash"
  *         timeout: "PT5M"
  *         yolo: true
  *         executable-path: "/usr/local/bin/gemini"
@@ -50,7 +50,7 @@ public class GeminiAgentProperties {
 	/**
 	 * Gemini model to use for agent tasks.
 	 */
-	private String model = "gemini-2.0-flash-exp";
+	private String model = "gemini-2.5-flash";
 
 	/**
 	 * Timeout for agent task execution.

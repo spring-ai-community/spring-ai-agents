@@ -67,10 +67,7 @@ class GeminiAgentModelTest {
 	void setUp() {
 		MockitoAnnotations.openMocks(this);
 
-		defaultOptions = GeminiAgentOptions.builder()
-			.model("gemini-2.0-flash-exp")
-			.timeout(Duration.ofMinutes(5))
-			.build();
+		defaultOptions = GeminiAgentOptions.builder().model("gemini-2.5-flash").timeout(Duration.ofMinutes(5)).build();
 
 		agentModel = new GeminiAgentModel(mockGeminiClient, defaultOptions, mockSandbox);
 	}
@@ -82,7 +79,7 @@ class GeminiAgentModelTest {
 		AgentTaskRequest request = AgentTaskRequest.builder("Fix the failing test", workingDir).build();
 
 		// Mock sandbox execution pattern
-		List<String> command = List.of("gemini", "-m", "gemini-2.0-flash-exp", "-y", "-p", "test prompt");
+		List<String> command = List.of("gemini", "-m", "gemini-2.5-flash", "-y", "-p", "test prompt");
 		when(mockGeminiClient.buildCommand(anyString(), any(CLIOptions.class))).thenReturn(command);
 
 		ExecResult execResult = new ExecResult(0, "Test output", Duration.ofSeconds(1));
@@ -109,7 +106,7 @@ class GeminiAgentModelTest {
 		AgentTaskRequest request = AgentTaskRequest.builder("Complex refactoring task", workingDir).build();
 
 		// Mock sandbox execution pattern
-		List<String> command = List.of("gemini", "-m", "gemini-2.0-flash-exp", "-y", "-p", "test prompt");
+		List<String> command = List.of("gemini", "-m", "gemini-2.5-flash", "-y", "-p", "test prompt");
 		when(mockGeminiClient.buildCommand(anyString(), any(CLIOptions.class))).thenReturn(command);
 
 		ExecResult execResult = new ExecResult(0, "Test output", Duration.ofSeconds(1));
@@ -134,7 +131,7 @@ class GeminiAgentModelTest {
 		AgentTaskRequest request = AgentTaskRequest.builder("Invalid task", workingDir).build();
 
 		// Mock sandbox execution pattern
-		List<String> command = List.of("gemini", "-m", "gemini-2.0-flash-exp", "-y", "-p", "test prompt");
+		List<String> command = List.of("gemini", "-m", "gemini-2.5-flash", "-y", "-p", "test prompt");
 		when(mockGeminiClient.buildCommand(anyString(), any(CLIOptions.class))).thenReturn(command);
 
 		ExecResult execResult = new ExecResult(0, "Test output", Duration.ofSeconds(1));
@@ -208,7 +205,7 @@ class GeminiAgentModelTest {
 		Usage mockUsage = Usage.of(100, 50);
 
 		return Metadata.builder()
-			.model("gemini-2.0-flash-exp")
+			.model("gemini-2.5-flash")
 			.timestamp(Instant.now())
 			.duration(Duration.ofMillis(durationMs))
 			.usage(mockUsage)

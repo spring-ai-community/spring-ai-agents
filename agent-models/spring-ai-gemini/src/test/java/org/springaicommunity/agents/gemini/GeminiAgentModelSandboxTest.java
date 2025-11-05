@@ -72,10 +72,7 @@ class GeminiAgentModelSandboxTest {
 	void setUp() {
 		MockitoAnnotations.openMocks(this);
 
-		defaultOptions = GeminiAgentOptions.builder()
-			.model("gemini-2.0-flash-exp")
-			.timeout(Duration.ofMinutes(5))
-			.build();
+		defaultOptions = GeminiAgentOptions.builder().model("gemini-2.5-flash").timeout(Duration.ofMinutes(5)).build();
 
 		// Use constructor injection with Sandbox
 		agentModel = new GeminiAgentModel(mockGeminiClient, defaultOptions, mockSandbox);
@@ -96,7 +93,7 @@ class GeminiAgentModelSandboxTest {
 		AgentTaskRequest request = AgentTaskRequest.builder("Fix the failing test", workingDir).build();
 
 		// Mock buildCommand to return command
-		List<String> command = List.of("gemini", "-m", "gemini-2.0-flash-exp", "-y", "-p", "test prompt");
+		List<String> command = List.of("gemini", "-m", "gemini-2.5-flash", "-y", "-p", "test prompt");
 		when(mockGeminiClient.buildCommand(anyString(), any(CLIOptions.class))).thenReturn(command);
 
 		// Mock sandbox execution
@@ -152,7 +149,7 @@ class GeminiAgentModelSandboxTest {
 		AgentTaskRequest request = AgentTaskRequest.builder("Test Spring DI", workingDir).build();
 
 		// Mock the full sandbox execution pattern
-		List<String> command = List.of("gemini", "-m", "gemini-2.0-flash-exp", "-y", "-p", "test prompt");
+		List<String> command = List.of("gemini", "-m", "gemini-2.5-flash", "-y", "-p", "test prompt");
 		when(mockGeminiClient.buildCommand(anyString(), any(CLIOptions.class))).thenReturn(command);
 
 		ExecResult execResult = new ExecResult(0, "Test output", Duration.ofSeconds(1));
@@ -205,7 +202,7 @@ class GeminiAgentModelSandboxTest {
 		Usage mockUsage = Usage.of(100, 50);
 
 		return Metadata.builder()
-			.model("gemini-2.0-flash-exp")
+			.model("gemini-2.5-flash")
 			.timestamp(Instant.now())
 			.duration(Duration.ofMillis(durationMs))
 			.usage(mockUsage)

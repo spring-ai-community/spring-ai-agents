@@ -117,7 +117,12 @@ public abstract class AbstractSandboxTCK {
 		assertThat(result.success()).isTrue();
 		assertThat(result.mergedLog().trim()).isNotEmpty();
 		// Verify the working directory matches what the sandbox reports
-		assertThat(result.mergedLog().trim()).isEqualTo(sandbox.workDir().toString());
+		// Note: On macOS, pwd returns canonical path (/private/var) while temp paths may
+		// use symlink (/var)
+		// So we normalize both to canonical form for comparison
+		String actualPath = result.mergedLog().trim();
+		String expectedPath = sandbox.workDir().toRealPath().toString();
+		assertThat(actualPath).isEqualTo(expectedPath);
 	}
 
 	/**
@@ -189,15 +194,19 @@ public abstract class AbstractSandboxTCK {
 	 */
 	@Test
 	void testResourceIsolation() throws Exception {
-		// Arrange: Try to access host filesystem (behavior varies by sandbox type)
-		ExecSpec isolationTest = ExecSpec.builder().command("ls", "/home").timeout(Duration.ofSeconds(30)).build();
+		// Arrange: Try to access root filesystem (exists on all platforms)
+		ExecSpec isolationTest = ExecSpec.builder().command("ls", "/").timeout(Duration.ofSeconds(30)).build();
 
 		// Act
 		ExecResult result = sandbox.exec(isolationTest);
 
-		// Assert: Command executes (isolation level depends on sandbox implementation)
+		// Assert: Command executes successfully (isolation level depends on sandbox
+		// implementation)
+		// LocalSandbox: Will see host root directory
+		// DockerSandbox: Will see container root directory (different from host)
 		assertThat(result.success()).isTrue();
 		assertThat(result.mergedLog()).isNotNull();
+		assertThat(result.mergedLog().trim()).isNotEmpty();
 		// Note: The exact isolation behavior will vary between LocalSandbox and
 		// DockerSandbox
 	}
