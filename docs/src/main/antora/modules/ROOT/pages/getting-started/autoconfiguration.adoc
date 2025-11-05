@@ -94,7 +94,7 @@ spring:
   ai:
     agents:
       claude-code:
-        model: "claude-sonnet-4.5"      # Claude model to use
+        model: "claude-sonnet-4-5"      # Claude model to use
         timeout: "PT5M"                  # Task execution timeout (5 minutes)
         yolo: true                       # Bypass permission checks (default: true)
         executable-path: "/usr/local/bin/claude"  # Optional: custom CLI path
@@ -105,7 +105,7 @@ spring:
 |Property |Default |Description
 
 |`spring.ai.agents.claude-code.model`
-|`claude-sonnet-4.5`
+|`claude-sonnet-4-5`
 |Claude model for agent tasks
 
 |`spring.ai.agents.claude-code.timeout`
