@@ -1,3 +1,0 @@
-org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-org.springaicommunity.agents.claude.autoconfigure.ClaudeAgentAutoConfiguration,\
-org.springaicommunity.agents.claude.autoconfigure.SandboxAutoConfiguration
