@@ -18,7 +18,7 @@ Gemini CLI is Google's autonomous coding agent that can understand and modify co
 +
 [source,bash]
 ----
-npm install -g @google/generative-ai-cli
+npm install -g @google/gemini-cli
 ----
 
 2. **Set API Key**:
