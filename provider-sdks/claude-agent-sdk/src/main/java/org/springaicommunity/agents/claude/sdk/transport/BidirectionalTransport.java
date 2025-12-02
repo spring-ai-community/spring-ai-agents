@@ -20,16 +20,23 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springaicommunity.agents.claude.sdk.config.ClaudeCliDiscovery;
-import org.springaicommunity.agents.claude.sdk.config.OutputFormat;
 import org.springaicommunity.agents.claude.sdk.exceptions.CLIConnectionException;
 import org.springaicommunity.agents.claude.sdk.exceptions.ClaudeSDKException;
 import org.springaicommunity.agents.claude.sdk.exceptions.ProcessExecutionException;
+import org.springaicommunity.agents.claude.sdk.exceptions.SessionClosedException;
 import org.springaicommunity.agents.claude.sdk.parsing.ControlMessageParser;
 import org.springaicommunity.agents.claude.sdk.parsing.ParsedMessage;
 import org.springaicommunity.agents.claude.sdk.types.control.ControlRequest;
 import org.springaicommunity.agents.claude.sdk.types.control.ControlResponse;
 import org.springaicommunity.agents.model.sandbox.ExecSpec;
 import org.springaicommunity.agents.model.sandbox.Sandbox;
+import reactor.core.Disposable;
+import reactor.core.Disposables;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -37,10 +44,11 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
@@ -56,7 +64,10 @@ import java.util.function.Consumer;
  * <li>Uses --output-format stream-json for receiving messages</li>
  * <li>Uses --permission-prompt-tool stdio for bidirectional control</li>
  * <li>Handles both regular messages and control requests</li>
- * <li>Thread-safe response writing</li>
+ * <li>Thread-safe response writing with scheduler separation</li>
+ * <li>Explicit state machine for lifecycle management</li>
+ * <li>Reactive Sinks for message buffering with backpressure</li>
+ * <li>Iterator-based API for non-reactive consumers</li>
  * </ul>
  *
  * @see ControlMessageParser
@@ -66,6 +77,29 @@ import java.util.function.Consumer;
 public class BidirectionalTransport implements AutoCloseable {
 
 	private static final Logger logger = LoggerFactory.getLogger(BidirectionalTransport.class);
+
+	// ============================================================
+	// State Machine Constants
+	// ============================================================
+
+	/** Transport is created but not connected */
+	public static final int STATE_DISCONNECTED = 0;
+
+	/** Connection in progress */
+	public static final int STATE_CONNECTING = 1;
+
+	/** Connected and ready for communication */
+	public static final int STATE_CONNECTED = 2;
+
+	/** Graceful shutdown in progress */
+	public static final int STATE_CLOSING = 3;
+
+	/** Fully closed */
+	public static final int STATE_CLOSED = 4;
+
+	// ============================================================
+	// Configuration
+	// ============================================================
 
 	private final String claudeCommand;
 
@@ -79,9 +113,49 @@ public class BidirectionalTransport implements AutoCloseable {
 
 	private final ObjectMapper objectMapper;
 
-	private final ExecutorService executor;
+	// ============================================================
+	// State Management (Atomic State Machine)
+	// ============================================================
 
-	// Process management
+	private final AtomicInteger state = new AtomicInteger(STATE_DISCONNECTED);
+
+	private final AtomicReference<Throwable> sessionError = new AtomicReference<>();
+
+	private final AtomicReference<String> sessionId = new AtomicReference<>();
+
+	/** Flag for clean shutdown - volatile for visibility across threads (MCP pattern) */
+	private volatile boolean isClosing = false;
+
+	// ============================================================
+	// Scheduler Separation (from MCP SDK pattern)
+	// ============================================================
+
+	private final Scheduler inboundScheduler;
+
+	private final Scheduler outboundScheduler;
+
+	private final Scheduler errorScheduler;
+
+	// ============================================================
+	// Reactive Sinks for Message Buffering
+	// ============================================================
+
+	private final Sinks.Many<ParsedMessage> inboundSink;
+
+	private final Sinks.Many<String> outboundSink;
+
+	private final Sinks.One<Map<String, Object>> serverInfoSink;
+
+	// ============================================================
+	// Resource Tracking (Disposable.Composite pattern)
+	// ============================================================
+
+	private final Disposable.Composite subscriptions = Disposables.composite();
+
+	// ============================================================
+	// Process Management
+	// ============================================================
+
 	private volatile Process process;
 
 	private volatile BufferedWriter stdinWriter;
@@ -90,12 +164,12 @@ public class BidirectionalTransport implements AutoCloseable {
 
 	private volatile BufferedReader stderrReader;
 
-	private final AtomicBoolean running = new AtomicBoolean(false);
-
-	private final AtomicReference<Throwable> error = new AtomicReference<>();
-
-	// Synchronization for stdin writes
+	// Synchronization for stdin writes (belt-and-suspenders with outbound scheduler)
 	private final Object stdinLock = new Object();
+
+	// ============================================================
+	// Constructors
+	// ============================================================
 
 	public BidirectionalTransport(Path workingDirectory) {
 		this(workingDirectory, Duration.ofMinutes(10), null, null);
@@ -123,7 +197,19 @@ public class BidirectionalTransport implements AutoCloseable {
 		this.sandbox = sandbox;
 		this.parser = new ControlMessageParser();
 		this.objectMapper = new ObjectMapper();
-		this.executor = Executors.newVirtualThreadPerTaskExecutor();
+
+		// Initialize schedulers with named threads for debugging
+		this.inboundScheduler = Schedulers
+			.fromExecutorService(Executors.newSingleThreadExecutor(r -> new Thread(r, "claude-inbound")), "inbound");
+		this.outboundScheduler = Schedulers
+			.fromExecutorService(Executors.newSingleThreadExecutor(r -> new Thread(r, "claude-outbound")), "outbound");
+		this.errorScheduler = Schedulers
+			.fromExecutorService(Executors.newSingleThreadExecutor(r -> new Thread(r, "claude-error")), "error");
+
+		// Initialize sinks with backpressure
+		this.inboundSink = Sinks.many().unicast().onBackpressureBuffer();
+		this.outboundSink = Sinks.many().unicast().onBackpressureBuffer();
+		this.serverInfoSink = Sinks.one();
 	}
 
 	private String discoverClaudePath() {
@@ -136,6 +222,57 @@ public class BidirectionalTransport implements AutoCloseable {
 		}
 	}
 
+	// ============================================================
+	// State Machine Methods
+	// ============================================================
+
+	/**
+	 * Gets the current state of the transport.
+	 */
+	public int getState() {
+		return state.get();
+	}
+
+	/**
+	 * Gets the state name for logging/debugging.
+	 */
+	public String getStateName() {
+		return switch (state.get()) {
+			case STATE_DISCONNECTED -> "DISCONNECTED";
+			case STATE_CONNECTING -> "CONNECTING";
+			case STATE_CONNECTED -> "CONNECTED";
+			case STATE_CLOSING -> "CLOSING";
+			case STATE_CLOSED -> "CLOSED";
+			default -> "UNKNOWN";
+		};
+	}
+
+	/**
+	 * Attempts a state transition. Returns true if successful.
+	 */
+	private boolean transitionTo(int expectedState, int newState) {
+		boolean success = state.compareAndSet(expectedState, newState);
+		if (success) {
+			logger.debug("State transition: {} -> {}", getStateName(expectedState), getStateName(newState));
+		}
+		return success;
+	}
+
+	private String getStateName(int stateValue) {
+		return switch (stateValue) {
+			case STATE_DISCONNECTED -> "DISCONNECTED";
+			case STATE_CONNECTING -> "CONNECTING";
+			case STATE_CONNECTED -> "CONNECTED";
+			case STATE_CLOSING -> "CLOSING";
+			case STATE_CLOSED -> "CLOSED";
+			default -> "UNKNOWN";
+		};
+	}
+
+	// ============================================================
+	// Session Lifecycle
+	// ============================================================
+
 	/**
 	 * Starts a bidirectional session with the Claude CLI.
 	 * @param prompt the initial prompt
@@ -147,8 +284,13 @@ public class BidirectionalTransport implements AutoCloseable {
 	public void startSession(String prompt, CLIOptions options, Consumer<ParsedMessage> messageHandler,
 			ControlRequestHandler controlRequestHandler) throws ClaudeSDKException {
 
-		if (running.get()) {
-			throw new IllegalStateException("Session already running");
+		// State transition: DISCONNECTED -> CONNECTING
+		if (!transitionTo(STATE_DISCONNECTED, STATE_CONNECTING)) {
+			int currentState = state.get();
+			if (currentState == STATE_CLOSED) {
+				throw new IllegalStateException("Transport has been closed and cannot be reused");
+			}
+			throw new IllegalStateException("Cannot start session in state: " + getStateName());
 		}
 
 		try {
@@ -177,38 +319,50 @@ public class BidirectionalTransport implements AutoCloseable {
 				pb.environment().putAll(env);
 				process = pb.start();
 			}
-			running.set(true);
 
 			// Setup streams
 			stdinWriter = new BufferedWriter(new OutputStreamWriter(process.getOutputStream(), StandardCharsets.UTF_8));
 			stdoutReader = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8));
 			stderrReader = new BufferedReader(new InputStreamReader(process.getErrorStream(), StandardCharsets.UTF_8));
 
-			// Start stderr reader thread
-			executor.submit(() -> readStderr());
+			// Start inbound message processing on dedicated scheduler (MCP pattern)
+			// Using scheduler.schedule() instead of Mono.subscribeOn() for immediate
+			// execution
+			inboundScheduler.schedule(() -> processInboundMessages(messageHandler, controlRequestHandler));
 
-			// Process stdout in the calling thread or a dedicated thread
-			executor.submit(() -> processMessages(messageHandler, controlRequestHandler));
+			// Start stderr reader on dedicated scheduler
+			errorScheduler.schedule(this::readStderr);
 
-			// Send initial prompt as JSON via stdin (required for --input-format
-			// stream-json)
+			// Start outbound message processing
+			Disposable outboundDisposable = outboundSink.asFlux()
+				.publishOn(outboundScheduler)
+				.doOnNext(this::writeToStdin)
+				.subscribe();
+			subscriptions.add(outboundDisposable);
+
+			// State transition: CONNECTING -> CONNECTED
+			if (!transitionTo(STATE_CONNECTING, STATE_CONNECTED)) {
+				throw new CLIConnectionException("Failed to complete connection - unexpected state change");
+			}
+
+			// Send initial prompt as JSON via stdin
 			sendUserMessage(prompt, "default");
 
 		}
-		catch (IOException e) {
-			running.set(false);
-			throw new CLIConnectionException("Failed to start bidirectional session", e);
-		}
 		catch (Exception e) {
-			running.set(false);
-			throw new CLIConnectionException("Failed to start bidirectional session via sandbox", e);
+			// Revert state on failure
+			state.set(STATE_DISCONNECTED);
+			sessionError.set(e);
+			if (e instanceof ClaudeSDKException) {
+				throw (ClaudeSDKException) e;
+			}
+			throw new CLIConnectionException("Failed to start bidirectional session", e);
 		}
 	}
 
 	/**
 	 * Builds the command for bidirectional mode. In bidirectional mode, the prompt is
-	 * sent via stdin as JSON, not as a command-line argument. This matches the Python SDK
-	 * behavior.
+	 * sent via stdin as JSON, not as a command-line argument.
 	 */
 	List<String> buildBidirectionalCommand(CLIOptions options) {
 		List<String> command = new ArrayList<>();
@@ -244,61 +398,27 @@ public class BidirectionalTransport implements AutoCloseable {
 			command.add(String.join(",", options.getDisallowedTools()));
 		}
 
-		// Permission mode (note: we're using --permission-prompt-tool stdio for hooks)
-		// Additional permission mode can still be set for base behavior
 		if (options.getPermissionMode() != null) {
 			command.add("--permission-mode");
 			command.add(options.getPermissionMode().getValue());
 		}
 
-		// No prompt argument - it will be sent via stdin as JSON
-
 		return command;
 	}
 
-	/**
-	 * Sends a user message to the CLI via stdin. This is used to send the initial prompt
-	 * and follow-up messages in bidirectional mode.
-	 * @param content the message content
-	 * @param sessionId the session ID (use "default" for initial session)
-	 * @throws ClaudeSDKException if sending fails
-	 */
-	public void sendUserMessage(String content, String sessionId) throws ClaudeSDKException {
-		Map<String, Object> message = new HashMap<>();
-		message.put("type", "user");
-		message.put("session_id", sessionId != null ? sessionId : "default");
-
-		Map<String, Object> innerMessage = new HashMap<>();
-		innerMessage.put("role", "user");
-		innerMessage.put("content", content);
-		message.put("message", innerMessage);
-
-		synchronized (stdinLock) {
-			try {
-				if (stdinWriter == null) {
-					throw new IllegalStateException("Session not started or already closed");
-				}
-
-				String json = objectMapper.writeValueAsString(message);
-				logger.debug("Sending user message: {}", json);
-
-				stdinWriter.write(json);
-				stdinWriter.newLine();
-				stdinWriter.flush();
-			}
-			catch (IOException e) {
-				throw new ProcessExecutionException("Failed to send user message to CLI", e);
-			}
-		}
-	}
+	// ============================================================
+	// Message Processing
+	// ============================================================
 
 	/**
-	 * Processes messages from stdout, dispatching to appropriate handlers.
+	 * Processes inbound messages from stdout, dispatching to appropriate handlers.
 	 */
-	private void processMessages(Consumer<ParsedMessage> messageHandler, ControlRequestHandler controlRequestHandler) {
+	private void processInboundMessages(Consumer<ParsedMessage> messageHandler,
+			ControlRequestHandler controlRequestHandler) {
 		try {
 			String line;
-			while (running.get() && (line = stdoutReader.readLine()) != null) {
+			// Use isClosing flag for clean shutdown (MCP pattern)
+			while (!isClosing && (line = stdoutReader.readLine()) != null) {
 				line = line.trim();
 				if (line.isEmpty()) {
 					continue;
@@ -306,6 +426,14 @@ public class BidirectionalTransport implements AutoCloseable {
 
 				try {
 					ParsedMessage parsed = parser.parse(line);
+
+					// Emit to sink for reactive consumers
+					if (!inboundSink.tryEmitNext(parsed).isSuccess()) {
+						if (!isClosing) {
+							logger.error("Failed to emit inbound message");
+						}
+						break;
+					}
 
 					if (parsed.isControlRequest()) {
 						// Handle control request
@@ -316,7 +444,7 @@ public class BidirectionalTransport implements AutoCloseable {
 						// Get response from handler
 						ControlResponse response = controlRequestHandler.handle(request);
 
-						// Send response back to CLI
+						// Send response back to CLI via outbound sink
 						sendResponse(response);
 					}
 					else {
@@ -325,68 +453,46 @@ public class BidirectionalTransport implements AutoCloseable {
 					}
 				}
 				catch (Exception e) {
-					logger.warn("Failed to process message: {}", line.substring(0, Math.min(100, line.length())), e);
+					if (!isClosing) {
+						logger.warn("Failed to process message: {}", line.substring(0, Math.min(100, line.length())),
+								e);
+					}
+					break;
 				}
 			}
 
 			logger.debug("Message processing loop ended");
 		}
 		catch (IOException e) {
-			if (running.get()) {
-				error.set(e);
+			if (!isClosing) {
+				sessionError.set(e);
 				logger.error("Error reading from stdout", e);
 			}
 		}
 		finally {
-			running.set(false);
+			isClosing = true;
+			inboundSink.tryEmitComplete();
 		}
 	}
 
 	/**
-	 * Sends a control response back to the CLI via stdin.
-	 * @param response the response to send
-	 * @throws ClaudeSDKException if sending fails
+	 * Writes a message directly to stdin. Called on the outbound scheduler.
 	 */
-	public void sendResponse(ControlResponse response) throws ClaudeSDKException {
+	private void writeToStdin(String message) {
 		synchronized (stdinLock) {
 			try {
-				if (stdinWriter == null) {
-					throw new IllegalStateException("Session not started or already closed");
+				if (stdinWriter == null || isClosing) {
+					logger.debug("Dropping message - transport closing or closed");
+					return;
 				}
-
-				String json = objectMapper.writeValueAsString(response);
-				logger.debug("Sending control response: {}", json);
-
-				stdinWriter.write(json);
-				stdinWriter.newLine();
-				stdinWriter.flush();
-			}
-			catch (IOException e) {
-				throw new ProcessExecutionException("Failed to send response to CLI", e);
-			}
-		}
-	}
-
-	/**
-	 * Sends a message to the CLI via stdin (for user input in ongoing sessions).
-	 * @param message the message JSON to send
-	 * @throws ClaudeSDKException if sending fails
-	 */
-	public void sendMessage(String message) throws ClaudeSDKException {
-		synchronized (stdinLock) {
-			try {
-				if (stdinWriter == null) {
-					throw new IllegalStateException("Session not started or already closed");
-				}
-
-				logger.debug("Sending message: {}", message);
 
 				stdinWriter.write(message);
 				stdinWriter.newLine();
 				stdinWriter.flush();
 			}
 			catch (IOException e) {
-				throw new ProcessExecutionException("Failed to send message to CLI", e);
+				logger.error("Error writing to stdin", e);
+				sessionError.set(e);
 			}
 		}
 	}
@@ -397,16 +503,155 @@ public class BidirectionalTransport implements AutoCloseable {
 	private void readStderr() {
 		try {
 			String line;
-			while (running.get() && (line = stderrReader.readLine()) != null) {
+			while (!isClosing && (line = stderrReader.readLine()) != null) {
 				logger.warn("CLI stderr: {}", line);
 			}
 		}
 		catch (IOException e) {
-			if (running.get()) {
+			if (!isClosing) {
 				logger.debug("Error reading stderr", e);
 			}
 		}
 	}
+
+	// ============================================================
+	// Message Sending
+	// ============================================================
+
+	/**
+	 * Sends a user message to the CLI via stdin.
+	 * @param content the message content
+	 * @param sid the session ID (use "default" for initial session)
+	 * @throws ClaudeSDKException if sending fails
+	 */
+	public void sendUserMessage(String content, String sid) throws ClaudeSDKException {
+		assertConnected();
+
+		Map<String, Object> message = new HashMap<>();
+		message.put("type", "user");
+		message.put("session_id", sid != null ? sid : "default");
+
+		Map<String, Object> innerMessage = new HashMap<>();
+		innerMessage.put("role", "user");
+		innerMessage.put("content", content);
+		message.put("message", innerMessage);
+
+		try {
+			String json = objectMapper.writeValueAsString(message);
+			logger.debug("Sending user message: {}", json);
+
+			// Emit to outbound sink for async processing
+			Sinks.EmitResult result = outboundSink.tryEmitNext(json);
+			if (result.isFailure()) {
+				throw new ProcessExecutionException("Failed to queue user message: " + result);
+			}
+		}
+		catch (IOException e) {
+			throw new ProcessExecutionException("Failed to serialize user message", e);
+		}
+	}
+
+	/**
+	 * Sends a control response back to the CLI via stdin.
+	 * @param response the response to send
+	 * @throws ClaudeSDKException if sending fails
+	 */
+	public void sendResponse(ControlResponse response) throws ClaudeSDKException {
+		assertConnected();
+
+		try {
+			String json = objectMapper.writeValueAsString(response);
+			logger.debug("Sending control response: {}", json);
+
+			Sinks.EmitResult result = outboundSink.tryEmitNext(json);
+			if (result.isFailure()) {
+				throw new ProcessExecutionException("Failed to queue control response: " + result);
+			}
+		}
+		catch (IOException e) {
+			throw new ProcessExecutionException("Failed to serialize control response", e);
+		}
+	}
+
+	/**
+	 * Sends a raw message to the CLI via stdin.
+	 * @param message the message JSON to send
+	 * @throws ClaudeSDKException if sending fails
+	 */
+	public void sendMessage(String message) throws ClaudeSDKException {
+		assertConnected();
+
+		logger.debug("Sending message: {}", message);
+		Sinks.EmitResult result = outboundSink.tryEmitNext(message);
+		if (result.isFailure()) {
+			throw new ProcessExecutionException("Failed to queue message: " + result);
+		}
+	}
+
+	private void assertConnected() {
+		int currentState = state.get();
+		if (currentState != STATE_CONNECTED) {
+			if (currentState == STATE_CLOSED || currentState == STATE_CLOSING) {
+				throw new SessionClosedException("Transport is closed");
+			}
+			throw new IllegalStateException("Transport not connected. State: " + getStateName());
+		}
+	}
+
+	// ============================================================
+	// Reactive API
+	// ============================================================
+
+	/**
+	 * Returns a Flux of all inbound messages. This is the reactive API for message
+	 * consumption.
+	 */
+	public Flux<ParsedMessage> receiveMessages() {
+		return inboundSink.asFlux();
+	}
+
+	/**
+	 * Returns a Mono that completes when the server info is received.
+	 */
+	public Mono<Map<String, Object>> getServerInfo() {
+		return serverInfoSink.asMono();
+	}
+
+	// ============================================================
+	// Iterator API (Critical - not in MCP/ACP)
+	// ============================================================
+
+	/**
+	 * Returns an iterator over inbound messages. This enables non-reactive consumers to
+	 * process messages using standard Iterator/Iterable patterns.
+	 *
+	 * <p>
+	 * Usage:
+	 * </p>
+	 *
+	 * <pre>{@code
+	 * try (BidirectionalTransport transport = new BidirectionalTransport(...)) {
+	 *     transport.startSession(...);
+	 *     for (ParsedMessage message : transport.messageIterable()) {
+	 *         handleMessage(message);
+	 *     }
+	 * }
+	 * }</pre>
+	 */
+	public Iterator<ParsedMessage> messageIterator() {
+		return inboundSink.asFlux().toIterable().iterator();
+	}
+
+	/**
+	 * Returns an iterable over inbound messages for use with for-each loops.
+	 */
+	public Iterable<ParsedMessage> messageIterable() {
+		return inboundSink.asFlux().toIterable();
+	}
+
+	// ============================================================
+	// Status and Lifecycle
+	// ============================================================
 
 	/**
 	 * Waits for the session to complete.
@@ -429,7 +674,7 @@ public class BidirectionalTransport implements AutoCloseable {
 				}
 			}
 
-			Throwable err = error.get();
+			Throwable err = sessionError.get();
 			if (err != null) {
 				throw new ProcessExecutionException("Session error", err);
 			}
@@ -446,27 +691,108 @@ public class BidirectionalTransport implements AutoCloseable {
 	 * Checks if the session is currently running.
 	 */
 	public boolean isRunning() {
-		return running.get() && process != null && process.isAlive();
+		return state.get() == STATE_CONNECTED && process != null && process.isAlive();
+	}
+
+	/**
+	 * Gets any error that occurred during the session.
+	 */
+	public Throwable getSessionError() {
+		return sessionError.get();
+	}
+
+	/**
+	 * Gets the session ID if assigned.
+	 */
+	public String getSessionId() {
+		return sessionId.get();
 	}
 
 	/**
 	 * Interrupts the current session.
 	 */
 	public void interrupt() {
-		running.set(false);
+		if (state.get() == STATE_CONNECTED) {
+			transitionTo(STATE_CONNECTED, STATE_CLOSING);
+		}
 		if (process != null) {
 			process.destroy();
 		}
 	}
 
+	// ============================================================
+	// Graceful Shutdown (from MCP SDK pattern)
+	// ============================================================
+
+	/**
+	 * Initiates graceful shutdown. Returns a Mono that completes when shutdown is done.
+	 */
+	public Mono<Void> closeGracefully() {
+		return Mono.fromRunnable(() -> {
+			// Set isClosing first for immediate visibility to read loops (MCP pattern)
+			isClosing = true;
+
+			// State transition to CLOSING
+			int currentState = state.get();
+			if (currentState == STATE_CLOSED || currentState == STATE_CLOSING) {
+				return;
+			}
+			state.set(STATE_CLOSING);
+			logger.debug("Initiating graceful shutdown");
+		}).then(Mono.defer(() -> {
+			// Complete all sinks
+			inboundSink.tryEmitComplete();
+			outboundSink.tryEmitComplete();
+
+			// Allow time for pending messages
+			return Mono.delay(Duration.ofMillis(100));
+		})).then(Mono.defer(() -> {
+			// Dispose all subscriptions
+			subscriptions.dispose();
+
+			return Mono.empty();
+		})).then(Mono.defer(() -> {
+			// Close transport resources
+			closeStreams();
+
+			// Terminate process gracefully
+			if (process != null) {
+				process.destroy();
+				return Mono.fromFuture(process.onExit()).then();
+			}
+			return Mono.empty();
+		})).then(Mono.<Void>fromRunnable(() -> {
+			// Dispose schedulers
+			inboundScheduler.dispose();
+			outboundScheduler.dispose();
+			errorScheduler.dispose();
+
+			state.set(STATE_CLOSED);
+			logger.debug("BidirectionalTransport closed gracefully");
+		})).subscribeOn(Schedulers.boundedElastic());
+	}
+
 	@Override
 	public void close() {
-		running.set(false);
+		// Synchronous close for AutoCloseable compatibility
+		int currentState = state.get();
+		if (currentState == STATE_CLOSED) {
+			return;
+		}
+
+		// Set isClosing first for immediate visibility to read loops (MCP pattern)
+		isClosing = true;
+		state.set(STATE_CLOSING);
+
+		// Complete sinks
+		inboundSink.tryEmitComplete();
+		outboundSink.tryEmitComplete();
+
+		// Dispose subscriptions
+		subscriptions.dispose();
 
 		// Close streams
-		closeQuietly(stdinWriter);
-		closeQuietly(stdoutReader);
-		closeQuietly(stderrReader);
+		closeStreams();
 
 		// Terminate process
 		if (process != null) {
@@ -482,19 +808,19 @@ public class BidirectionalTransport implements AutoCloseable {
 			}
 		}
 
-		// Shutdown executor
-		executor.shutdown();
-		try {
-			if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
-				executor.shutdownNow();
-			}
-		}
-		catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
-			executor.shutdownNow();
-		}
+		// Shutdown schedulers
+		inboundScheduler.dispose();
+		outboundScheduler.dispose();
+		errorScheduler.dispose();
 
+		state.set(STATE_CLOSED);
 		logger.debug("BidirectionalTransport closed");
+	}
+
+	private void closeStreams() {
+		closeQuietly(stdinWriter);
+		closeQuietly(stdoutReader);
+		closeQuietly(stderrReader);
 	}
 
 	private void closeQuietly(Closeable closeable) {
@@ -507,6 +833,10 @@ public class BidirectionalTransport implements AutoCloseable {
 			}
 		}
 	}
+
+	// ============================================================
+	// Functional Interface
+	// ============================================================
 
 	/**
 	 * Functional interface for handling control requests.

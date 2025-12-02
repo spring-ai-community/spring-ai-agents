@@ -51,9 +51,9 @@ class BidirectionalTransportIT extends ClaudeCliTestBase {
 	@Test
 	@DisplayName("Should start session and receive messages")
 	void shouldStartSessionAndReceiveMessages() throws Exception {
-		// Given
+		// Given - Use haiku for faster tests
 		CLIOptions options = CLIOptions.builder()
-			.model("claude-sonnet-4-20250514")
+			.model("claude-haiku-4-5-20251016")
 			.permissionMode(PermissionMode.BYPASS_PERMISSIONS)
 			.build();
 
@@ -104,9 +104,9 @@ class BidirectionalTransportIT extends ClaudeCliTestBase {
 	@Test
 	@DisplayName("Should handle control requests")
 	void shouldHandleControlRequests() throws Exception {
-		// Given
+		// Given - Use haiku for faster tests
 		CLIOptions options = CLIOptions.builder()
-			.model("claude-sonnet-4-20250514")
+			.model("claude-haiku-4-5-20251016")
 			.permissionMode(PermissionMode.BYPASS_PERMISSIONS)
 			.build();
 
@@ -140,9 +140,9 @@ class BidirectionalTransportIT extends ClaudeCliTestBase {
 	@Test
 	@DisplayName("Should report running state correctly")
 	void shouldReportRunningState() throws Exception {
-		// Given
+		// Given - Use haiku for faster tests
 		CLIOptions options = CLIOptions.builder()
-			.model("claude-sonnet-4-20250514")
+			.model("claude-haiku-4-5-20251016")
 			.permissionMode(PermissionMode.BYPASS_PERMISSIONS)
 			.build();
 
@@ -181,9 +181,9 @@ class BidirectionalTransportIT extends ClaudeCliTestBase {
 	@Test
 	@DisplayName("Should handle interrupt")
 	void shouldHandleInterrupt() throws Exception {
-		// Given
+		// Given - Use haiku for faster tests
 		CLIOptions options = CLIOptions.builder()
-			.model("claude-sonnet-4-20250514")
+			.model("claude-haiku-4-5-20251016")
 			.permissionMode(PermissionMode.BYPASS_PERMISSIONS)
 			.build();
 
@@ -212,9 +212,9 @@ class BidirectionalTransportIT extends ClaudeCliTestBase {
 	@Test
 	@DisplayName("Should close cleanly")
 	void shouldCloseCleanly() throws Exception {
-		// Given
+		// Given - Use haiku for faster tests
 		CLIOptions options = CLIOptions.builder()
-			.model("claude-sonnet-4-20250514")
+			.model("claude-haiku-4-5-20251016")
 			.permissionMode(PermissionMode.BYPASS_PERMISSIONS)
 			.build();
 
