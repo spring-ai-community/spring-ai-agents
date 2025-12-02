@@ -152,8 +152,8 @@ public class BidirectionalTransport implements AutoCloseable {
 		}
 
 		try {
-			// Build command with bidirectional flags
-			List<String> command = buildBidirectionalCommand(prompt, options);
+			// Build command with bidirectional flags (no prompt - sent via stdin)
+			List<String> command = buildBidirectionalCommand(options);
 
 			logger.info("Starting bidirectional session: {}", command);
 
@@ -190,6 +190,10 @@ public class BidirectionalTransport implements AutoCloseable {
 			// Process stdout in the calling thread or a dedicated thread
 			executor.submit(() -> processMessages(messageHandler, controlRequestHandler));
 
+			// Send initial prompt as JSON via stdin (required for --input-format
+			// stream-json)
+			sendUserMessage(prompt, "default");
+
 		}
 		catch (IOException e) {
 			running.set(false);
@@ -202,14 +206,15 @@ public class BidirectionalTransport implements AutoCloseable {
 	}
 
 	/**
-	 * Builds the command for bidirectional mode.
+	 * Builds the command for bidirectional mode. In bidirectional mode, the prompt is
+	 * sent via stdin as JSON, not as a command-line argument. This matches the Python SDK
+	 * behavior.
 	 */
-	List<String> buildBidirectionalCommand(String prompt, CLIOptions options) {
+	List<String> buildBidirectionalCommand(CLIOptions options) {
 		List<String> command = new ArrayList<>();
 		command.add(claudeCommand);
-		command.add("--print");
 
-		// Bidirectional mode flags
+		// Bidirectional mode flags (no --print, prompt sent via stdin)
 		command.add("--input-format");
 		command.add("stream-json");
 		command.add("--output-format");
@@ -246,11 +251,45 @@ public class BidirectionalTransport implements AutoCloseable {
 			command.add(options.getPermissionMode().getValue());
 		}
 
-		// Add the prompt
-		command.add("--");
-		command.add(prompt);
+		// No prompt argument - it will be sent via stdin as JSON
 
 		return command;
+	}
+
+	/**
+	 * Sends a user message to the CLI via stdin. This is used to send the initial prompt
+	 * and follow-up messages in bidirectional mode.
+	 * @param content the message content
+	 * @param sessionId the session ID (use "default" for initial session)
+	 * @throws ClaudeSDKException if sending fails
+	 */
+	public void sendUserMessage(String content, String sessionId) throws ClaudeSDKException {
+		Map<String, Object> message = new HashMap<>();
+		message.put("type", "user");
+		message.put("session_id", sessionId != null ? sessionId : "default");
+
+		Map<String, Object> innerMessage = new HashMap<>();
+		innerMessage.put("role", "user");
+		innerMessage.put("content", content);
+		message.put("message", innerMessage);
+
+		synchronized (stdinLock) {
+			try {
+				if (stdinWriter == null) {
+					throw new IllegalStateException("Session not started or already closed");
+				}
+
+				String json = objectMapper.writeValueAsString(message);
+				logger.debug("Sending user message: {}", json);
+
+				stdinWriter.write(json);
+				stdinWriter.newLine();
+				stdinWriter.flush();
+			}
+			catch (IOException e) {
+				throw new ProcessExecutionException("Failed to send user message to CLI", e);
+			}
+		}
 	}
 
 	/**

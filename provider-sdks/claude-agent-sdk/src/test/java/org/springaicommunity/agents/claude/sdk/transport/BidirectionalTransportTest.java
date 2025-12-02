@@ -20,7 +20,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.springaicommunity.agents.claude.sdk.config.OutputFormat;
 import org.springaicommunity.agents.claude.sdk.config.PermissionMode;
 
 import java.nio.file.Path;
@@ -32,6 +31,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Tests for BidirectionalTransport command building and configuration. Note: Full
  * integration tests with actual CLI are in the integration test suite.
+ *
+ * <p>
+ * Important: In bidirectional mode, the prompt is NOT passed as a command-line argument.
+ * Instead, it is sent via stdin as a JSON user message after the process starts. This
+ * matches the Python SDK behavior where --input-format stream-json mode expects input via
+ * stdin.
+ * </p>
  */
 class BidirectionalTransportTest {
 
@@ -54,14 +60,15 @@ class BidirectionalTransportTest {
 				.build();
 
 			// When
-			List<String> command = transport.buildBidirectionalCommand("Test prompt", options);
+			List<String> command = transport.buildBidirectionalCommand(options);
 
 			// Then - verify bidirectional flags
 			assertThat(command).contains("--input-format", "stream-json");
 			assertThat(command).contains("--output-format", "stream-json");
 			assertThat(command).contains("--permission-prompt-tool", "stdio");
 			assertThat(command).contains("--verbose");
-			assertThat(command).contains("--print");
+			// Should NOT contain --print in bidirectional mode
+			assertThat(command).doesNotContain("--print");
 		}
 
 		@Test
@@ -73,7 +80,7 @@ class BidirectionalTransportTest {
 			CLIOptions options = CLIOptions.builder().model("claude-3-opus-20240229").build();
 
 			// When
-			List<String> command = transport.buildBidirectionalCommand("Test", options);
+			List<String> command = transport.buildBidirectionalCommand(options);
 
 			// Then
 			int modelIndex = command.indexOf("--model");
@@ -90,7 +97,7 @@ class BidirectionalTransportTest {
 			CLIOptions options = CLIOptions.builder().systemPrompt("You are a helpful assistant").build();
 
 			// When
-			List<String> command = transport.buildBidirectionalCommand("Test", options);
+			List<String> command = transport.buildBidirectionalCommand(options);
 
 			// Then
 			int promptIndex = command.indexOf("--append-system-prompt");
@@ -107,7 +114,7 @@ class BidirectionalTransportTest {
 			CLIOptions options = CLIOptions.builder().allowedTools(List.of("Bash", "Read", "Write")).build();
 
 			// When
-			List<String> command = transport.buildBidirectionalCommand("Test", options);
+			List<String> command = transport.buildBidirectionalCommand(options);
 
 			// Then
 			int toolsIndex = command.indexOf("--allowed-tools");
@@ -124,7 +131,7 @@ class BidirectionalTransportTest {
 			CLIOptions options = CLIOptions.builder().disallowedTools(List.of("WebFetch")).build();
 
 			// When
-			List<String> command = transport.buildBidirectionalCommand("Test", options);
+			List<String> command = transport.buildBidirectionalCommand(options);
 
 			// Then
 			int toolsIndex = command.indexOf("--disallowed-tools");
@@ -141,7 +148,7 @@ class BidirectionalTransportTest {
 			CLIOptions options = CLIOptions.builder().permissionMode(PermissionMode.BYPASS_PERMISSIONS).build();
 
 			// When
-			List<String> command = transport.buildBidirectionalCommand("Test", options);
+			List<String> command = transport.buildBidirectionalCommand(options);
 
 			// Then
 			int modeIndex = command.indexOf("--permission-mode");
@@ -150,22 +157,22 @@ class BidirectionalTransportTest {
 		}
 
 		@Test
-		@DisplayName("Should place prompt after -- separator")
-		void buildCommandWithPromptSeparator() {
+		@DisplayName("Should NOT include prompt as command-line argument in bidirectional mode")
+		void shouldNotIncludePromptAsArgument() {
 			// Given
 			BidirectionalTransport transport = new BidirectionalTransport(tempDir, Duration.ofMinutes(5),
 					"/usr/bin/claude");
 			CLIOptions options = CLIOptions.builder().build();
 
 			// When
-			List<String> command = transport.buildBidirectionalCommand("My test prompt", options);
+			List<String> command = transport.buildBidirectionalCommand(options);
 
-			// Then
-			int separatorIndex = command.indexOf("--");
-			assertThat(separatorIndex).isGreaterThan(-1);
-			assertThat(command.get(separatorIndex + 1)).isEqualTo("My test prompt");
-			// Prompt should be the last element
-			assertThat(command.get(command.size() - 1)).isEqualTo("My test prompt");
+			// Then - in bidirectional mode, prompt is sent via stdin, not command line
+			// Should not have the -- separator used for positional arguments
+			assertThat(command).doesNotContain("--");
+			// Command should not contain any user prompt text
+			// (old code would have "My test prompt" or similar as last arg after --)
+			assertThat(command).noneMatch(arg -> arg.contains("test prompt") || arg.contains("2+2"));
 		}
 
 		@Test
@@ -177,7 +184,7 @@ class BidirectionalTransportTest {
 			CLIOptions options = CLIOptions.builder().build();
 
 			// When
-			List<String> command = transport.buildBidirectionalCommand("Test", options);
+			List<String> command = transport.buildBidirectionalCommand(options);
 
 			// Then - should still have bidirectional flags
 			assertThat(command).contains("--input-format");
@@ -202,17 +209,19 @@ class BidirectionalTransportTest {
 				.build();
 
 			// When
-			List<String> command = transport.buildBidirectionalCommand("Complete test", options);
+			List<String> command = transport.buildBidirectionalCommand(options);
 
 			// Then - verify all parts
 			assertThat(command.get(0)).isEqualTo("/usr/bin/claude");
-			assertThat(command).contains("--print");
+			// Bidirectional mode should NOT have --print
+			assertThat(command).doesNotContain("--print");
 			assertThat(command).contains("--input-format", "stream-json");
 			assertThat(command).contains("--output-format", "stream-json");
 			assertThat(command).contains("--permission-prompt-tool", "stdio");
 			assertThat(command).contains("--model", "claude-sonnet-4-20250514");
 			assertThat(command).contains("--append-system-prompt", "Be helpful");
-			assertThat(command).contains("--", "Complete test");
+			// No prompt separator or prompt in bidirectional mode
+			assertThat(command).doesNotContain("--");
 		}
 
 	}
@@ -260,7 +269,7 @@ class BidirectionalTransportTest {
 			BidirectionalTransport transport = new BidirectionalTransport(tempDir, Duration.ofMinutes(5),
 					"/custom/path/claude");
 
-			List<String> command = transport.buildBidirectionalCommand("Test", CLIOptions.builder().build());
+			List<String> command = transport.buildBidirectionalCommand(CLIOptions.builder().build());
 
 			assertThat(command.get(0)).isEqualTo("/custom/path/claude");
 
@@ -282,7 +291,7 @@ class BidirectionalTransportTest {
 			CLIOptions options = CLIOptions.defaultOptions();
 
 			// When
-			List<String> command = transport.buildBidirectionalCommand("Test", options);
+			List<String> command = transport.buildBidirectionalCommand(options);
 
 			// Then - these flags together enable bidirectional control protocol:
 			// 1. --input-format stream-json: allows writing JSON messages to stdin
@@ -297,15 +306,18 @@ class BidirectionalTransportTest {
 		}
 
 		@Test
-		@DisplayName("Should always include --print for programmatic execution")
-		void alwaysIncludesPrint() {
+		@DisplayName("Should NOT include --print in bidirectional mode")
+		void shouldNotIncludePrintInBidirectionalMode() {
+			// In bidirectional mode (--input-format stream-json), the CLI waits for
+			// input via stdin. Using --print with a command-line prompt would conflict
+			// with this mode. Instead, the prompt is sent as a JSON user message.
 			BidirectionalTransport transport = new BidirectionalTransport(tempDir, Duration.ofMinutes(5),
 					"/usr/bin/claude");
 
-			List<String> command = transport.buildBidirectionalCommand("Test", CLIOptions.builder().build());
+			List<String> command = transport.buildBidirectionalCommand(CLIOptions.builder().build());
 
-			// --print is required for non-interactive programmatic execution
-			assertThat(command).contains("--print");
+			// --print is NOT used in bidirectional mode
+			assertThat(command).doesNotContain("--print");
 
 			transport.close();
 		}
@@ -316,7 +328,7 @@ class BidirectionalTransportTest {
 			BidirectionalTransport transport = new BidirectionalTransport(tempDir, Duration.ofMinutes(5),
 					"/usr/bin/claude");
 
-			List<String> command = transport.buildBidirectionalCommand("Test", CLIOptions.builder().build());
+			List<String> command = transport.buildBidirectionalCommand(CLIOptions.builder().build());
 
 			// --verbose is required with stream-json to get all message types
 			assertThat(command).contains("--verbose");
