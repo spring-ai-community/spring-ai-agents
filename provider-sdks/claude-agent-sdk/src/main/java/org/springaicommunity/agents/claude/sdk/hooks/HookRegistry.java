@@ -93,6 +93,20 @@ public class HookRegistry {
 	}
 
 	/**
+	 * Registers a hook for a specific event and tool pattern.
+	 * @param event the hook event type
+	 * @param toolPattern regex pattern for tool names, or null for all tools
+	 * @param callback the callback to execute
+	 * @return the generated hook ID
+	 */
+	public String register(HookEvent event, String toolPattern, HookCallback callback) {
+		String id = "hook_" + idCounter.getAndIncrement();
+		java.util.regex.Pattern pattern = toolPattern != null ? java.util.regex.Pattern.compile(toolPattern) : null;
+		register(new HookRegistration(id, event, pattern, callback, HookRegistration.DEFAULT_TIMEOUT));
+		return id;
+	}
+
+	/**
 	 * Registers a PreToolUse hook for specific tools.
 	 * @param toolPattern regex pattern for tool names
 	 * @param callback the callback

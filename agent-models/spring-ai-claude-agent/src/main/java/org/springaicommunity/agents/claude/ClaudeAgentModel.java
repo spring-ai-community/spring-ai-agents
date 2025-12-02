@@ -208,6 +208,60 @@ public class ClaudeAgentModel implements AgentModel, StreamingAgentModel, Iterab
 		return hookRegistry;
 	}
 
+	// ========== Session Support ==========
+
+	/**
+	 * Creates a new session for multi-turn conversations.
+	 *
+	 * <p>
+	 * A session maintains conversation context across multiple queries, allowing Claude
+	 * to remember previous messages and build on prior context.
+	 * </p>
+	 *
+	 * <p>
+	 * Example:
+	 * </p>
+	 * <pre>{@code
+	 * try (ClaudeAgentSession session = model.createSession()) {
+	 *     session.connect("Help me understand this problem");
+	 *     for (AgentResponse response : session.receiveResponse()) {
+	 *         System.out.println(response.getTextOutput());
+	 *     }
+	 *
+	 *     session.query("Now implement the solution");
+	 *     for (AgentResponse response : session.receiveResponse()) {
+	 *         System.out.println(response.getTextOutput());
+	 *     }
+	 * }
+	 * }</pre>
+	 * @return a new session instance
+	 */
+	public ClaudeAgentSession createSession() {
+		return ClaudeAgentSession.builder()
+			.workingDirectory(workingDirectory)
+			.timeout(timeout)
+			.claudePath(claudePath)
+			.sandbox(sandbox)
+			.hookRegistry(hookRegistry)
+			.build();
+	}
+
+	/**
+	 * Creates a new session with custom CLI options.
+	 * @param options the CLI options to use for this session
+	 * @return a new session instance
+	 */
+	public ClaudeAgentSession createSession(CLIOptions options) {
+		return ClaudeAgentSession.builder()
+			.workingDirectory(workingDirectory)
+			.options(options)
+			.timeout(timeout)
+			.claudePath(claudePath)
+			.sandbox(sandbox)
+			.hookRegistry(hookRegistry)
+			.build();
+	}
+
 	// ========== AgentModel (Blocking) ==========
 
 	@Override
