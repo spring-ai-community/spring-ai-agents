@@ -187,10 +187,18 @@ public class BidirectionalTransport implements AutoCloseable {
 	 * Creates a BidirectionalTransport with an optional Sandbox for process execution.
 	 * @param workingDirectory the working directory for the CLI
 	 * @param defaultTimeout default timeout for operations
-	 * @param claudePath optional path to Claude CLI executable
+	 * @param claudePath optional path to Claude CLI executable (auto-discovers if null)
 	 * @param sandbox optional Sandbox for process execution (enables Docker support)
+	 * @throws IllegalArgumentException if workingDirectory or defaultTimeout is null
 	 */
 	public BidirectionalTransport(Path workingDirectory, Duration defaultTimeout, String claudePath, Sandbox sandbox) {
+		// MCP SDK pattern: strict validation for required arguments
+		if (workingDirectory == null) {
+			throw new IllegalArgumentException("workingDirectory must not be null");
+		}
+		if (defaultTimeout == null) {
+			throw new IllegalArgumentException("defaultTimeout must not be null");
+		}
 		this.workingDirectory = workingDirectory;
 		this.defaultTimeout = defaultTimeout;
 		this.claudeCommand = claudePath != null ? claudePath : discoverClaudePath();

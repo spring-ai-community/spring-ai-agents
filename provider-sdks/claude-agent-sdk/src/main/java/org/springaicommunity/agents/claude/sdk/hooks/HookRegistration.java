@@ -99,7 +99,8 @@ public record HookRegistration(String id, HookEvent event, Pattern toolPattern, 
 	 * Creates a PreToolUse hook for specific tools.
 	 */
 	public static HookRegistration preToolUse(String id, String toolPattern, HookCallback callback) {
-		return new HookRegistration(id, HookEvent.PRE_TOOL_USE, Pattern.compile(toolPattern), callback);
+		Pattern pattern = toolPattern != null ? Pattern.compile(toolPattern) : null;
+		return new HookRegistration(id, HookEvent.PRE_TOOL_USE, pattern, callback);
 	}
 
 	/**
@@ -113,7 +114,8 @@ public record HookRegistration(String id, HookEvent event, Pattern toolPattern, 
 	 * Creates a PostToolUse hook for specific tools.
 	 */
 	public static HookRegistration postToolUse(String id, String toolPattern, HookCallback callback) {
-		return new HookRegistration(id, HookEvent.POST_TOOL_USE, Pattern.compile(toolPattern), callback);
+		Pattern pattern = toolPattern != null ? Pattern.compile(toolPattern) : null;
+		return new HookRegistration(id, HookEvent.POST_TOOL_USE, pattern, callback);
 	}
 
 	/**
