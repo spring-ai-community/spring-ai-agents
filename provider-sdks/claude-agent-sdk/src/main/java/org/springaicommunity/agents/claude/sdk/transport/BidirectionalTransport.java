@@ -28,13 +28,17 @@ import org.springaicommunity.agents.claude.sdk.parsing.ControlMessageParser;
 import org.springaicommunity.agents.claude.sdk.parsing.ParsedMessage;
 import org.springaicommunity.agents.claude.sdk.types.control.ControlRequest;
 import org.springaicommunity.agents.claude.sdk.types.control.ControlResponse;
+import org.springaicommunity.agents.model.sandbox.ExecSpec;
+import org.springaicommunity.agents.model.sandbox.Sandbox;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -69,6 +73,8 @@ public class BidirectionalTransport implements AutoCloseable {
 
 	private final Duration defaultTimeout;
 
+	private final Sandbox sandbox;
+
 	private final ControlMessageParser parser;
 
 	private final ObjectMapper objectMapper;
@@ -92,17 +98,29 @@ public class BidirectionalTransport implements AutoCloseable {
 	private final Object stdinLock = new Object();
 
 	public BidirectionalTransport(Path workingDirectory) {
-		this(workingDirectory, Duration.ofMinutes(10), null);
+		this(workingDirectory, Duration.ofMinutes(10), null, null);
 	}
 
 	public BidirectionalTransport(Path workingDirectory, Duration defaultTimeout) {
-		this(workingDirectory, defaultTimeout, null);
+		this(workingDirectory, defaultTimeout, null, null);
 	}
 
 	public BidirectionalTransport(Path workingDirectory, Duration defaultTimeout, String claudePath) {
+		this(workingDirectory, defaultTimeout, claudePath, null);
+	}
+
+	/**
+	 * Creates a BidirectionalTransport with an optional Sandbox for process execution.
+	 * @param workingDirectory the working directory for the CLI
+	 * @param defaultTimeout default timeout for operations
+	 * @param claudePath optional path to Claude CLI executable
+	 * @param sandbox optional Sandbox for process execution (enables Docker support)
+	 */
+	public BidirectionalTransport(Path workingDirectory, Duration defaultTimeout, String claudePath, Sandbox sandbox) {
 		this.workingDirectory = workingDirectory;
 		this.defaultTimeout = defaultTimeout;
 		this.claudeCommand = claudePath != null ? claudePath : discoverClaudePath();
+		this.sandbox = sandbox;
 		this.parser = new ControlMessageParser();
 		this.objectMapper = new ObjectMapper();
 		this.executor = Executors.newVirtualThreadPerTaskExecutor();
@@ -139,18 +157,26 @@ public class BidirectionalTransport implements AutoCloseable {
 
 			logger.info("Starting bidirectional session: {}", command);
 
-			// Start the process
-			ProcessBuilder pb = new ProcessBuilder(command);
-			pb.directory(workingDirectory.toFile());
-			pb.environment().put("CLAUDE_CODE_ENTRYPOINT", "sdk-java");
-
-			// Pass through API key
+			// Build environment variables
+			Map<String, String> env = new HashMap<>();
+			env.put("CLAUDE_CODE_ENTRYPOINT", "sdk-java");
 			String apiKey = System.getenv("ANTHROPIC_API_KEY");
 			if (apiKey != null) {
-				pb.environment().put("ANTHROPIC_API_KEY", apiKey);
+				env.put("ANTHROPIC_API_KEY", apiKey);
 			}
 
-			process = pb.start();
+			// Start process using sandbox if available, otherwise direct ProcessBuilder
+			if (sandbox != null) {
+				ExecSpec spec = ExecSpec.builder().command(command).env(env).timeout(defaultTimeout).build();
+				process = sandbox.startInteractive(spec);
+			}
+			else {
+				// Direct process execution (local)
+				ProcessBuilder pb = new ProcessBuilder(command);
+				pb.directory(workingDirectory.toFile());
+				pb.environment().putAll(env);
+				process = pb.start();
+			}
 			running.set(true);
 
 			// Setup streams
@@ -168,6 +194,10 @@ public class BidirectionalTransport implements AutoCloseable {
 		catch (IOException e) {
 			running.set(false);
 			throw new CLIConnectionException("Failed to start bidirectional session", e);
+		}
+		catch (Exception e) {
+			running.set(false);
+			throw new CLIConnectionException("Failed to start bidirectional session via sandbox", e);
 		}
 	}
 

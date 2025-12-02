@@ -29,10 +29,7 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.io.TempDir;
 import org.springaicommunity.agents.claude.ClaudeAgentModel;
 import org.springaicommunity.agents.claude.ClaudeAgentOptions;
-import org.springaicommunity.agents.model.sandbox.LocalSandbox;
-import org.springaicommunity.agents.claude.sdk.ClaudeAgentClient;
 import org.springaicommunity.agents.claude.sdk.config.ClaudeCliDiscovery;
-import org.springaicommunity.agents.claude.sdk.transport.CLIOptions;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -111,15 +108,16 @@ class AgentClientIT {
 
 	private void setupAgentClients() {
 		try {
-			// Create agent model
+			// Create agent model using builder pattern
 			ClaudeAgentOptions options = ClaudeAgentOptions.builder()
 				.model("claude-sonnet-4-20250514")
 				.yolo(true) // Enable dangerous permissions for testing
 				.build();
 
-			ClaudeAgentClient claudeClient = ClaudeAgentClient.create(CLIOptions.defaultOptions(), this.testWorkspace);
-			LocalSandbox sandbox = new LocalSandbox(this.testWorkspace);
-			this.claudeAgentModel = new ClaudeAgentModel(claudeClient, options, sandbox);
+			this.claudeAgentModel = ClaudeAgentModel.builder()
+				.workingDirectory(this.testWorkspace)
+				.defaultOptions(options)
+				.build();
 
 			assumeTrue(this.claudeAgentModel.isAvailable(), "Claude agent must be available");
 

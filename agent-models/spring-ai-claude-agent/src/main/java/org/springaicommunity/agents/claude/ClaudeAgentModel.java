@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Spring AI Community
+ * Copyright 2025 Spring AI Community
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,311 +16,486 @@
 
 package org.springaicommunity.agents.claude;
 
-import org.springaicommunity.agents.claude.sdk.ClaudeAgentClient;
-import org.springaicommunity.agents.claude.sdk.exceptions.ClaudeSDKException;
-import org.springaicommunity.agents.claude.sdk.transport.CLIOptions;
-import org.springaicommunity.agents.claude.sdk.types.QueryResult;
-import org.springaicommunity.agents.claude.sdk.types.ResultStatus;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springaicommunity.agents.model.AgentResponse;
-import org.springaicommunity.agents.model.AgentResponseMetadata;
+import org.springaicommunity.agents.claude.sdk.exceptions.ClaudeSDKException;
+import org.springaicommunity.agents.claude.sdk.hooks.HookCallback;
+import org.springaicommunity.agents.claude.sdk.hooks.HookRegistry;
+import org.springaicommunity.agents.claude.sdk.parsing.ParsedMessage;
+import org.springaicommunity.agents.claude.sdk.streaming.MessageStreamIterator;
+import org.springaicommunity.agents.claude.sdk.transport.BidirectionalTransport;
+import org.springaicommunity.agents.claude.sdk.transport.CLIOptions;
+import org.springaicommunity.agents.claude.sdk.types.AssistantMessage;
+import org.springaicommunity.agents.claude.sdk.types.Message;
+import org.springaicommunity.agents.claude.sdk.types.ResultMessage;
+import org.springaicommunity.agents.claude.sdk.types.control.ControlRequest;
+import org.springaicommunity.agents.claude.sdk.types.control.ControlResponse;
+import org.springaicommunity.agents.claude.sdk.types.control.HookInput;
+import org.springaicommunity.agents.claude.sdk.types.control.HookOutput;
 import org.springaicommunity.agents.model.AgentGeneration;
 import org.springaicommunity.agents.model.AgentGenerationMetadata;
 import org.springaicommunity.agents.model.AgentModel;
+import org.springaicommunity.agents.model.AgentResponse;
+import org.springaicommunity.agents.model.AgentResponseMetadata;
 import org.springaicommunity.agents.model.AgentTaskRequest;
+import org.springaicommunity.agents.model.IterableAgentModel;
+import org.springaicommunity.agents.model.StreamingAgentModel;
 import org.springaicommunity.agents.model.sandbox.Sandbox;
-import org.springaicommunity.agents.model.sandbox.LocalSandbox;
-import org.springaicommunity.agents.model.sandbox.ExecSpec;
-import org.springaicommunity.agents.model.sandbox.ExecResult;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Sinks;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.zeroturnaround.exec.ProcessExecutor;
-import org.zeroturnaround.exec.ProcessResult;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Implementation of {@link AgentModel} for Claude Code CLI-based agents.
+ * Claude Code CLI agent model implementing all three programming models:
+ * blocking/imperative, reactive/streaming, and iterator-based.
  *
  * <p>
- * This adapter bridges Spring AI's agent abstraction with the Claude Code CLI, providing
- * autonomous development tasks through goal-driven task execution.
+ * This is the primary entry point for Claude Code CLI integration. It supports:
  * </p>
+ * <ul>
+ * <li>{@link AgentModel#call} - Blocking execution</li>
+ * <li>{@link StreamingAgentModel#stream} - Reactive Flux-based streaming</li>
+ * <li>{@link IterableAgentModel#iterate} - Iterator-based consumption</li>
+ * </ul>
  *
- * @author Mark Pollack
- * @since 1.1.0
+ * <p>
+ * Hooks can be registered to intercept and modify tool executions:
+ * </p>
+ * <pre>{@code
+ * var model = ClaudeAgentModel.builder()
+ *     .workingDirectory(Paths.get("/my/project"))
+ *     .timeout(Duration.ofMinutes(5))
+ *     .build();
+ *
+ * // Register a pre-tool-use hook to block dangerous commands
+ * model.registerPreToolUse("Bash", input -> {
+ *     var preToolUse = (HookInput.PreToolUseInput) input;
+ *     String cmd = preToolUse.getArgument("command", String.class).orElse("");
+ *     if (cmd.contains("rm -rf")) {
+ *         return HookOutput.block("Dangerous command blocked");
+ *     }
+ *     return HookOutput.allow();
+ * });
+ *
+ * // Use any programming model
+ * AgentResponse response = model.call(request);           // Blocking
+ * Flux<AgentResponse> flux = model.stream(request);       // Reactive
+ * Iterator<AgentResponse> iter = model.iterate(request);  // Iterator
+ * }</pre>
+ *
+ * @author Spring AI Community
+ * @since 0.1.0
  */
-public class ClaudeAgentModel implements AgentModel {
+public class ClaudeAgentModel implements AgentModel, StreamingAgentModel, IterableAgentModel, AutoCloseable {
 
 	private static final Logger logger = LoggerFactory.getLogger(ClaudeAgentModel.class);
 
-	private final ClaudeAgentClient claudeCodeClient;
+	private final Path workingDirectory;
 
-	private final ClaudeAgentOptions defaultOptions;
+	private final Duration timeout;
+
+	private final String claudePath;
 
 	private final Sandbox sandbox;
 
-	/**
-	 * Create a new ClaudeAgentModel with the given API client, options, and sandbox. This
-	 * is the preferred constructor for Spring dependency injection.
-	 * @param claudeCodeClient the Claude Code CLI client
-	 * @param defaultOptions default execution options
-	 * @param sandbox the sandbox for secure command execution
-	 */
-	public ClaudeAgentModel(ClaudeAgentClient claudeCodeClient, ClaudeAgentOptions defaultOptions, Sandbox sandbox) {
-		this.claudeCodeClient = claudeCodeClient;
-		this.defaultOptions = defaultOptions != null ? defaultOptions : new ClaudeAgentOptions();
-		this.sandbox = sandbox;
+	private final HookRegistry hookRegistry;
 
-		// Set system property for executable path if provided
-		if (this.defaultOptions.getExecutablePath() != null) {
-			System.setProperty("claude.cli.path", this.defaultOptions.getExecutablePath());
-		}
+	private final ClaudeAgentOptions defaultOptions;
+
+	private final AtomicInteger requestIdCounter = new AtomicInteger(0);
+
+	private final ObjectMapper objectMapper = new ObjectMapper();
+
+	private ClaudeAgentModel(Builder builder) {
+		this.workingDirectory = builder.workingDirectory;
+		this.timeout = builder.timeout;
+		this.claudePath = builder.claudePath;
+		this.sandbox = builder.sandbox;
+		this.hookRegistry = builder.hookRegistry != null ? builder.hookRegistry : new HookRegistry();
+		this.defaultOptions = builder.defaultOptions != null ? builder.defaultOptions : new ClaudeAgentOptions();
 	}
 
 	/**
-	 * Creates a new ClaudeAgentModel configured for workspace-specific execution. This
-	 * factory method handles all necessary workspace setup including authentication and
-	 * project configuration.
-	 * @param workspace the workspace directory path
-	 * @param timeout the execution timeout
-	 * @return a configured ClaudeAgentModel instance
-	 * @throws ClaudeSDKException if Claude SDK operations fail
-	 * @throws RuntimeException if workspace setup fails
+	 * Creates a new builder for ClaudeAgentModel.
+	 * @return a new builder
 	 */
-	public static ClaudeAgentModel createWithWorkspaceSetup(Path workspace, Duration timeout) {
-		logger.debug("Creating ClaudeAgentModel with workspace setup for: {}", workspace);
-
-		try {
-			// Setup clean Claude authentication state
-			setupCleanClaudeAuth();
-
-			// Create project-level Claude settings
-			createProjectClaudeSettings(workspace);
-
-			// Create CLI options with workspace-specific configuration
-			CLIOptions cliOptions = CLIOptions.builder()
-				.timeout(timeout)
-				.permissionMode(org.springaicommunity.agents.claude.sdk.config.PermissionMode.BYPASS_PERMISSIONS)
-				.build();
-
-			// Create client with the specific working directory
-			ClaudeAgentClient workspaceClient = ClaudeAgentClient.create(cliOptions, workspace.toAbsolutePath());
-
-			// Create agent options with yolo mode enabled
-			ClaudeAgentOptions agentOptions = new ClaudeAgentOptions();
-			agentOptions.setYolo(true);
-			agentOptions.setTimeout(timeout);
-
-			// Create a default sandbox for standalone usage (local execution for
-			// simplicity)
-			Sandbox sandbox = new LocalSandbox(workspace);
-			return new ClaudeAgentModel(workspaceClient, agentOptions, sandbox);
-		}
-		catch (RuntimeException e) {
-			throw e; // Re-throw RuntimeExceptions from helper methods
-		}
-		catch (Exception e) {
-			throw new RuntimeException("Failed to setup workspace for Claude agent: " + e.getMessage(), e);
-		}
+	public static Builder builder() {
+		return new Builder();
 	}
+
+	// ========== Hook Registration API ==========
+
+	/**
+	 * Registers a pre-tool-use hook for specific tools.
+	 * @param toolPattern regex pattern for tool names
+	 * @param callback the hook callback
+	 * @return the generated hook ID
+	 */
+	public String registerPreToolUse(String toolPattern, HookCallback callback) {
+		return hookRegistry.registerPreToolUse(toolPattern, callback);
+	}
+
+	/**
+	 * Registers a pre-tool-use hook for all tools.
+	 * @param callback the hook callback
+	 * @return the generated hook ID
+	 */
+	public String registerPreToolUse(HookCallback callback) {
+		return hookRegistry.registerPreToolUse(callback);
+	}
+
+	/**
+	 * Registers a post-tool-use hook for specific tools.
+	 * @param toolPattern regex pattern for tool names
+	 * @param callback the hook callback
+	 * @return the generated hook ID
+	 */
+	public String registerPostToolUse(String toolPattern, HookCallback callback) {
+		return hookRegistry.registerPostToolUse(toolPattern, callback);
+	}
+
+	/**
+	 * Registers a post-tool-use hook for all tools.
+	 * @param callback the hook callback
+	 * @return the generated hook ID
+	 */
+	public String registerPostToolUse(HookCallback callback) {
+		return hookRegistry.registerPostToolUse(callback);
+	}
+
+	/**
+	 * Registers a user-prompt-submit hook.
+	 * @param callback the hook callback
+	 * @return the generated hook ID
+	 */
+	public String registerUserPromptSubmit(HookCallback callback) {
+		return hookRegistry.registerUserPromptSubmit(callback);
+	}
+
+	/**
+	 * Registers a stop hook.
+	 * @param callback the hook callback
+	 * @return the generated hook ID
+	 */
+	public String registerStop(HookCallback callback) {
+		return hookRegistry.registerStop(callback);
+	}
+
+	/**
+	 * Unregisters a hook by ID.
+	 * @param hookId the hook ID to remove
+	 * @return true if removed, false if not found
+	 */
+	public boolean unregisterHook(String hookId) {
+		return hookRegistry.unregister(hookId);
+	}
+
+	/**
+	 * Gets the hook registry for advanced configuration.
+	 * @return the hook registry
+	 */
+	public HookRegistry getHookRegistry() {
+		return hookRegistry;
+	}
+
+	// ========== AgentModel (Blocking) ==========
 
 	@Override
 	public AgentResponse call(AgentTaskRequest request) {
-		logger.info("=== STARTING AGENT TASK ===");
-		logger.info("Goal: {}", request.goal());
-		logger.info("Working directory: {}", request.workingDirectory());
-		logger.debug("Executing agent task: {}", request.goal());
+		logger.info("Executing blocking call for goal: {}", request.goal());
 
 		Instant startTime = Instant.now();
+		StringBuilder fullText = new StringBuilder();
 
-		try {
-			// Connect if needed
-			ensureConnected();
-
-			// Build CLI options from request
-			CLIOptions cliOptions = buildCLIOptions(request);
-
-			// Format the task as a prompt
-			String prompt = formatTaskPrompt(request);
-
-			QueryResult result;
-			if (sandbox != null) {
-				// Use sandbox for execution
-				result = executeViaSandbox(prompt, cliOptions, request);
-			}
-			else {
-				// Fallback to direct execution (should rarely happen)
-				result = claudeCodeClient.query(prompt, cliOptions);
+		try (MessageStreamIterator iterator = createIterator(request)) {
+			for (ParsedMessage parsed : iterator) {
+				if (parsed.isRegularMessage()) {
+					Message message = parsed.asMessage();
+					if (message instanceof AssistantMessage assistantMessage) {
+						assistantMessage.getTextContent().ifPresent(fullText::append);
+					}
+				}
 			}
 
-			// Convert to AgentResponse
-			return convertResult(result, startTime);
+			Duration duration = Duration.between(startTime, Instant.now());
+			AgentGenerationMetadata generationMetadata = new AgentGenerationMetadata("SUCCESS", Map.of());
+			List<AgentGeneration> generations = List.of(new AgentGeneration(fullText.toString(), generationMetadata));
+
+			AgentResponseMetadata responseMetadata = AgentResponseMetadata.builder()
+				.model(getEffectiveModel())
+				.duration(duration)
+				.build();
+
+			return new AgentResponse(generations, responseMetadata);
 
 		}
-		catch (ClaudeSDKException e) {
-			logger.error("Agent execution failed", e);
+		catch (Exception e) {
+			logger.error("Call failed", e);
 			Duration duration = Duration.between(startTime, Instant.now());
 			return createErrorResponse(e.getMessage(), duration);
 		}
-		catch (Exception e) {
-			logger.error("Unexpected error during agent execution", e);
-			Duration duration = Duration.between(startTime, Instant.now());
-			return createErrorResponse("Unexpected error: " + e.getMessage(), duration);
-		}
 	}
+
+	// ========== StreamingAgentModel (Reactive) ==========
+
+	@Override
+	public Flux<AgentResponse> stream(AgentTaskRequest request) {
+		Sinks.Many<AgentResponse> sink = Sinks.many().multicast().onBackpressureBuffer();
+
+		Thread.startVirtualThread(() -> {
+			try {
+				streamInternal(request, sink);
+			}
+			catch (Exception e) {
+				logger.error("Streaming failed", e);
+				sink.tryEmitError(e);
+			}
+		});
+
+		return sink.asFlux();
+	}
+
+	// ========== IterableAgentModel (Iterator) ==========
+
+	@Override
+	public Iterator<AgentResponse> iterate(AgentTaskRequest request) {
+		MessageStreamIterator messageIterator = createIterator(request);
+
+		return new Iterator<>() {
+			private AgentResponse next = null;
+
+			@Override
+			public boolean hasNext() {
+				if (next != null) {
+					return true;
+				}
+				while (messageIterator.hasNext()) {
+					ParsedMessage parsed = messageIterator.next();
+					if (parsed.isRegularMessage()) {
+						AgentResponse response = convertMessageToResponse(parsed.asMessage());
+						if (response != null) {
+							next = response;
+							return true;
+						}
+					}
+				}
+				return false;
+			}
+
+			@Override
+			public AgentResponse next() {
+				if (!hasNext()) {
+					throw new java.util.NoSuchElementException();
+				}
+				AgentResponse result = next;
+				next = null;
+				return result;
+			}
+		};
+	}
+
+	// ========== Availability Check ==========
 
 	@Override
 	public boolean isAvailable() {
 		try {
-			ensureConnected();
+			BidirectionalTransport transport = new BidirectionalTransport(workingDirectory, timeout, claudePath,
+					sandbox);
+			transport.close();
 			return true;
 		}
-		catch (ClaudeSDKException e) {
+		catch (Exception e) {
 			logger.debug("Claude CLI not available: {}", e.getMessage());
 			return false;
 		}
 	}
 
-	/**
-	 * Executes a query via sandbox using the AgentModel-centric pattern. SDK builds
-	 * command -> Sandbox executes -> SDK parses result.
-	 */
-	private QueryResult executeViaSandbox(String prompt, CLIOptions cliOptions, AgentTaskRequest request)
-			throws ClaudeSDKException {
-		logger.info("Executing query via sandbox");
-		logger.info("CLI Options: timeout={}, model={}, permissionMode={}, interactive={}", cliOptions.getTimeout(),
-				cliOptions.getModel(), cliOptions.getPermissionMode(), cliOptions.isInteractive());
+	// ========== AutoCloseable ==========
 
-		// 1. SDK builds command
-		List<String> command = claudeCodeClient.buildCommand(prompt, cliOptions);
-
-		// 2. Create ExecSpec with environment variables
-		Map<String, String> environment = new java.util.HashMap<>();
-		environment.put("CLAUDE_CODE_ENTRYPOINT", "sdk-java");
-
-		// Don't set ANTHROPIC_API_KEY - let Claude CLI use existing authenticated session
-		// This avoids conflicts between API key auth and session auth
-		logger.info("Using existing Claude CLI authenticated session (no API key override)");
-
-		// NVM environment variables and PATH are not needed - ClaudeCliDiscovery handles
-		// NVM Node.js paths internally
-
-		ExecSpec spec = ExecSpec.builder().command(command).env(environment).timeout(cliOptions.getTimeout()).build();
-
-		// 3. Execute via sandbox
-		ExecResult execResult = sandbox.exec(spec);
-		logger.info("Command execution completed with exit code: {}", execResult.exitCode());
-
-		// 4. Check for execution errors
-		if (execResult.exitCode() != 0) {
-			throw new ClaudeSDKException(
-					"Command execution failed with exit code " + execResult.exitCode() + ": " + execResult.mergedLog());
-		}
-
-		// 5. Parse via SDK
-		QueryResult result = claudeCodeClient.parseResult(execResult.mergedLog(), cliOptions);
-
-		// Log metadata for authentication analysis
-		logger.info("Claude CLI result metadata: {}", result.metadata());
-		if (result.metadata() != null) {
-			var metadata = result.metadata();
-			logger.info("  - model: {}", metadata.model());
-			logger.info("  - sessionId: {}", metadata.sessionId());
-			logger.info("  - numTurns: {}", metadata.numTurns());
-			logger.info("  - durationMs: {}", metadata.durationMs());
-			logger.info("  - apiDurationMs: {}", metadata.apiDurationMs());
-			if (metadata.cost() != null) {
-				logger.info("  - totalCost: {}", metadata.cost().calculateTotal());
-			}
-			if (metadata.usage() != null) {
-				logger.info("  - totalTokens: {}", metadata.usage().getTotalTokens());
-			}
-		}
-
-		return result;
+	@Override
+	public void close() {
+		hookRegistry.clear();
 	}
 
-	/**
-	 * Ensures the Claude CLI API is connected and ready.
-	 */
-	private void ensureConnected() throws ClaudeSDKException {
-		// The ClaudeAgentClient handles connection state internally
-		// This method can be extended for additional connection validation
-		claudeCodeClient.connect();
+	// ========== Internal Implementation ==========
+
+	private MessageStreamIterator createIterator(AgentTaskRequest request) {
+		MessageStreamIterator iterator = new MessageStreamIterator();
+
+		Thread.startVirtualThread(() -> {
+			try {
+				streamToIterator(request, iterator);
+			}
+			catch (Exception e) {
+				logger.error("Streaming failed", e);
+				iterator.completeWithError(e);
+			}
+		});
+
+		return iterator;
 	}
 
-	/**
-	 * Converts AgentTaskRequest to CLIOptions for the Claude CLI.
-	 */
+	private void streamInternal(AgentTaskRequest request, Sinks.Many<AgentResponse> sink) {
+		Path effectiveWorkingDir = request.workingDirectory() != null ? request.workingDirectory() : workingDirectory;
+		BidirectionalTransport transport = new BidirectionalTransport(effectiveWorkingDir, timeout, claudePath,
+				sandbox);
+
+		try {
+			CLIOptions options = buildCLIOptions(request);
+			String prompt = formatPrompt(request);
+			AtomicBoolean initialized = new AtomicBoolean(false);
+
+			transport.startSession(prompt, options, parsed -> {
+				if (parsed.isRegularMessage()) {
+					AgentResponse response = convertMessageToResponse(parsed.asMessage());
+					if (response != null) {
+						sink.tryEmitNext(response);
+					}
+				}
+			}, controlRequest -> handleControlRequest(controlRequest, transport, initialized));
+
+			transport.waitForCompletion(timeout);
+			sink.tryEmitComplete();
+
+		}
+		catch (Exception e) {
+			sink.tryEmitError(e);
+		}
+		finally {
+			transport.close();
+		}
+	}
+
+	private void streamToIterator(AgentTaskRequest request, MessageStreamIterator iterator) {
+		Path effectiveWorkingDir = request.workingDirectory() != null ? request.workingDirectory() : workingDirectory;
+		BidirectionalTransport transport = new BidirectionalTransport(effectiveWorkingDir, timeout, claudePath,
+				sandbox);
+
+		try {
+			CLIOptions options = buildCLIOptions(request);
+			String prompt = formatPrompt(request);
+			AtomicBoolean initialized = new AtomicBoolean(false);
+
+			transport.startSession(prompt, options, iterator::offer,
+					controlRequest -> handleControlRequest(controlRequest, transport, initialized));
+
+			transport.waitForCompletion(timeout);
+			iterator.complete();
+
+		}
+		catch (Exception e) {
+			iterator.completeWithError(e);
+		}
+		finally {
+			transport.close();
+		}
+	}
+
+	private ControlResponse handleControlRequest(ControlRequest request, BidirectionalTransport transport,
+			AtomicBoolean initialized) {
+		logger.debug("Handling control request: type={}",
+				request.request() != null ? request.request().subtype() : "null");
+
+		ControlRequest.ControlRequestPayload payload = request.request();
+
+		if (payload instanceof ControlRequest.CanUseToolRequest) {
+			return ControlResponse.success(request.requestId(), true);
+		}
+		else if (payload instanceof ControlRequest.HookCallbackRequest hookCallback) {
+			String hookId = hookCallback.callbackId();
+			HookInput hookInput = parseHookInput(hookCallback.input());
+
+			HookOutput output = hookRegistry.executeHook(hookId, hookInput);
+			if (output == null) {
+				output = HookOutput.allow();
+			}
+
+			return ControlResponse.success(request.requestId(), output);
+		}
+		else if (payload instanceof ControlRequest.InitializeRequest) {
+			if (!initialized.getAndSet(true) && hookRegistry.hasHooks()) {
+				try {
+					String initRequestId = "init_" + requestIdCounter.getAndIncrement();
+					hookRegistry.createInitializeRequest(initRequestId);
+					transport.sendResponse(ControlResponse.success(request.requestId(), true));
+				}
+				catch (ClaudeSDKException e) {
+					logger.error("Failed to send initialization", e);
+				}
+			}
+			return ControlResponse.success(request.requestId(), true);
+		}
+		else {
+			return ControlResponse.success(request.requestId(), null);
+		}
+	}
+
+	private HookInput parseHookInput(Map<String, Object> inputMap) {
+		if (inputMap == null) {
+			return null;
+		}
+		try {
+			String json = objectMapper.writeValueAsString(inputMap);
+			return objectMapper.readValue(json, HookInput.class);
+		}
+		catch (Exception e) {
+			logger.warn("Failed to parse hook input: {}", e.getMessage());
+			return null;
+		}
+	}
+
+	private AgentResponse convertMessageToResponse(Message message) {
+		if (message instanceof AssistantMessage assistantMessage) {
+			String text = assistantMessage.getTextContent().orElse("");
+			if (!text.isEmpty()) {
+				AgentGenerationMetadata metadata = new AgentGenerationMetadata("STREAMING", Map.of());
+				List<AgentGeneration> generations = List.of(new AgentGeneration(text, metadata));
+				return new AgentResponse(generations, new AgentResponseMetadata());
+			}
+		}
+		else if (message instanceof ResultMessage resultMessage) {
+			String text = resultMessage.result() != null ? resultMessage.result() : "";
+			String finishReason = resultMessage.isError() ? "ERROR" : "SUCCESS";
+			AgentGenerationMetadata metadata = new AgentGenerationMetadata(finishReason, Map.of());
+			List<AgentGeneration> generations = List.of(new AgentGeneration(text, metadata));
+			return new AgentResponse(generations, new AgentResponseMetadata());
+		}
+		return null;
+	}
+
 	private CLIOptions buildCLIOptions(AgentTaskRequest request) {
 		ClaudeAgentOptions options = getEffectiveOptions(request);
-		logger.info("Effective agent options: yolo={}, timeout={}, model={}", options.isYolo(), options.getTimeout(),
-				options.getModel());
-
 		CLIOptions.Builder builder = CLIOptions.builder();
 
-		// Set timeout if specified
 		if (options.getTimeout() != null) {
 			builder.timeout(options.getTimeout());
 		}
+		else if (timeout != null) {
+			builder.timeout(timeout);
+		}
 
-		// Set model if specified
 		if (options.getModel() != null) {
 			builder.model(options.getModel());
 		}
 
-		// Set permission mode based on yolo option
 		if (options.isYolo()) {
-			// YOLO mode - dangerously skip all permission checks (dangerous!)
 			builder.permissionMode(
 					org.springaicommunity.agents.claude.sdk.config.PermissionMode.DANGEROUSLY_SKIP_PERMISSIONS);
 		}
-		// else use default permission mode (will prompt for permissions)
-
-		// Set setting sources (Claude Agent SDK v0.1.0)
-		if (options.getSettingSources() != null && !options.getSettingSources().isEmpty()) {
-			builder.settingSources(options.getSettingSources()
-				.stream()
-				.map(s -> s.getValue())
-				.collect(java.util.stream.Collectors.toList()));
-		}
-
-		// Set agents JSON (Claude Agent SDK v0.1.0)
-		if (options.getAgents() != null && !options.getAgents().isEmpty()) {
-			// Convert agents map to JSON string
-			try {
-				String agentsJson = new com.fasterxml.jackson.databind.ObjectMapper()
-					.writeValueAsString(options.getAgents());
-				builder.agents(agentsJson);
-			}
-			catch (com.fasterxml.jackson.core.JsonProcessingException e) {
-				logger.warn("Failed to serialize agents to JSON: {}", e.getMessage());
-			}
-		}
-
-		// Set fork session (Claude Agent SDK v0.1.0)
-		builder.forkSession(options.isForkSession());
-
-		// Set include partial messages (Claude Agent SDK v0.1.0)
-		builder.includePartialMessages(options.isIncludePartialMessages());
 
 		return builder.build();
 	}
 
-	/**
-	 * Gets effective options by merging request options with defaults.
-	 */
 	private ClaudeAgentOptions getEffectiveOptions(AgentTaskRequest request) {
 		if (request.options() instanceof ClaudeAgentOptions requestOptions) {
 			return requestOptions;
@@ -328,172 +503,134 @@ public class ClaudeAgentModel implements AgentModel {
 		return defaultOptions;
 	}
 
-	/**
-	 * Formats the task request as a Claude CLI prompt with file access controls.
-	 */
-	private String formatTaskPrompt(AgentTaskRequest request) {
+	private String getEffectiveModel() {
+		return defaultOptions.getModel() != null ? defaultOptions.getModel() : "claude-sonnet-4-20250514";
+	}
+
+	private String formatPrompt(AgentTaskRequest request) {
 		StringBuilder prompt = new StringBuilder();
-
-		// More explicit instructions for Claude CLI
-		prompt.append("You are working in directory: ").append(request.workingDirectory().toString()).append("\n\n");
-
+		if (request.workingDirectory() != null) {
+			prompt.append("You are working in directory: ")
+				.append(request.workingDirectory().toString())
+				.append("\n\n");
+		}
 		prompt.append("Task: ").append(request.goal()).append("\n\n");
-
 		prompt.append("Instructions:\n");
 		prompt.append("1. Analyze the files in the working directory\n");
 		prompt.append("2. Complete the requested task by making necessary changes\n");
 		prompt.append("3. Ensure the changes fix the problem\n\n");
-
 		return prompt.toString();
 	}
 
-	/**
-	 * Converts QueryResult from Claude CLI to Spring AI AgentResponse.
-	 */
-	private AgentResponse convertResult(QueryResult result, Instant startTime) {
-		Duration duration = Duration.between(startTime, Instant.now());
-
-		// Convert messages to generations
-		List<AgentGeneration> generations = new ArrayList<>();
-		if (result.messages() != null && !result.messages().isEmpty()) {
-			// Convert all messages to string representations and create generations
-			String combinedText = result.messages().stream().map(Object::toString).collect(Collectors.joining("\n"));
-
-			String finishReason = convertStatusToFinishReason(result.status());
-			AgentGenerationMetadata generationMetadata = new AgentGenerationMetadata(finishReason, Map.of());
-			generations.add(new AgentGeneration(combinedText, generationMetadata));
-		}
-		else {
-			// Create empty generation if no messages
-			String finishReason = convertStatusToFinishReason(result.status());
-			AgentGenerationMetadata generationMetadata = new AgentGenerationMetadata(finishReason, Map.of());
-			generations.add(new AgentGeneration("", generationMetadata));
-		}
-
-		// Create response metadata
-		AgentResponseMetadata responseMetadata = AgentResponseMetadata.builder()
-			.model("claude-3-5-sonnet") // Default model
-			.duration(duration)
-			.sessionId("") // Claude CLI doesn't provide session ID
-			.providerFields(result.metadata() != null ? Map.of("claude_metadata", result.metadata()) : Map.of())
-			.build();
-
-		return new AgentResponse(generations, responseMetadata);
-	}
-
-	/**
-	 * Creates an error response for exception cases.
-	 */
 	private AgentResponse createErrorResponse(String errorMessage, Duration duration) {
 		AgentGenerationMetadata generationMetadata = new AgentGenerationMetadata("ERROR", Map.of());
 		List<AgentGeneration> generations = List.of(new AgentGeneration(errorMessage, generationMetadata));
 
 		AgentResponseMetadata responseMetadata = AgentResponseMetadata.builder()
-			.model("claude-3-5-sonnet")
+			.model(getEffectiveModel())
 			.duration(duration)
 			.build();
 
 		return new AgentResponse(generations, responseMetadata);
 	}
 
-	/**
-	 * Converts Claude CLI ResultStatus to finish reason string.
-	 */
-	private String convertStatusToFinishReason(ResultStatus cliStatus) {
-		return switch (cliStatus) {
-			case SUCCESS -> "SUCCESS";
-			case PARTIAL -> "PARTIAL";
-			case ERROR -> "ERROR";
-			case TIMEOUT -> "TIMEOUT";
-			case CANCELLED -> "CANCELLED";
-		};
-	}
+	// ========== Builder ==========
 
 	/**
-	 * Sets up clean Claude authentication state by logging out to ensure API key usage.
+	 * Builder for ClaudeAgentModel.
 	 */
-	private static void setupCleanClaudeAuth() {
-		logger.debug("Setting up clean Claude authentication state");
+	public static class Builder {
 
-		try {
-			// Use zt-exec to handle the logout process more reliably
-			ProcessResult result = new ProcessExecutor().command("/tmp/claude-logout-auto.sh")
-				.timeout(30, TimeUnit.SECONDS)
-				.readOutput(true)
-				.execute();
+		private Path workingDirectory;
 
-			logger.debug("Logout script completed with exit code: {}", result.getExitValue());
-			if (!result.outputUTF8().isEmpty()) {
-				logger.debug("Logout output: {}", result.outputUTF8().trim());
+		private Duration timeout = Duration.ofMinutes(10);
+
+		private String claudePath;
+
+		private Sandbox sandbox;
+
+		private HookRegistry hookRegistry;
+
+		private ClaudeAgentOptions defaultOptions;
+
+		private Builder() {
+		}
+
+		/**
+		 * Sets the working directory for CLI execution.
+		 * @param workingDirectory the working directory
+		 * @return this builder
+		 */
+		public Builder workingDirectory(Path workingDirectory) {
+			this.workingDirectory = workingDirectory;
+			return this;
+		}
+
+		/**
+		 * Sets the default timeout for operations.
+		 * @param timeout the timeout duration
+		 * @return this builder
+		 */
+		public Builder timeout(Duration timeout) {
+			this.timeout = timeout;
+			return this;
+		}
+
+		/**
+		 * Sets the path to the Claude CLI executable.
+		 * @param claudePath the path to Claude CLI
+		 * @return this builder
+		 */
+		public Builder claudePath(String claudePath) {
+			this.claudePath = claudePath;
+			return this;
+		}
+
+		/**
+		 * Sets the sandbox for process execution.
+		 * <p>
+		 * Use this to execute Claude CLI in a Docker container or other isolated
+		 * environment.
+		 * </p>
+		 * @param sandbox the sandbox for process execution (null for local execution)
+		 * @return this builder
+		 */
+		public Builder sandbox(Sandbox sandbox) {
+			this.sandbox = sandbox;
+			return this;
+		}
+
+		/**
+		 * Sets a pre-configured hook registry.
+		 * @param hookRegistry the hook registry
+		 * @return this builder
+		 */
+		public Builder hookRegistry(HookRegistry hookRegistry) {
+			this.hookRegistry = hookRegistry;
+			return this;
+		}
+
+		/**
+		 * Sets the default agent options.
+		 * @param defaultOptions the default options
+		 * @return this builder
+		 */
+		public Builder defaultOptions(ClaudeAgentOptions defaultOptions) {
+			this.defaultOptions = defaultOptions;
+			return this;
+		}
+
+		/**
+		 * Builds the ClaudeAgentModel.
+		 * @return the configured model
+		 */
+		public ClaudeAgentModel build() {
+			if (workingDirectory == null) {
+				workingDirectory = Path.of(System.getProperty("user.dir"));
 			}
-
-		}
-		catch (Exception e) {
-			logger.debug("Exception during logout: {}", e.getMessage());
-			// Continue anyway - logout failure shouldn't stop the setup
-		}
-	}
-
-	/**
-	 * Creates project-level Claude settings to avoid interactive API key prompts. This
-	 * creates a .claude/settings.json file in the workspace with the API key
-	 * configuration.
-	 */
-	private static void createProjectClaudeSettings(Path workspace) {
-		logger.debug("Starting Claude settings creation for workspace: {}", workspace);
-
-		// Get API key from environment
-		String apiKey = System.getenv("ANTHROPIC_API_KEY");
-		logger.debug("API key from environment: {}",
-				(apiKey != null ? "present (length=" + apiKey.length() + ")" : "null"));
-
-		if (apiKey == null || apiKey.trim().isEmpty()) {
-			logger.debug("No ANTHROPIC_API_KEY found, skipping project settings creation");
-			return;
+			return new ClaudeAgentModel(this);
 		}
 
-		try {
-			// Create .claude directory in the workspace
-			Path claudeDir = workspace.resolve(".claude");
-			logger.debug("Creating .claude directory at: {}", claudeDir);
-			Files.createDirectories(claudeDir);
-			logger.debug(".claude directory created successfully: {}", Files.exists(claudeDir));
-
-			// Create settings configuration with API key pre-approval
-			Map<String, Object> settings = new HashMap<>();
-
-			// Extract last 20 characters for approval (Claude CLI requirement)
-			String last20Chars = apiKey.substring(Math.max(0, apiKey.length() - 20));
-			Map<String, Object> customApiKeyResponses = new HashMap<>();
-			customApiKeyResponses.put("approved", List.of(last20Chars));
-			customApiKeyResponses.put("rejected", List.of());
-
-			Map<String, Object> env = new HashMap<>();
-			env.put("ANTHROPIC_API_KEY", apiKey);
-
-			settings.put("hasCompletedOnboarding", true);
-			settings.put("customApiKeyResponses", customApiKeyResponses);
-			settings.put("env", env);
-
-			logger.debug("Settings configuration created with API key pre-approval");
-			logger.debug("API key last 20 chars approved: {}", last20Chars);
-
-			// Write settings.json file
-			Path settingsFile = claudeDir.resolve("settings.json");
-			ObjectMapper mapper = new ObjectMapper();
-			mapper.writerWithDefaultPrettyPrinter().writeValue(settingsFile.toFile(), settings);
-
-			logger.debug("Settings file written to: {}", settingsFile);
-			logger.debug("Settings file exists: {}", Files.exists(settingsFile));
-			logger.debug("Settings file size: {} bytes", Files.size(settingsFile));
-
-			// Read back and log the content for verification
-			String content = Files.readString(settingsFile);
-			logger.debug("Settings file content: {}", content);
-		}
-		catch (IOException e) {
-			throw new RuntimeException("Failed to create Claude project settings: " + e.getMessage(), e);
-		}
 	}
 
 }

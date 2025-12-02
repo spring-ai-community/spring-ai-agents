@@ -22,9 +22,7 @@ import org.springaicommunity.agents.client.AgentClient;
 import org.springaicommunity.agents.client.AgentClientResponse;
 import org.springaicommunity.agents.claude.ClaudeAgentModel;
 import org.springaicommunity.agents.claude.ClaudeAgentOptions;
-import org.springaicommunity.agents.claude.sdk.ClaudeAgentClient;
 import org.springaicommunity.agents.claude.sdk.config.ClaudeCliDiscovery;
-import org.springaicommunity.agents.claude.sdk.transport.CLIOptions;
 import org.springaicommunity.agents.core.AgentRunner;
 import org.springaicommunity.agents.core.LauncherSpec;
 import org.springaicommunity.agents.core.Result;
@@ -353,9 +351,7 @@ public class CodeCoverageAgentRunner implements AgentRunner {
 
 		ClaudeAgentOptions options = ClaudeAgentOptions.builder().model(model).yolo(true).build();
 
-		ClaudeAgentClient claudeClient = ClaudeAgentClient.create(CLIOptions.defaultOptions(), workingDirectory);
-		LocalSandbox sandbox = new LocalSandbox(workingDirectory);
-		return new ClaudeAgentModel(claudeClient, options, sandbox);
+		return ClaudeAgentModel.builder().workingDirectory(workingDirectory).defaultOptions(options).build();
 	}
 
 	private AgentModel createGeminiAgent(String model, Path workingDirectory) {

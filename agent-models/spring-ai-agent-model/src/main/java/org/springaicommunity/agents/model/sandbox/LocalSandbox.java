@@ -190,6 +190,47 @@ public final class LocalSandbox implements Sandbox {
 	}
 
 	@Override
+	public Process startInteractive(ExecSpec spec) {
+		if (closed) {
+			throw new IllegalStateException("Sandbox is closed");
+		}
+
+		// Ensure working directory exists
+		try {
+			java.nio.file.Files.createDirectories(workingDirectory);
+		}
+		catch (IOException e) {
+			throw new SandboxException("Failed to create working directory: " + workingDirectory, e);
+		}
+
+		var customizedSpec = applyCustomizers(spec);
+		var command = customizedSpec.command();
+
+		if (command.isEmpty()) {
+			throw new IllegalArgumentException("Command cannot be null or empty");
+		}
+
+		// Handle shell commands
+		List<String> finalCommand = processCommand(command);
+
+		try {
+			ProcessBuilder pb = new ProcessBuilder(finalCommand);
+			pb.directory(workingDirectory.toFile());
+
+			// Merge parent environment with custom variables
+			if (!customizedSpec.env().isEmpty()) {
+				pb.environment().putAll(customizedSpec.env());
+			}
+
+			logger.debug("LocalSandbox starting interactive process: {}", finalCommand.get(0));
+			return pb.start();
+		}
+		catch (IOException e) {
+			throw new SandboxException("Failed to start interactive process", e);
+		}
+	}
+
+	@Override
 	public void close() {
 		closed = true;
 		logger.debug("LocalSandbox closed");
