@@ -53,7 +53,7 @@ class BidirectionalTransportIT extends ClaudeCliTestBase {
 	void shouldStartSessionAndReceiveMessages() throws Exception {
 		// Given - Use haiku for faster tests
 		CLIOptions options = CLIOptions.builder()
-			.model("claude-haiku-4-5-20251016")
+			.model(CLIOptions.MODEL_HAIKU)
 			.permissionMode(PermissionMode.BYPASS_PERMISSIONS)
 			.build();
 
@@ -106,7 +106,7 @@ class BidirectionalTransportIT extends ClaudeCliTestBase {
 	void shouldHandleControlRequests() throws Exception {
 		// Given - Use haiku for faster tests
 		CLIOptions options = CLIOptions.builder()
-			.model("claude-haiku-4-5-20251016")
+			.model(CLIOptions.MODEL_HAIKU)
 			.permissionMode(PermissionMode.BYPASS_PERMISSIONS)
 			.build();
 
@@ -142,7 +142,7 @@ class BidirectionalTransportIT extends ClaudeCliTestBase {
 	void shouldReportRunningState() throws Exception {
 		// Given - Use haiku for faster tests
 		CLIOptions options = CLIOptions.builder()
-			.model("claude-haiku-4-5-20251016")
+			.model(CLIOptions.MODEL_HAIKU)
 			.permissionMode(PermissionMode.BYPASS_PERMISSIONS)
 			.build();
 
@@ -183,7 +183,7 @@ class BidirectionalTransportIT extends ClaudeCliTestBase {
 	void shouldHandleInterrupt() throws Exception {
 		// Given - Use haiku for faster tests
 		CLIOptions options = CLIOptions.builder()
-			.model("claude-haiku-4-5-20251016")
+			.model(CLIOptions.MODEL_HAIKU)
 			.permissionMode(PermissionMode.BYPASS_PERMISSIONS)
 			.build();
 
@@ -214,7 +214,7 @@ class BidirectionalTransportIT extends ClaudeCliTestBase {
 	void shouldCloseCleanly() throws Exception {
 		// Given - Use haiku for faster tests
 		CLIOptions options = CLIOptions.builder()
-			.model("claude-haiku-4-5-20251016")
+			.model(CLIOptions.MODEL_HAIKU)
 			.permissionMode(PermissionMode.BYPASS_PERMISSIONS)
 			.build();
 

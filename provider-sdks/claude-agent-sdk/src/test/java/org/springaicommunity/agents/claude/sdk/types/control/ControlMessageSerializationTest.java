@@ -71,7 +71,7 @@ class ControlMessageSerializationTest {
 		@Test
 		@DisplayName("Should deserialize HookCallbackRequest from CLI")
 		void deserializeHookCallbackRequest() throws JsonProcessingException {
-			// Given - exact format from Python SDK analysis
+			// Given - exact format from CLI protocol
 			String json = """
 					{
 					  "type": "control_request",
@@ -109,7 +109,7 @@ class ControlMessageSerializationTest {
 		@Test
 		@DisplayName("Should deserialize CanUseToolRequest from CLI")
 		void deserializeCanUseToolRequest() throws JsonProcessingException {
-			// Given - exact format from Python SDK analysis
+			// Given - exact format from CLI protocol
 			String json = """
 					{
 					  "type": "control_request",
@@ -518,9 +518,9 @@ class ControlMessageSerializationTest {
 	class ProtocolCompatibilityTests {
 
 		@Test
-		@DisplayName("Full hook callback flow should match Python SDK format")
+		@DisplayName("Full hook callback flow should match CLI protocol format")
 		void fullHookCallbackFlow() throws JsonProcessingException {
-			// Given - request from CLI (matches Python SDK output)
+			// Given - request from CLI
 			String requestJson = """
 					{
 					  "type": "control_request",

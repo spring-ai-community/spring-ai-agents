@@ -35,8 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * <p>
  * Important: In bidirectional mode, the prompt is NOT passed as a command-line argument.
  * Instead, it is sent via stdin as a JSON user message after the process starts. This
- * matches the Python SDK behavior where --input-format stream-json mode expects input via
- * stdin.
+ * matches the CLI behavior where --input-format stream-json mode expects input via stdin.
  * </p>
  */
 class BidirectionalTransportTest {

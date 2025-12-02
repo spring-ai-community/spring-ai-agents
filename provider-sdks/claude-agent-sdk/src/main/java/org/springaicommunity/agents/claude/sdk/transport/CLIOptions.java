@@ -30,6 +30,19 @@ public record CLIOptions(String model, String systemPrompt, Integer maxTokens, D
 		OutputFormat outputFormat, List<String> settingSources, String agents, boolean forkSession,
 		boolean includePartialMessages) {
 
+	// ============================================================
+	// Model ID Constants
+	// ============================================================
+
+	/** Claude Haiku 4.5 - Fast and cost-effective model. */
+	public static final String MODEL_HAIKU = "claude-haiku-4-5-20251001";
+
+	/** Claude Sonnet 4.5 - Balanced performance model. */
+	public static final String MODEL_SONNET = "claude-sonnet-4-5-20250929";
+
+	/** Claude Opus 4.5 - Most capable model. */
+	public static final String MODEL_OPUS = "claude-opus-4-5-20251101";
+
 	public CLIOptions {
 		// Validation
 		if (timeout == null) {

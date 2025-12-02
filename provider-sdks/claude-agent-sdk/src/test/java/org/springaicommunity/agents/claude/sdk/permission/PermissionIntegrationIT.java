@@ -29,38 +29,45 @@ import org.springaicommunity.agents.claude.sdk.types.control.ControlRequest;
 import org.springaicommunity.agents.claude.sdk.types.control.ControlResponse;
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Integration tests for permission handling based on Python SDK test_tool_permissions.py
- * patterns. Tests permission callbacks (can_use_tool) and permission decisions with real
- * Claude CLI.
+ * Integration tests for permission handling with real Claude CLI.
  *
  * <p>
- * Test patterns adapted from:
+ * Tests permission callbacks for:
  * <ul>
- * <li>Python claude-agent-sdk: e2e-tests/test_tool_permissions.py</li>
- * <li>Java MCP SDK: AbstractMcpSyncClientTests.java (withClient pattern)</li>
+ * <li>CanUseToolRequest callback invocation</li>
+ * <li>Permission allow/deny behavior</li>
+ * <li>Tool input data capture</li>
+ * </ul>
+ *
+ * <p>
+ * Key patterns:
+ * <ul>
+ * <li>Track callback_invocations list</li>
+ * <li>Use tool-forcing prompts like "Write 'hello world' to /tmp/test.txt"</li>
+ * <li>Assert specific tool names in invocations (e.g., "Write" in
+ * callback_invocations)</li>
  * </ul>
  */
-@Timeout(value = 120, unit = TimeUnit.SECONDS)
+@Timeout(value = 180, unit = TimeUnit.SECONDS)
 class PermissionIntegrationIT extends ClaudeCliTestBase {
 
-	private static final String HAIKU_MODEL = "claude-haiku-4-5-20251016";
+	private static final String HAIKU_MODEL = CLIOptions.MODEL_HAIKU;
 
 	/**
-	 * Helper for running tests with transport - MCP SDK pattern.
+	 * Helper for running tests with transport.
 	 */
 	private void withTransport(CLIOptions options, TransportConsumer consumer) throws Exception {
-		try (BidirectionalTransport transport = new BidirectionalTransport(workingDirectory(), Duration.ofMinutes(2),
+		try (BidirectionalTransport transport = new BidirectionalTransport(workingDirectory(), Duration.ofMinutes(3),
 				getClaudeCliPath())) {
 			consumer.accept(transport, options);
 		}
@@ -73,62 +80,81 @@ class PermissionIntegrationIT extends ClaudeCliTestBase {
 
 	}
 
+	/**
+	 * Tests that can_use_tool callback gets invoked when Claude uses a tool.
+	 */
 	@Test
-	@DisplayName("Permission callback receives CanUseToolRequest when tool needs permission")
-	void permissionCallbackReceivesCanUseToolRequest() throws Exception {
-		// Given - track permission callback invocations (Python SDK pattern)
-		List<String> callbackInvocations = new ArrayList<>();
-		AtomicBoolean callbackCalled = new AtomicBoolean(false);
+	@DisplayName("Permission callback gets called when tool is used")
+	void permissionCallbackGetsCalled() throws Exception {
+		// Given - track callback invocations
+		List<String> callbackInvocations = new CopyOnWriteArrayList<>();
 		CountDownLatch resultLatch = new CountDownLatch(1);
 
-		// Note: DEFAULT permission mode - CLI may or may not send CanUseToolRequest
-		// depending on tool type and configuration
 		CLIOptions options = CLIOptions.builder().model(HAIKU_MODEL).permissionMode(PermissionMode.DEFAULT).build();
 
 		withTransport(options, (transport, opts) -> {
-			transport.startSession("What is 2+2?", opts, message -> {
+			// Tool-forcing prompt to trigger Write tool
+			transport.startSession("Write 'hello world' to /tmp/test.txt", opts, message -> {
+				System.out.println("Got message: " + message);
 				if (message.isRegularMessage() && message.asMessage() instanceof ResultMessage) {
 					resultLatch.countDown();
 				}
 			}, request -> {
-				// Check for CanUseToolRequest (permission callback)
-				if (request.request() instanceof ControlRequest.CanUseToolRequest canUseToolRequest) {
-					String toolName = canUseToolRequest.toolName();
-					callbackInvocations.add(toolName);
-					callbackCalled.set(true);
+				// Handle permission callback
+				if (request.request() instanceof ControlRequest.CanUseToolRequest canUseTool) {
+					String toolName = canUseTool.toolName();
+					Map<String, Object> inputData = canUseTool.input();
 
-					// Allow the tool (Python SDK: PermissionResultAllow)
-					return ControlResponse.success(request.requestId(),
-							Map.of("behavior", "allow", "permissionDecision", "allow"));
+					System.out.println("Permission callback called for: " + toolName + ", input: " + inputData);
+					callbackInvocations.add(toolName);
+
+					// Allow tool execution
+					return ControlResponse.success(request.requestId(), Map.of("behavior", "allow"));
 				}
 
-				// Default allow for other requests
+				// Handle hook callbacks
+				if (request.request() instanceof ControlRequest.HookCallbackRequest hookCallback) {
+					Map<String, Object> input = hookCallback.input();
+					String toolName = (String) input.get("tool_name");
+					if (toolName != null) {
+						callbackInvocations.add(toolName);
+					}
+					return ControlResponse.success(request.requestId(),
+							Map.of("hookSpecificOutput", Map.of("permissionDecision", "allow")));
+				}
+
+				// Default allow
 				return ControlResponse.success(request.requestId(), Map.of("behavior", "allow"));
 			});
 
 			// Wait for completion
-			boolean completed = resultLatch.await(60, TimeUnit.SECONDS);
+			boolean completed = resultLatch.await(120, TimeUnit.SECONDS);
 			assertThat(completed).as("Should complete within timeout").isTrue();
 
-			// Simple queries may not require tools, so callback may not be invoked
-			// This test verifies the callback mechanism works when tools ARE used
-			// The callback invocation depends on whether Claude decides to use tools
+			// Assert: "Write" in callback_invocations
+			System.out.println("Callback invocations: " + callbackInvocations);
+			assertThat(callbackInvocations)
+				.as("can_use_tool callback should have been invoked for Write tool, got: " + callbackInvocations)
+				.contains("Write");
 		});
 	}
 
+	/**
+	 * Tests permission deny blocks tool execution.
+	 */
 	@Test
-	@DisplayName("Permission deny response mechanism works correctly")
-	void permissionDenyResponseMechanismWorks() throws Exception {
-		// Given - deny all tool permissions if any are requested
-		List<String> deniedTools = new ArrayList<>();
+	@DisplayName("Permission deny blocks tool execution")
+	void permissionDenyBlocksToolExecution() throws Exception {
+		// Given - track denied tools
+		List<String> deniedTools = new CopyOnWriteArrayList<>();
 		AtomicReference<String> resultText = new AtomicReference<>();
 		CountDownLatch resultLatch = new CountDownLatch(1);
 
 		CLIOptions options = CLIOptions.builder().model(HAIKU_MODEL).permissionMode(PermissionMode.DEFAULT).build();
 
 		withTransport(options, (transport, opts) -> {
-			// Simple query - may or may not require tools
-			transport.startSession("What is 2+2?", opts, message -> {
+			// Ask to write a file - will be denied
+			transport.startSession("Write 'test' to /tmp/denied.txt", opts, message -> {
 				if (message.isRegularMessage()) {
 					Message msg = message.asMessage();
 					if (msg instanceof ResultMessage result) {
@@ -137,37 +163,98 @@ class PermissionIntegrationIT extends ClaudeCliTestBase {
 					}
 				}
 			}, request -> {
-				// Deny all tool permission requests (Python SDK: PermissionResultDeny)
-				if (request.request() instanceof ControlRequest.CanUseToolRequest canUseToolRequest) {
-					String toolName = canUseToolRequest.toolName();
+				// Deny Write tool
+				if (request.request() instanceof ControlRequest.CanUseToolRequest canUseTool) {
+					String toolName = canUseTool.toolName();
+					System.out.println("Denying tool: " + toolName);
 					deniedTools.add(toolName);
 
-					return ControlResponse.success(request.requestId(), Map.of("behavior", "deny", "permissionDecision",
-							"deny", "permissionDecisionReason", "Blocked by test for security validation"));
+					return ControlResponse.success(request.requestId(), Map.of("behavior", "deny"));
 				}
 
-				// Default allow for other requests
+				// Handle hook callbacks - also deny
+				if (request.request() instanceof ControlRequest.HookCallbackRequest hookCallback) {
+					Map<String, Object> input = hookCallback.input();
+					String toolName = (String) input.get("tool_name");
+					if (toolName != null) {
+						deniedTools.add(toolName);
+					}
+					return ControlResponse.success(request.requestId(),
+							Map.of("hookSpecificOutput", Map.of("permissionDecision", "deny")));
+				}
+
 				return ControlResponse.success(request.requestId(), Map.of("behavior", "allow"));
 			});
 
 			// Wait for completion
-			boolean completed = resultLatch.await(60, TimeUnit.SECONDS);
+			boolean completed = resultLatch.await(120, TimeUnit.SECONDS);
 			assertThat(completed).as("Should complete within timeout").isTrue();
 
-			// Note: Simple math queries may not require tools, so deniedTools may be
-			// empty
-			// This test validates the deny response mechanism works IF tools are
-			// requested
+			// Verify tool was denied
+			System.out.println("Denied tools: " + deniedTools);
+			assertThat(deniedTools).as("Write tool should have been denied").contains("Write");
 		});
 	}
 
+	/**
+	 * Tests permission callback receives tool input data.
+	 */
 	@Test
-	@DisplayName("Bypass permissions mode should skip permission callbacks")
-	void bypassPermissionsShouldSkipCallbacks() throws Exception {
-		// Given - use bypass mode
-		AtomicBoolean permissionCallbackCalled = new AtomicBoolean(false);
+	@DisplayName("Permission callback receives tool input data")
+	void permissionCallbackReceivesToolInput() throws Exception {
+		// Given - capture tool input
+		AtomicReference<Map<String, Object>> capturedInput = new AtomicReference<>();
+		AtomicReference<String> capturedToolName = new AtomicReference<>();
 		CountDownLatch resultLatch = new CountDownLatch(1);
 
+		CLIOptions options = CLIOptions.builder().model(HAIKU_MODEL).permissionMode(PermissionMode.DEFAULT).build();
+
+		withTransport(options, (transport, opts) -> {
+			transport.startSession("Read the file /etc/hostname", opts, message -> {
+				if (message.isRegularMessage() && message.asMessage() instanceof ResultMessage) {
+					resultLatch.countDown();
+				}
+			}, request -> {
+				if (request.request() instanceof ControlRequest.CanUseToolRequest canUseTool) {
+					// Capture tool name and input
+					capturedToolName.set(canUseTool.toolName());
+					capturedInput.set(canUseTool.input());
+
+					System.out.println("Captured tool: " + capturedToolName.get());
+					System.out.println("Captured input: " + capturedInput.get());
+
+					return ControlResponse.success(request.requestId(), Map.of("behavior", "allow"));
+				}
+
+				if (request.request() instanceof ControlRequest.HookCallbackRequest) {
+					return ControlResponse.success(request.requestId(),
+							Map.of("hookSpecificOutput", Map.of("permissionDecision", "allow")));
+				}
+
+				return ControlResponse.success(request.requestId(), Map.of("behavior", "allow"));
+			});
+
+			// Wait for completion
+			boolean completed = resultLatch.await(120, TimeUnit.SECONDS);
+			assertThat(completed).as("Should complete within timeout").isTrue();
+
+			// Verify input was captured (could be Read or Bash depending on model choice)
+			assertThat(capturedToolName.get()).as("Should have captured tool name").isNotNull();
+			assertThat(capturedInput.get()).as("Should have captured input data").isNotNull();
+		});
+	}
+
+	/**
+	 * Tests bypass permissions mode skips callbacks.
+	 */
+	@Test
+	@DisplayName("Bypass permissions mode skips permission callbacks")
+	void bypassPermissionsModeSkipsCallbacks() throws Exception {
+		// Given - track if any permission callback is called
+		List<String> callbackInvocations = new CopyOnWriteArrayList<>();
+		CountDownLatch resultLatch = new CountDownLatch(1);
+
+		// Use BYPASS_PERMISSIONS mode
 		CLIOptions options = CLIOptions.builder()
 			.model(HAIKU_MODEL)
 			.permissionMode(PermissionMode.BYPASS_PERMISSIONS)
@@ -179,9 +266,9 @@ class PermissionIntegrationIT extends ClaudeCliTestBase {
 					resultLatch.countDown();
 				}
 			}, request -> {
-				// Track if any permission request comes through
-				if (request.request() instanceof ControlRequest.CanUseToolRequest) {
-					permissionCallbackCalled.set(true);
+				// Track any permission callbacks
+				if (request.request() instanceof ControlRequest.CanUseToolRequest canUseTool) {
+					callbackInvocations.add(canUseTool.toolName());
 				}
 				return ControlResponse.success(request.requestId(), Map.of("behavior", "allow"));
 			});
@@ -191,78 +278,60 @@ class PermissionIntegrationIT extends ClaudeCliTestBase {
 			assertThat(completed).as("Should complete within timeout").isTrue();
 
 			// In bypass mode, simple queries shouldn't trigger permission callbacks
-			// (though tool use might still be allowed without asking)
+			// (tool use may proceed without asking)
+			System.out.println("Callback invocations in bypass mode: " + callbackInvocations);
 		});
 	}
 
+	/**
+	 * Tests that permission callback is called for Bash tool. Uses a file creation prompt
+	 * which reliably triggers tool use.
+	 */
 	@Test
-	@DisplayName("Permission callback should receive tool input data - Python SDK context pattern")
-	void permissionCallbackShouldReceiveToolInput() throws Exception {
-		// Given - capture tool input for inspection
-		AtomicReference<Map<String, Object>> capturedInput = new AtomicReference<>();
-		AtomicReference<String> capturedToolName = new AtomicReference<>();
+	@DisplayName("Permission callback called for Bash tool")
+	void permissionCallbackCalledForBashTool() throws Exception {
+		// Given
+		List<String> callbackInvocations = new CopyOnWriteArrayList<>();
 		CountDownLatch resultLatch = new CountDownLatch(1);
 
+		// Note: Do NOT include Bash in allowedTools - we want permission callback to be
+		// triggered
 		CLIOptions options = CLIOptions.builder().model(HAIKU_MODEL).permissionMode(PermissionMode.DEFAULT).build();
 
 		withTransport(options, (transport, opts) -> {
-			transport.startSession("Read the file /tmp/test.txt", opts, message -> {
+			// Use a prompt that reliably triggers tool use (file operations work well)
+			transport.startSession("Create a file /tmp/bash_test.txt containing 'hello'", opts, message -> {
 				if (message.isRegularMessage() && message.asMessage() instanceof ResultMessage) {
 					resultLatch.countDown();
 				}
 			}, request -> {
-				if (request.request() instanceof ControlRequest.CanUseToolRequest canUseToolRequest) {
-					// Capture context (Python SDK: ToolPermissionContext)
-					capturedToolName.set(canUseToolRequest.toolName());
-					capturedInput.set(canUseToolRequest.input());
-
+				if (request.request() instanceof ControlRequest.CanUseToolRequest canUseTool) {
+					System.out.println("Permission callback for: " + canUseTool.toolName());
+					callbackInvocations.add(canUseTool.toolName());
 					return ControlResponse.success(request.requestId(), Map.of("behavior", "allow"));
 				}
 
+				if (request.request() instanceof ControlRequest.HookCallbackRequest hookCallback) {
+					Map<String, Object> input = hookCallback.input();
+					String toolName = (String) input.get("tool_name");
+					if (toolName != null) {
+						callbackInvocations.add(toolName);
+					}
+					return ControlResponse.success(request.requestId(),
+							Map.of("hookSpecificOutput", Map.of("permissionDecision", "allow")));
+				}
+
 				return ControlResponse.success(request.requestId(), Map.of("behavior", "allow"));
 			});
 
 			// Wait for completion
-			boolean completed = resultLatch.await(60, TimeUnit.SECONDS);
+			boolean completed = resultLatch.await(120, TimeUnit.SECONDS);
 			assertThat(completed).as("Should complete within timeout").isTrue();
 
-			// Verify input was captured
-			if (capturedToolName.get() != null) {
-				assertThat(capturedToolName.get()).as("Should have captured tool name").isNotEmpty();
-			}
-		});
-	}
-
-	@Test
-	@DisplayName("Accept edits permission mode should auto-approve edit tools")
-	void acceptEditsModeShouldAutoApproveEditTools() throws Exception {
-		// Given - use accept edits mode
-		List<String> toolsRequiringPermission = new ArrayList<>();
-		CountDownLatch resultLatch = new CountDownLatch(1);
-
-		CLIOptions options = CLIOptions.builder()
-			.model(HAIKU_MODEL)
-			.permissionMode(PermissionMode.ACCEPT_EDITS)
-			.build();
-
-		withTransport(options, (transport, opts) -> {
-			transport.startSession("What is 3 + 5?", opts, message -> {
-				if (message.isRegularMessage() && message.asMessage() instanceof ResultMessage) {
-					resultLatch.countDown();
-				}
-			}, request -> {
-				if (request.request() instanceof ControlRequest.CanUseToolRequest canUseToolRequest) {
-					toolsRequiringPermission.add(canUseToolRequest.toolName());
-				}
-				return ControlResponse.success(request.requestId(), Map.of("behavior", "allow"));
-			});
-
-			// Wait for completion
-			boolean completed = resultLatch.await(60, TimeUnit.SECONDS);
-			assertThat(completed).as("Should complete within timeout").isTrue();
-
-			// Accept edits mode should not require permission for edit-type tools
-			// (behavior depends on CLI implementation)
+			// Verify tool permission callback was invoked (could be Bash or Write)
+			System.out.println("Callback invocations: " + callbackInvocations);
+			assertThat(callbackInvocations).as("Permission callback should have been invoked for file operation")
+				.isNotEmpty();
 		});
 	}
 

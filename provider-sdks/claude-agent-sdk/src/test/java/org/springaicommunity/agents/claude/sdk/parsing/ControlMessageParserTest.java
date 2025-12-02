@@ -51,7 +51,7 @@ class ControlMessageParserTest {
 		@Test
 		@DisplayName("Should parse hook_callback control request")
 		void parseHookCallbackRequest() throws Exception {
-			// Given - exact format from Python SDK
+			// Given - exact format from CLI
 			String json = """
 					{
 					  "type": "control_request",

@@ -39,21 +39,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Integration tests for error scenarios based on MCP SDK error handling patterns and
- * Python SDK domain tests. Tests transport failures, invalid options, and graceful error
- * recovery.
+ * Integration tests for error scenarios with real Claude CLI. Tests transport failures,
+ * invalid options, and graceful error recovery.
  *
  * <p>
- * Test patterns adapted from:
+ * Test patterns:
  * <ul>
- * <li>MCP SDK: StdioMcpSyncClientTests.java (error handling, timeout)</li>
- * <li>Python claude-agent-sdk: tests/test_integration.py (mocked failures)</li>
+ * <li>Error handling and timeout scenarios</li>
+ * <li>Transport close during operation</li>
+ * <li>Malformed responses and handler exceptions</li>
  * </ul>
  */
 @Timeout(value = 120, unit = TimeUnit.SECONDS)
 class ErrorScenarioIntegrationIT extends ClaudeCliTestBase {
 
-	private static final String HAIKU_MODEL = "claude-haiku-4-5-20251016";
+	private static final String HAIKU_MODEL = CLIOptions.MODEL_HAIKU;
 
 	@Test
 	@DisplayName("Should handle invalid CLI path gracefully - MCP SDK error pattern")

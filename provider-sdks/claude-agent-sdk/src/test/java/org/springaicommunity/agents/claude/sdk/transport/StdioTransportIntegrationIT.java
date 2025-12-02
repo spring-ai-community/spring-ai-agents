@@ -59,7 +59,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 @Timeout(value = 60, unit = TimeUnit.SECONDS)
 class StdioTransportIntegrationIT extends ClaudeCliTestBase {
 
-	private static final String HAIKU_MODEL = "claude-haiku-4-5-20251016";
+	private static final String HAIKU_MODEL = CLIOptions.MODEL_HAIKU;
 
 	/**
 	 * Helper pattern from MCP SDK AbstractMcpSyncClientTests.withClient().

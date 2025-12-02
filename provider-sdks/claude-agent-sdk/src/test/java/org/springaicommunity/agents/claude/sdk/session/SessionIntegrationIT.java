@@ -43,7 +43,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class SessionIntegrationIT extends ClaudeCliTestBase {
 
-	private static final String HAIKU_MODEL = "claude-haiku-4-5-20251016";
+	private static final String HAIKU_MODEL = CLIOptions.MODEL_HAIKU;
 
 	@Test
 	@DisplayName("Should maintain context across multiple queries in same session")

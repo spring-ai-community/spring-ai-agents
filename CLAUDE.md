@@ -400,3 +400,15 @@ Maven Central has a known UI bug that prevents browsing SNAPSHOT artifacts via t
 - The goal is to improve CI speed AND maintain 100% test reliability
 - If optimization work introduces failures, the work must continue until failures are resolved
 - "Separate issue" or "can be addressed later" are not acceptable conclusions for failing CI
+## Running Integration Tests
+
+To run integration tests (IT) specifically:
+```bash
+# Run all IT tests
+./mvnw test -pl provider-sdks/claude-agent-sdk -Dtest="*IT"
+
+# Run a specific IT test
+./mvnw test -pl provider-sdks/claude-agent-sdk -Dtest="HookIntegrationIT"
+```
+
+Note: IT tests are run via surefire (not failsafe). They require Claude CLI to be installed and available.
