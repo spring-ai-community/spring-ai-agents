@@ -291,6 +291,22 @@ public class BidirectionalTransport implements AutoCloseable {
 	 */
 	public void startSession(String prompt, CLIOptions options, Consumer<ParsedMessage> messageHandler,
 			ControlRequestHandler controlRequestHandler) throws ClaudeSDKException {
+		startSession(prompt, options, messageHandler, controlRequestHandler, null);
+	}
+
+	/**
+	 * Starts a bidirectional session with the Claude CLI.
+	 * @param prompt the initial prompt
+	 * @param options CLI options (will be modified for bidirectional mode)
+	 * @param messageHandler handler for regular messages
+	 * @param controlRequestHandler handler for control requests, returns response
+	 * @param controlResponseHandler handler for control responses to our outgoing
+	 * requests
+	 * @throws ClaudeSDKException if the session fails to start
+	 */
+	public void startSession(String prompt, CLIOptions options, Consumer<ParsedMessage> messageHandler,
+			ControlRequestHandler controlRequestHandler, Consumer<ControlResponse> controlResponseHandler)
+			throws ClaudeSDKException {
 
 		// State transition: DISCONNECTED -> CONNECTING
 		if (!transitionTo(STATE_DISCONNECTED, STATE_CONNECTING)) {
@@ -336,7 +352,8 @@ public class BidirectionalTransport implements AutoCloseable {
 			// Start inbound message processing on dedicated scheduler (MCP pattern)
 			// Using scheduler.schedule() instead of Mono.subscribeOn() for immediate
 			// execution
-			inboundScheduler.schedule(() -> processInboundMessages(messageHandler, controlRequestHandler));
+			inboundScheduler
+				.schedule(() -> processInboundMessages(messageHandler, controlRequestHandler, controlResponseHandler));
 
 			// Start stderr reader on dedicated scheduler
 			errorScheduler.schedule(this::readStderr);
@@ -422,7 +439,7 @@ public class BidirectionalTransport implements AutoCloseable {
 	 * Processes inbound messages from stdout, dispatching to appropriate handlers.
 	 */
 	private void processInboundMessages(Consumer<ParsedMessage> messageHandler,
-			ControlRequestHandler controlRequestHandler) {
+			ControlRequestHandler controlRequestHandler, Consumer<ControlResponse> controlResponseHandler) {
 		try {
 			String line;
 			// Use isClosing flag for clean shutdown (MCP pattern)
@@ -444,7 +461,7 @@ public class BidirectionalTransport implements AutoCloseable {
 					}
 
 					if (parsed.isControlRequest()) {
-						// Handle control request
+						// Handle control request from CLI (hooks, can_use_tool, etc.)
 						ControlRequest request = parsed.asControlRequest();
 						logger.debug("Received control request: type={}, requestId={}",
 								request.request() != null ? request.request().subtype() : "null", request.requestId());
@@ -454,6 +471,18 @@ public class BidirectionalTransport implements AutoCloseable {
 
 						// Send response back to CLI via outbound sink
 						sendResponse(response);
+					}
+					else if (parsed.isControlResponse()) {
+						// Handle control response to our outgoing request
+						ControlResponse response = parsed.asControlResponse();
+						String requestId = response.response() != null ? response.response().requestId() : null;
+						String subtype = response.response() != null ? response.response().subtype() : null;
+						logger.debug("Received control response: requestId={}, subtype={}", requestId, subtype);
+
+						// Route to response handler if provided
+						if (controlResponseHandler != null) {
+							controlResponseHandler.accept(response);
+						}
 					}
 					else {
 						// Regular message - pass to handler

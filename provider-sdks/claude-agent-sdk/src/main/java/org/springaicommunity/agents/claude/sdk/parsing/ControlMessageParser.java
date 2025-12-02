@@ -26,6 +26,7 @@ import org.springaicommunity.agents.claude.sdk.exceptions.CLIJSONDecodeException
 import org.springaicommunity.agents.claude.sdk.exceptions.MessageParseException;
 import org.springaicommunity.agents.claude.sdk.types.Message;
 import org.springaicommunity.agents.claude.sdk.types.control.ControlRequest;
+import org.springaicommunity.agents.claude.sdk.types.control.ControlResponse;
 
 /**
  * Parser for Claude CLI bidirectional control protocol messages. This parser handles both
@@ -53,6 +54,8 @@ public class ControlMessageParser {
 	private static final Logger logger = LoggerFactory.getLogger(ControlMessageParser.class);
 
 	private static final String TYPE_CONTROL_REQUEST = "control_request";
+
+	private static final String TYPE_CONTROL_RESPONSE = "control_response";
 
 	private final ObjectMapper objectMapper;
 
@@ -114,6 +117,9 @@ public class ControlMessageParser {
 		if (TYPE_CONTROL_REQUEST.equals(type)) {
 			return parseControlRequest(node, originalJson);
 		}
+		else if (TYPE_CONTROL_RESPONSE.equals(type)) {
+			return parseControlResponse(node, originalJson);
+		}
 		else {
 			return parseRegularMessage(node);
 		}
@@ -137,6 +143,26 @@ public class ControlMessageParser {
 		}
 		catch (JsonProcessingException e) {
 			throw new MessageParseException("Failed to parse control request: " + e.getMessage(), e);
+		}
+	}
+
+	/**
+	 * Parses a control response from a JsonNode. These are responses from the CLI to our
+	 * outgoing control requests (e.g., interrupt, set_model, set_permission_mode).
+	 */
+	private ParsedMessage parseControlResponse(JsonNode node, String originalJson) throws MessageParseException {
+		try {
+			ControlResponse response = objectMapper.treeToValue(node, ControlResponse.class);
+
+			String requestId = response.response() != null ? response.response().requestId() : null;
+			String subtype = response.response() != null ? response.response().subtype() : "null";
+
+			logger.debug("Parsed control response: subtype={}, requestId={}", subtype, requestId);
+
+			return ParsedMessage.ControlResponseMessage.of(response);
+		}
+		catch (JsonProcessingException e) {
+			throw new MessageParseException("Failed to parse control response: " + e.getMessage(), e);
 		}
 	}
 

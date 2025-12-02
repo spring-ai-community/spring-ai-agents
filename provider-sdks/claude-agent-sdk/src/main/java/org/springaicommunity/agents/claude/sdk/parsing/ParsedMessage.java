@@ -18,6 +18,7 @@ package org.springaicommunity.agents.claude.sdk.parsing;
 
 import org.springaicommunity.agents.claude.sdk.types.Message;
 import org.springaicommunity.agents.claude.sdk.types.control.ControlRequest;
+import org.springaicommunity.agents.claude.sdk.types.control.ControlResponse;
 
 /**
  * Represents a parsed message from Claude CLI output. In bidirectional mode, the CLI can
@@ -35,8 +36,8 @@ import org.springaicommunity.agents.claude.sdk.types.control.ControlRequest;
  * }
  * }</pre>
  */
-public sealed interface ParsedMessage
-		permits ParsedMessage.RegularMessage, ParsedMessage.Control, ParsedMessage.EndOfStream {
+public sealed interface ParsedMessage permits ParsedMessage.RegularMessage, ParsedMessage.Control,
+		ParsedMessage.ControlResponseMessage, ParsedMessage.EndOfStream {
 
 	/**
 	 * Check if this is a regular message (user, assistant, system, result).
@@ -53,6 +54,13 @@ public sealed interface ParsedMessage
 	}
 
 	/**
+	 * Check if this is a control response.
+	 */
+	default boolean isControlResponse() {
+		return this instanceof ControlResponseMessage;
+	}
+
+	/**
 	 * Get as regular message, or null if this is a control request.
 	 */
 	default Message asMessage() {
@@ -64,6 +72,13 @@ public sealed interface ParsedMessage
 	 */
 	default ControlRequest asControlRequest() {
 		return this instanceof Control c ? c.request() : null;
+	}
+
+	/**
+	 * Get as control response, or null if this is not a control response.
+	 */
+	default ControlResponse asControlResponse() {
+		return this instanceof ControlResponseMessage cr ? cr.response() : null;
 	}
 
 	/**
@@ -99,6 +114,26 @@ public sealed interface ParsedMessage
 		 */
 		public static Control of(ControlRequest request) {
 			return new Control(request);
+		}
+	}
+
+	/**
+	 * Wrapper for control protocol responses (type=control_response). These are responses
+	 * from the CLI to control requests we sent (e.g., interrupt, set_model,
+	 * set_permission_mode).
+	 */
+	record ControlResponseMessage(ControlResponse response) implements ParsedMessage {
+		public ControlResponseMessage {
+			if (response == null) {
+				throw new IllegalArgumentException("response must not be null");
+			}
+		}
+
+		/**
+		 * Factory method for creating a ControlResponseMessage.
+		 */
+		public static ControlResponseMessage of(ControlResponse response) {
+			return new ControlResponseMessage(response);
 		}
 	}
 

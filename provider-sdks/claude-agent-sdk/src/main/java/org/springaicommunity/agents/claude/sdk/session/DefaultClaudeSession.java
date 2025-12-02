@@ -162,8 +162,9 @@ public class DefaultClaudeSession implements ClaudeSession {
 			// Build effective prompt
 			String effectivePrompt = initialPrompt != null ? initialPrompt : "Hello";
 
-			// Start session with control request handling
-			transport.startSession(effectivePrompt, options, this::handleMessage, this::handleControlRequest);
+			// Start session with control request and response handling
+			transport.startSession(effectivePrompt, options, this::handleMessage, this::handleControlRequest,
+					this::handleControlResponse);
 
 			connected.set(true);
 			logger.info("Session connected with prompt: {}",
@@ -366,6 +367,52 @@ public class DefaultClaudeSession implements ClaudeSession {
 	private ControlResponse handleCanUseTool(String requestId, ControlRequest.CanUseToolRequest canUseTool) {
 		// Default: allow all tools
 		return ControlResponse.success(requestId, Map.of("behavior", "allow"));
+	}
+
+	/**
+	 * Handles control responses from the CLI for our outgoing control requests
+	 * (interrupt, set_model, set_permission_mode).
+	 */
+	private void handleControlResponse(ControlResponse response) {
+		if (response.response() == null) {
+			logger.warn("Received control response with null payload");
+			return;
+		}
+
+		String requestId = response.response().requestId();
+		if (requestId == null) {
+			logger.warn("Received control response without request_id");
+			return;
+		}
+
+		logger.debug("Handling control response: requestId={}, subtype={}", requestId, response.response().subtype());
+
+		// Check if this is a response to one of our pending requests
+		CountDownLatch latch = pendingRequests.get(requestId);
+		if (latch != null) {
+			// Extract response payload
+			Map<String, Object> payload = new LinkedHashMap<>();
+			payload.put("subtype", response.response().subtype());
+
+			if (response.response() instanceof ControlResponse.SuccessPayload success) {
+				if (success.response() instanceof Map<?, ?> responseMap) {
+					@SuppressWarnings("unchecked")
+					Map<String, Object> typedMap = (Map<String, Object>) responseMap;
+					payload.putAll(typedMap);
+				}
+			}
+			else if (response.response() instanceof ControlResponse.ErrorPayload error) {
+				payload.put("error", error.error());
+			}
+
+			// Store result and signal completion
+			pendingResults.put(requestId, payload);
+			latch.countDown();
+			logger.debug("Control response stored for requestId={}", requestId);
+		}
+		else {
+			logger.debug("No pending request found for control response: requestId={}", requestId);
+		}
 	}
 
 	private void sendControlRequest(Map<String, Object> request) throws ClaudeSDKException {
