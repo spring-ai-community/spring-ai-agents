@@ -36,14 +36,18 @@ import org.springaicommunity.agents.claude.sdk.types.control.ControlRequest;
 import org.springaicommunity.agents.claude.sdk.types.control.ControlResponse;
 import org.springaicommunity.agents.claude.sdk.types.control.HookInput;
 import org.springaicommunity.agents.claude.sdk.types.control.HookOutput;
+import org.springaicommunity.agents.claude.sdk.permission.PermissionResult;
+import org.springaicommunity.agents.claude.sdk.permission.ToolPermissionCallback;
+import org.springaicommunity.agents.claude.sdk.permission.ToolPermissionContext;
 import org.springaicommunity.agents.model.sandbox.Sandbox;
+
+import reactor.core.publisher.Mono;
+import reactor.core.publisher.MonoSink;
 
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -99,6 +103,9 @@ public class DefaultClaudeSession implements ClaudeSession {
 
 	private final AtomicReference<String> currentPermissionMode = new AtomicReference<>();
 
+	// Tool permission callback (P2+ feature)
+	private volatile ToolPermissionCallback toolPermissionCallback;
+
 	// Transport and streaming
 	private volatile BidirectionalTransport transport;
 
@@ -106,12 +113,17 @@ public class DefaultClaudeSession implements ClaudeSession {
 
 	private volatile BlockingMessageReceiver blockingReceiver;
 
-	// Control request handling
+	// Control request handling (MCP SDK pattern using MonoSink for correlation)
 	private final AtomicInteger requestCounter = new AtomicInteger(0);
 
-	private final ConcurrentHashMap<String, CountDownLatch> pendingRequests = new ConcurrentHashMap<>();
+	private final String sessionPrefix = UUID.randomUUID().toString().substring(0, 8);
 
-	private final ConcurrentHashMap<String, Map<String, Object>> pendingResults = new ConcurrentHashMap<>();
+	/**
+	 * Pending control request responses keyed by request ID. When a control response
+	 * arrives, the corresponding MonoSink is completed with the response payload. This
+	 * follows the MCP Java SDK pattern for request/response correlation.
+	 */
+	private final ConcurrentHashMap<String, MonoSink<Map<String, Object>>> pendingResponses = new ConcurrentHashMap<>();
 
 	/**
 	 * Creates a session with the specified working directory.
@@ -328,6 +340,16 @@ public class DefaultClaudeSession implements ClaudeSession {
 	}
 
 	@Override
+	public void setToolPermissionCallback(ToolPermissionCallback callback) {
+		this.toolPermissionCallback = callback;
+	}
+
+	@Override
+	public ToolPermissionCallback getToolPermissionCallback() {
+		return toolPermissionCallback;
+	}
+
+	@Override
 	public Map<String, Object> getServerInfo() {
 		return serverInfo.get();
 	}
@@ -451,13 +473,57 @@ public class DefaultClaudeSession implements ClaudeSession {
 	}
 
 	private ControlResponse handleCanUseTool(String requestId, ControlRequest.CanUseToolRequest canUseTool) {
-		// Default: allow all tools
-		return ControlResponse.success(requestId, Map.of("behavior", "allow"));
+		// If no callback set, allow all tools
+		ToolPermissionCallback callback = toolPermissionCallback;
+		if (callback == null) {
+			return ControlResponse.success(requestId, Map.of("behavior", "allow"));
+		}
+
+		try {
+			// Build context from request
+			ToolPermissionContext context = ToolPermissionContext.of(canUseTool.permissionSuggestions(),
+					canUseTool.blockedPath(), requestId);
+
+			// Invoke callback
+			PermissionResult result = callback.checkPermission(canUseTool.toolName(), canUseTool.input(), context);
+
+			if (result.isAllowed()) {
+				PermissionResult.Allow allow = (PermissionResult.Allow) result;
+				Map<String, Object> response = new LinkedHashMap<>();
+				response.put("behavior", "allow");
+
+				// Include updated input if provided
+				if (allow.hasUpdatedInput()) {
+					response.put("updatedInput", allow.updatedInput());
+				}
+				return ControlResponse.success(requestId, response);
+			}
+			else {
+				PermissionResult.Deny deny = (PermissionResult.Deny) result;
+				Map<String, Object> response = new LinkedHashMap<>();
+				response.put("behavior", "deny");
+
+				// Include denial message if provided
+				if (deny.hasMessage()) {
+					response.put("message", deny.message());
+				}
+				return ControlResponse.success(requestId, response);
+			}
+		}
+		catch (Exception e) {
+			logger.error("Tool permission callback threw exception for tool {}", canUseTool.toolName(), e);
+			// On error, deny with error message for safety
+			Map<String, Object> response = new LinkedHashMap<>();
+			response.put("behavior", "deny");
+			response.put("message", "Permission callback error: " + e.getMessage());
+			return ControlResponse.success(requestId, response);
+		}
 	}
 
 	/**
 	 * Handles control responses from the CLI for our outgoing control requests
-	 * (interrupt, set_model, set_permission_mode).
+	 * (interrupt, set_model, set_permission_mode). Follows MCP SDK pattern using MonoSink
+	 * for response correlation.
 	 */
 	private void handleControlResponse(ControlResponse response) {
 		if (response.response() == null) {
@@ -473,77 +539,108 @@ public class DefaultClaudeSession implements ClaudeSession {
 
 		logger.debug("Handling control response: requestId={}, subtype={}", requestId, response.response().subtype());
 
-		// Check if this is a response to one of our pending requests
-		CountDownLatch latch = pendingRequests.get(requestId);
-		if (latch != null) {
-			// Extract response payload
-			Map<String, Object> payload = new LinkedHashMap<>();
-			payload.put("subtype", response.response().subtype());
+		// MCP SDK pattern: remove sink from pending map and complete it
+		MonoSink<Map<String, Object>> sink = pendingResponses.remove(requestId);
+		if (sink == null) {
+			logger.warn("Unexpected response for unknown request id {}", requestId);
+			return;
+		}
 
-			if (response.response() instanceof ControlResponse.SuccessPayload success) {
-				if (success.response() instanceof Map<?, ?> responseMap) {
-					@SuppressWarnings("unchecked")
-					Map<String, Object> typedMap = (Map<String, Object>) responseMap;
-					payload.putAll(typedMap);
-				}
-			}
-			else if (response.response() instanceof ControlResponse.ErrorPayload error) {
-				payload.put("error", error.error());
-			}
+		// Extract response payload
+		Map<String, Object> payload = new LinkedHashMap<>();
+		payload.put("subtype", response.response().subtype());
 
-			// Store result and signal completion
-			pendingResults.put(requestId, payload);
-			latch.countDown();
-			logger.debug("Control response stored for requestId={}", requestId);
+		if (response.response() instanceof ControlResponse.SuccessPayload success) {
+			if (success.response() instanceof Map<?, ?> responseMap) {
+				@SuppressWarnings("unchecked")
+				Map<String, Object> typedMap = (Map<String, Object>) responseMap;
+				payload.putAll(typedMap);
+			}
+			// Complete the sink with success
+			sink.success(payload);
+			logger.debug("Control response delivered for requestId={}", requestId);
+		}
+		else if (response.response() instanceof ControlResponse.ErrorPayload error) {
+			// Complete the sink with error
+			sink.error(new ClaudeSDKException("Control request failed: " + error.error()));
+			logger.debug("Control response error delivered for requestId={}", requestId);
 		}
 		else {
-			logger.debug("No pending request found for control response: requestId={}", requestId);
+			// Unknown response type - complete with payload anyway
+			sink.success(payload);
 		}
 	}
 
+	/**
+	 * Generates a unique request ID following MCP SDK pattern. Format:
+	 * {sessionPrefix}-{counter}
+	 */
+	private String generateRequestId() {
+		return sessionPrefix + "-" + requestCounter.getAndIncrement();
+	}
+
+	/**
+	 * Sends a control request and waits for response. Follows MCP SDK pattern using
+	 * Mono.create() with MonoSink for response correlation.
+	 *
+	 * <p>
+	 * This method:
+	 * </p>
+	 * <ol>
+	 * <li>Creates a Mono that registers a MonoSink in pendingResponses</li>
+	 * <li>Sends the control request to the CLI</li>
+	 * <li>When handleControlResponse() receives the response, it completes the sink</li>
+	 * <li>The Mono completes with the response or times out</li>
+	 * </ol>
+	 */
 	private void sendControlRequest(Map<String, Object> request) throws ClaudeSDKException {
 		ensureConnected();
 
+		String requestId = generateRequestId();
+
 		try {
-			// Generate request ID
-			int counter = requestCounter.incrementAndGet();
-			String requestId = "req_" + counter + "_" + UUID.randomUUID().toString().substring(0, 8);
+			// MCP SDK pattern: create Mono that registers sink for response correlation
+			Map<String, Object> result = Mono.<Map<String, Object>>create(sink -> {
+				logger.debug("Sending control request: subtype={}, requestId={}", request.get("subtype"), requestId);
 
-			// Create latch for response
-			CountDownLatch latch = new CountDownLatch(1);
-			pendingRequests.put(requestId, latch);
+				// Register sink for response correlation
+				pendingResponses.put(requestId, sink);
 
-			// Build control request
-			Map<String, Object> controlRequest = new LinkedHashMap<>();
-			controlRequest.put("type", "control_request");
-			controlRequest.put("request_id", requestId);
-			controlRequest.put("request", request);
+				// Build and send control request
+				try {
+					Map<String, Object> controlRequest = new LinkedHashMap<>();
+					controlRequest.put("type", "control_request");
+					controlRequest.put("request_id", requestId);
+					controlRequest.put("request", request);
 
-			String json = objectMapper.writeValueAsString(controlRequest);
-			transport.sendMessage(json);
+					String json = objectMapper.writeValueAsString(controlRequest);
+					transport.sendMessage(json);
+				}
+				catch (Exception e) {
+					// Remove pending sink and signal error
+					pendingResponses.remove(requestId);
+					sink.error(e);
+				}
+			}).timeout(timeout).doOnError(e -> {
+				// Clean up on timeout or error
+				pendingResponses.remove(requestId);
+			}).block(); // Block for synchronous API
 
-			// Wait for response (with timeout)
-			boolean received = latch.await(timeout.toSeconds(), TimeUnit.SECONDS);
-			pendingRequests.remove(requestId);
-
-			if (!received) {
-				pendingResults.remove(requestId);
-				throw new ClaudeSDKException("Control request timed out: " + request.get("subtype"));
-			}
-
-			Map<String, Object> result = pendingResults.remove(requestId);
+			// Check for error in result (shouldn't happen with new error handling, but
+			// defensive)
 			if (result != null && result.containsKey("error")) {
 				throw new ClaudeSDKException("Control request failed: " + result.get("error"));
 			}
-		}
-		catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
-			throw new ClaudeSDKException("Control request interrupted", e);
 		}
 		catch (ClaudeSDKException e) {
 			throw e;
 		}
 		catch (Exception e) {
+			// Handle timeout and other exceptions
+			if (e.getCause() instanceof java.util.concurrent.TimeoutException
+					|| e instanceof java.util.concurrent.TimeoutException) {
+				throw new ClaudeSDKException("Control request timed out: " + request.get("subtype"), e);
+			}
 			throw new ClaudeSDKException("Failed to send control request", e);
 		}
 	}
@@ -569,8 +666,20 @@ public class DefaultClaudeSession implements ClaudeSession {
 		if (transport != null) {
 			transport.close();
 		}
-		pendingRequests.clear();
-		pendingResults.clear();
+		// MCP SDK pattern: dismiss pending responses with error
+		dismissPendingResponses();
+	}
+
+	/**
+	 * Dismisses all pending control request responses with an error. This follows the MCP
+	 * SDK pattern for graceful shutdown.
+	 */
+	private void dismissPendingResponses() {
+		pendingResponses.forEach((id, sink) -> {
+			logger.warn("Abruptly terminating pending request: {}", id);
+			sink.error(new ClaudeSDKException("Session closed while request was pending"));
+		});
+		pendingResponses.clear();
 	}
 
 	/**

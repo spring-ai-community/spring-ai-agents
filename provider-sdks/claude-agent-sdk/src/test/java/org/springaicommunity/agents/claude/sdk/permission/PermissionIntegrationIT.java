@@ -61,7 +61,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Timeout(value = 180, unit = TimeUnit.SECONDS)
 class PermissionIntegrationIT extends ClaudeCliTestBase {
 
+	// Use Haiku for most tests (fast), Sonnet for tests requiring reliable tool use
 	private static final String HAIKU_MODEL = CLIOptions.MODEL_HAIKU;
+
+	private static final String SONNET_MODEL = CLIOptions.MODEL_SONNET;
 
 	/**
 	 * Helper for running tests with transport.
@@ -141,7 +144,8 @@ class PermissionIntegrationIT extends ClaudeCliTestBase {
 
 	/**
 	 * Tests permission deny blocks tool execution. Uses a more explicit prompt that
-	 * reliably triggers Write tool use.
+	 * reliably triggers Write tool use. Uses Sonnet model for more reliable tool
+	 * invocation.
 	 */
 	@Test
 	@DisplayName("Permission deny blocks tool execution")
@@ -151,7 +155,8 @@ class PermissionIntegrationIT extends ClaudeCliTestBase {
 		AtomicReference<String> resultText = new AtomicReference<>();
 		CountDownLatch resultLatch = new CountDownLatch(1);
 
-		CLIOptions options = CLIOptions.builder().model(HAIKU_MODEL).permissionMode(PermissionMode.DEFAULT).build();
+		// Use Sonnet for more reliable tool use behavior
+		CLIOptions options = CLIOptions.builder().model(SONNET_MODEL).permissionMode(PermissionMode.DEFAULT).build();
 
 		withTransport(options, (transport, opts) -> {
 			// Use explicit tool-forcing prompt that reliably triggers Write tool
@@ -192,8 +197,7 @@ class PermissionIntegrationIT extends ClaudeCliTestBase {
 			boolean completed = resultLatch.await(120, TimeUnit.SECONDS);
 			assertThat(completed).as("Should complete within timeout").isTrue();
 
-			// Verify tool was denied - the callback should have been invoked for Write
-			// tool
+			// Verify tool was denied - Sonnet should reliably trigger tool use
 			System.out.println("Denied tools: " + deniedTools);
 			assertThat(deniedTools).as("Permission callback should have been invoked for file writing tools")
 				.isNotEmpty();

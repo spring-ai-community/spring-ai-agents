@@ -18,6 +18,7 @@ package org.springaicommunity.agents.claude.sdk.session;
 
 import org.springaicommunity.agents.claude.sdk.exceptions.ClaudeSDKException;
 import org.springaicommunity.agents.claude.sdk.parsing.ParsedMessage;
+import org.springaicommunity.agents.claude.sdk.permission.ToolPermissionCallback;
 import org.springaicommunity.agents.claude.sdk.streaming.MessageReceiver;
 
 import java.util.Iterator;
@@ -183,6 +184,34 @@ public interface ClaudeSession extends AutoCloseable {
 	 * @return the current permission mode, or null if not explicitly set
 	 */
 	String getCurrentPermissionMode();
+
+	/**
+	 * Sets a callback to handle tool permission requests. When Claude attempts to use a
+	 * tool, this callback is invoked to determine whether the tool should be allowed and
+	 * optionally modify the tool's input.
+	 *
+	 * <p>
+	 * Example:
+	 * </p>
+	 *
+	 * <pre>{@code
+	 * session.setToolPermissionCallback((toolName, input, context) -> {
+	 *     if (toolName.equals("Bash") && input.get("command").toString().contains("rm")) {
+	 *         return PermissionResult.deny("Dangerous command blocked");
+	 *     }
+	 *     return PermissionResult.allow();
+	 * });
+	 * }</pre>
+	 * @param callback the callback to handle permission requests, or null to use default
+	 * (allow all)
+	 */
+	void setToolPermissionCallback(ToolPermissionCallback callback);
+
+	/**
+	 * Gets the current tool permission callback.
+	 * @return the current callback, or null if using default behavior
+	 */
+	ToolPermissionCallback getToolPermissionCallback();
 
 	/**
 	 * Checks if the session is currently connected.
