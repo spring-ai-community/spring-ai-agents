@@ -650,6 +650,15 @@ public class BidirectionalTransport implements AutoCloseable {
 	}
 
 	/**
+	 * Returns the inbound message Flux. Alias for {@link #receiveMessages()} for
+	 * consistency with internal naming.
+	 * @return Flux of parsed messages from the CLI
+	 */
+	public Flux<ParsedMessage> getInboundFlux() {
+		return inboundSink.asFlux();
+	}
+
+	/**
 	 * Returns a Mono that completes when the server info is received.
 	 */
 	public Mono<Map<String, Object>> getServerInfo() {
