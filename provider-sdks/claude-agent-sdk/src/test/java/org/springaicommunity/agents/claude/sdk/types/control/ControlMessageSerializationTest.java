@@ -399,7 +399,7 @@ class ControlMessageSerializationTest {
 		void preToolUseInputTypedArguments() {
 			// Given
 			var input = new HookInput.PreToolUseInput("PreToolUse", "sess_1", "/tmp/t.md", "/home", null, "Write",
-					Map.of("file_path", "/home/test.txt", "content", "hello"));
+					"tool_123", Map.of("file_path", "/home/test.txt", "content", "hello"));
 
 			// When/Then
 			assertThat(input.getArgument("file_path", String.class)).contains("/home/test.txt");

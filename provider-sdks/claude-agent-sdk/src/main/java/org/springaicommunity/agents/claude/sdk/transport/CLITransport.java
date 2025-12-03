@@ -126,7 +126,7 @@ public class CLITransport implements AutoCloseable {
 					logger.error("Command executed: {}", command);
 					logger.error("Working directory: {}", workingDirectory);
 					logger.error("Stdout output: {}", result.outputUTF8());
-					throw ProcessExecutionException.withExitCode("Claude CLI process failed", result.getExitValue());
+					throw TransportException.withExitCode("Claude CLI process failed", result.getExitValue());
 				}
 
 				// Parse the complete JSON result with retry logic for empty responses
@@ -187,8 +187,7 @@ public class CLITransport implements AutoCloseable {
 					logger.error("Command executed: {}", command);
 					logger.error("Working directory: {}", workingDirectory);
 					logger.error("Stdout output: {}", result.outputUTF8());
-					throw ProcessExecutionException.withExitCode("Claude CLI streaming process failed",
-							result.getExitValue());
+					throw TransportException.withExitCode("Claude CLI streaming process failed", result.getExitValue());
 				}
 
 				// Manually close collector to flush any buffered content (important for
@@ -210,13 +209,13 @@ public class CLITransport implements AutoCloseable {
 		}
 		catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
-			throw new ProcessExecutionException("Query was interrupted", e);
+			throw new TransportException("Query was interrupted", e);
 		}
 		catch (IOException | TimeoutException e) {
-			throw new ProcessExecutionException("Failed to execute query", e);
+			throw new TransportException("Failed to execute query", e);
 		}
 		catch (Exception e) {
-			throw new ProcessExecutionException("Unexpected error during query", e);
+			throw new TransportException("Unexpected error during query", e);
 		}
 	}
 
@@ -263,8 +262,7 @@ public class CLITransport implements AutoCloseable {
 				logger.error("Command executed: {}", command);
 				logger.error("Working directory: {}", workingDirectory);
 				logger.error("Stdout output: {}", result.outputUTF8());
-				throw ProcessExecutionException.withExitCode("Claude CLI streaming process failed",
-						result.getExitValue());
+				throw TransportException.withExitCode("Claude CLI streaming process failed", result.getExitValue());
 			}
 
 			logger.info("Streaming query completed successfully");
@@ -275,13 +273,13 @@ public class CLITransport implements AutoCloseable {
 		}
 		catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
-			throw new ProcessExecutionException("Streaming query was interrupted", e);
+			throw new TransportException("Streaming query was interrupted", e);
 		}
 		catch (IOException | TimeoutException e) {
-			throw new ProcessExecutionException("Failed to execute streaming query", e);
+			throw new TransportException("Failed to execute streaming query", e);
 		}
 		catch (Exception e) {
-			throw new ProcessExecutionException("Unexpected error during streaming query", e);
+			throw new TransportException("Unexpected error during streaming query", e);
 		}
 	}
 
@@ -314,13 +312,13 @@ public class CLITransport implements AutoCloseable {
 				.execute();
 
 			if (result.getExitValue() != 0) {
-				throw new CLIConnectionException("Failed to get Claude CLI version");
+				throw new TransportException("Failed to get Claude CLI version");
 			}
 
 			return result.outputUTF8().trim();
 		}
 		catch (Exception e) {
-			throw new CLIConnectionException("Failed to get Claude CLI version", e);
+			throw new TransportException("Failed to get Claude CLI version", e);
 		}
 	}
 
@@ -372,7 +370,7 @@ public class CLITransport implements AutoCloseable {
 			}
 		}
 		catch (Exception e) {
-			throw new ProcessExecutionException("Failed to parse command output: " + e.getMessage(), e);
+			throw new TransportException("Failed to parse command output: " + e.getMessage(), e);
 		}
 
 		return messages;

@@ -20,10 +20,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springaicommunity.agents.claude.sdk.config.ClaudeCliDiscovery;
-import org.springaicommunity.agents.claude.sdk.exceptions.CLIConnectionException;
 import org.springaicommunity.agents.claude.sdk.exceptions.ClaudeSDKException;
-import org.springaicommunity.agents.claude.sdk.exceptions.ProcessExecutionException;
 import org.springaicommunity.agents.claude.sdk.exceptions.SessionClosedException;
+import org.springaicommunity.agents.claude.sdk.exceptions.TransportException;
 import org.springaicommunity.agents.claude.sdk.parsing.ControlMessageParser;
 import org.springaicommunity.agents.claude.sdk.parsing.ParsedMessage;
 import org.springaicommunity.agents.claude.sdk.types.control.ControlRequest;
@@ -367,11 +366,14 @@ public class BidirectionalTransport implements AutoCloseable {
 
 			// State transition: CONNECTING -> CONNECTED
 			if (!transitionTo(STATE_CONNECTING, STATE_CONNECTED)) {
-				throw new CLIConnectionException("Failed to complete connection - unexpected state change");
+				throw new TransportException("Failed to complete connection - unexpected state change");
 			}
 
-			// Send initial prompt as JSON via stdin
-			sendUserMessage(prompt, "default");
+			// Send initial prompt as JSON via stdin (if provided)
+			// Prompt may be null if caller wants to send initialize request first
+			if (prompt != null) {
+				sendUserMessage(prompt, "default");
+			}
 
 		}
 		catch (Exception e) {
@@ -381,7 +383,7 @@ public class BidirectionalTransport implements AutoCloseable {
 			if (e instanceof ClaudeSDKException) {
 				throw (ClaudeSDKException) e;
 			}
-			throw new CLIConnectionException("Failed to start bidirectional session", e);
+			throw new TransportException("Failed to start bidirectional session", e);
 		}
 	}
 
@@ -580,11 +582,11 @@ public class BidirectionalTransport implements AutoCloseable {
 			// Emit to outbound sink for async processing
 			Sinks.EmitResult result = outboundSink.tryEmitNext(json);
 			if (result.isFailure()) {
-				throw new ProcessExecutionException("Failed to queue user message: " + result);
+				throw new TransportException("Failed to queue user message: " + result);
 			}
 		}
 		catch (IOException e) {
-			throw new ProcessExecutionException("Failed to serialize user message", e);
+			throw new TransportException("Failed to serialize user message", e);
 		}
 	}
 
@@ -602,11 +604,11 @@ public class BidirectionalTransport implements AutoCloseable {
 
 			Sinks.EmitResult result = outboundSink.tryEmitNext(json);
 			if (result.isFailure()) {
-				throw new ProcessExecutionException("Failed to queue control response: " + result);
+				throw new TransportException("Failed to queue control response: " + result);
 			}
 		}
 		catch (IOException e) {
-			throw new ProcessExecutionException("Failed to serialize control response", e);
+			throw new TransportException("Failed to serialize control response", e);
 		}
 	}
 
@@ -621,7 +623,7 @@ public class BidirectionalTransport implements AutoCloseable {
 		logger.debug("Sending message: {}", message);
 		Sinks.EmitResult result = outboundSink.tryEmitNext(message);
 		if (result.isFailure()) {
-			throw new ProcessExecutionException("Failed to queue message: " + result);
+			throw new TransportException("Failed to queue message: " + result);
 		}
 	}
 
@@ -707,20 +709,20 @@ public class BidirectionalTransport implements AutoCloseable {
 			if (completed) {
 				int exitCode = process.exitValue();
 				if (exitCode != 0) {
-					throw ProcessExecutionException.withExitCode("CLI process failed", exitCode);
+					throw TransportException.withExitCode("CLI process failed", exitCode);
 				}
 			}
 
 			Throwable err = sessionError.get();
 			if (err != null) {
-				throw new ProcessExecutionException("Session error", err);
+				throw new TransportException("Session error", err);
 			}
 
 			return completed;
 		}
 		catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
-			throw new ProcessExecutionException("Wait interrupted", e);
+			throw new TransportException("Wait interrupted", e);
 		}
 	}
 

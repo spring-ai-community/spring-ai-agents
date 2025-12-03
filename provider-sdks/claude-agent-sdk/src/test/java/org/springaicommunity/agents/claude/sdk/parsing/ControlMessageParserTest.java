@@ -20,7 +20,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springaicommunity.agents.claude.sdk.exceptions.CLIJSONDecodeException;
 import org.springaicommunity.agents.claude.sdk.exceptions.MessageParseException;
 import org.springaicommunity.agents.claude.sdk.types.AssistantMessage;
 import org.springaicommunity.agents.claude.sdk.types.ResultMessage;
@@ -458,9 +457,9 @@ class ControlMessageParserTest {
 	class ErrorHandling {
 
 		@Test
-		@DisplayName("Should throw CLIJSONDecodeException for malformed JSON")
+		@DisplayName("Should throw MessageParseException for malformed JSON")
 		void malformedJson() {
-			assertThatThrownBy(() -> parser.parse("not valid json")).isInstanceOf(CLIJSONDecodeException.class);
+			assertThatThrownBy(() -> parser.parse("not valid json")).isInstanceOf(MessageParseException.class);
 		}
 
 		@Test

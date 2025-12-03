@@ -18,6 +18,7 @@ package org.springaicommunity.agents.claude.sdk.session;
 
 import org.springaicommunity.agents.claude.sdk.exceptions.ClaudeSDKException;
 import org.springaicommunity.agents.claude.sdk.parsing.ParsedMessage;
+import org.springaicommunity.agents.claude.sdk.streaming.MessageReceiver;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -103,6 +104,46 @@ public interface ClaudeSession extends AutoCloseable {
 	Iterator<ParsedMessage> receiveResponse();
 
 	/**
+	 * Returns a message receiver for all messages from the CLI. The receiver yields
+	 * messages indefinitely until the session ends.
+	 *
+	 * <p>
+	 * Usage:
+	 * </p>
+	 * <pre>{@code
+	 * try (MessageReceiver receiver = session.messageReceiver()) {
+	 *     ParsedMessage msg;
+	 *     while ((msg = receiver.next()) != null) {
+	 *         handleMessage(msg);
+	 *     }
+	 * }
+	 * }</pre>
+	 * @return message receiver that yields all messages
+	 */
+	MessageReceiver messageReceiver();
+
+	/**
+	 * Returns a message receiver that yields messages until a ResultMessage is received.
+	 * This is useful for processing a single response before sending another query.
+	 *
+	 * <p>
+	 * Usage:
+	 * </p>
+	 * <pre>{@code
+	 * session.query("What is 2+2?");
+	 * try (MessageReceiver receiver = session.responseReceiver()) {
+	 *     ParsedMessage msg;
+	 *     while ((msg = receiver.next()) != null) {
+	 *         handleMessage(msg);
+	 *     }
+	 * }
+	 * // Can now send another query
+	 * }</pre>
+	 * @return message receiver that stops after ResultMessage
+	 */
+	MessageReceiver responseReceiver();
+
+	/**
 	 * Interrupts the current operation. Sends an interrupt signal to the CLI to stop the
 	 * current processing.
 	 * @throws ClaudeSDKException if interrupt fails
@@ -128,6 +169,20 @@ public interface ClaudeSession extends AutoCloseable {
 	 * @return map of server information, or empty map if not available
 	 */
 	Map<String, Object> getServerInfo();
+
+	/**
+	 * Gets the current model being used by this session. This reflects any runtime
+	 * changes made via {@link #setModel(String)}.
+	 * @return the current model ID, or null if not explicitly set
+	 */
+	String getCurrentModel();
+
+	/**
+	 * Gets the current permission mode for this session. This reflects any runtime
+	 * changes made via {@link #setPermissionMode(String)}.
+	 * @return the current permission mode, or null if not explicitly set
+	 */
+	String getCurrentPermissionMode();
 
 	/**
 	 * Checks if the session is currently connected.

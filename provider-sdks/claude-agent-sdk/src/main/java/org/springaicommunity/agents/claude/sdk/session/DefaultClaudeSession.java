@@ -19,12 +19,15 @@ package org.springaicommunity.agents.claude.sdk.session;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springaicommunity.agents.claude.sdk.exceptions.CLIConnectionException;
+import org.springaicommunity.agents.claude.sdk.exceptions.TransportException;
 import org.springaicommunity.agents.claude.sdk.exceptions.ClaudeSDKException;
 import org.springaicommunity.agents.claude.sdk.hooks.HookCallback;
 import org.springaicommunity.agents.claude.sdk.hooks.HookRegistry;
 import org.springaicommunity.agents.claude.sdk.parsing.ParsedMessage;
+import org.springaicommunity.agents.claude.sdk.streaming.BlockingMessageReceiver;
+import org.springaicommunity.agents.claude.sdk.streaming.MessageReceiver;
 import org.springaicommunity.agents.claude.sdk.streaming.MessageStreamIterator;
+import org.springaicommunity.agents.claude.sdk.streaming.ResponseBoundedReceiver;
 import org.springaicommunity.agents.claude.sdk.transport.BidirectionalTransport;
 import org.springaicommunity.agents.claude.sdk.transport.CLIOptions;
 import org.springaicommunity.agents.claude.sdk.types.Message;
@@ -91,10 +94,17 @@ public class DefaultClaudeSession implements ClaudeSession {
 
 	private final AtomicReference<String> currentSessionId = new AtomicReference<>(DEFAULT_SESSION_ID);
 
+	// Runtime state tracking (P2 feature)
+	private final AtomicReference<String> currentModel = new AtomicReference<>();
+
+	private final AtomicReference<String> currentPermissionMode = new AtomicReference<>();
+
 	// Transport and streaming
 	private volatile BidirectionalTransport transport;
 
 	private volatile MessageStreamIterator messageIterator;
+
+	private volatile BlockingMessageReceiver blockingReceiver;
 
 	// Control request handling
 	private final AtomicInteger requestCounter = new AtomicInteger(0);
@@ -129,6 +139,14 @@ public class DefaultClaudeSession implements ClaudeSession {
 		this.sandbox = sandbox;
 		this.hookRegistry = hookRegistry != null ? hookRegistry : new HookRegistry();
 		this.objectMapper = new ObjectMapper();
+
+		// Initialize runtime state from options
+		if (this.options.getModel() != null) {
+			this.currentModel.set(this.options.getModel());
+		}
+		if (this.options.getPermissionMode() != null) {
+			this.currentPermissionMode.set(this.options.getPermissionMode().getValue());
+		}
 	}
 
 	/**
@@ -146,34 +164,67 @@ public class DefaultClaudeSession implements ClaudeSession {
 	@Override
 	public void connect(String initialPrompt) throws ClaudeSDKException {
 		if (closed.get()) {
-			throw new CLIConnectionException("Session has been closed");
+			throw new TransportException("Session has been closed");
 		}
 		if (connected.get()) {
-			throw new CLIConnectionException("Session is already connected");
+			throw new TransportException("Session is already connected");
 		}
 
 		try {
 			// Create transport
 			transport = new BidirectionalTransport(workingDirectory, timeout, claudePath, sandbox);
 
-			// Create message iterator
+			// Create message receivers (both iterator and POC pattern)
 			messageIterator = new MessageStreamIterator();
+			blockingReceiver = new BlockingMessageReceiver();
 
 			// Build effective prompt
 			String effectivePrompt = initialPrompt != null ? initialPrompt : "Hello";
 
 			// Start session with control request and response handling
-			transport.startSession(effectivePrompt, options, this::handleMessage, this::handleControlRequest,
+			// Pass null for initial prompt - we'll send it after initialization
+			transport.startSession(null, options, this::handleMessage, this::handleControlRequest,
 					this::handleControlResponse);
 
 			connected.set(true);
+
+			// Send initialize request with hook configuration if hooks are registered
+			if (hookRegistry.hasHooks()) {
+				sendInitialize();
+			}
+
+			// Now send the initial prompt
+			if (effectivePrompt != null) {
+				transport.sendUserMessage(effectivePrompt, "default");
+			}
+
 			logger.info("Session connected with prompt: {}",
 					effectivePrompt.substring(0, Math.min(50, effectivePrompt.length())));
 		}
 		catch (Exception e) {
 			cleanup();
-			throw new CLIConnectionException("Failed to connect session", e);
+			throw new TransportException("Failed to connect session", e);
 		}
+	}
+
+	/**
+	 * Sends the initialize control request with hook configuration.
+	 */
+	private void sendInitialize() throws ClaudeSDKException {
+		Map<String, List<ControlRequest.HookMatcherConfig>> hookConfig = hookRegistry.buildHookConfig();
+
+		if (hookConfig.isEmpty()) {
+			logger.debug("No hooks to initialize");
+			return;
+		}
+
+		Map<String, Object> request = new LinkedHashMap<>();
+		request.put("subtype", "initialize");
+		request.put("hooks", hookConfig);
+
+		logger.debug("Sending initialize with {} hook event types", hookConfig.size());
+		sendControlRequest(request);
+		logger.info("Hook configuration sent to CLI: {} event types", hookConfig.size());
 	}
 
 	@Override
@@ -205,7 +256,7 @@ public class DefaultClaudeSession implements ClaudeSession {
 			logger.debug("Sent query in session {}: {}", sessionId, prompt.substring(0, Math.min(50, prompt.length())));
 		}
 		catch (Exception e) {
-			throw new CLIConnectionException("Failed to send query", e);
+			throw new TransportException("Failed to send query", e);
 		}
 	}
 
@@ -222,6 +273,18 @@ public class DefaultClaudeSession implements ClaudeSession {
 	}
 
 	@Override
+	public MessageReceiver messageReceiver() {
+		ensureConnected();
+		return blockingReceiver;
+	}
+
+	@Override
+	public MessageReceiver responseReceiver() {
+		ensureConnected();
+		return new ResponseBoundedReceiver(blockingReceiver);
+	}
+
+	@Override
 	public void interrupt() throws ClaudeSDKException {
 		ensureConnected();
 		sendControlRequest(Map.of("subtype", "interrupt"));
@@ -231,6 +294,8 @@ public class DefaultClaudeSession implements ClaudeSession {
 	public void setPermissionMode(String mode) throws ClaudeSDKException {
 		ensureConnected();
 		sendControlRequest(Map.of("subtype", "set_permission_mode", "mode", mode));
+		// Update local state after successful change
+		currentPermissionMode.set(mode);
 	}
 
 	@Override
@@ -240,6 +305,26 @@ public class DefaultClaudeSession implements ClaudeSession {
 		request.put("subtype", "set_model");
 		request.put("model", model);
 		sendControlRequest(request);
+		// Update local state after successful change
+		currentModel.set(model);
+	}
+
+	/**
+	 * Gets the current model being used by this session. This reflects any runtime
+	 * changes made via {@link #setModel(String)}.
+	 * @return the current model ID, or null if not explicitly set
+	 */
+	public String getCurrentModel() {
+		return currentModel.get();
+	}
+
+	/**
+	 * Gets the current permission mode for this session. This reflects any runtime
+	 * changes made via {@link #setPermissionMode(String)}.
+	 * @return the current permission mode, or null if not explicitly set
+	 */
+	public String getCurrentPermissionMode() {
+		return currentPermissionMode.get();
 	}
 
 	@Override
@@ -287,9 +372,10 @@ public class DefaultClaudeSession implements ClaudeSession {
 	}
 
 	private void handleMessage(ParsedMessage message) {
-		// Forward regular messages to the iterator
+		// Forward regular messages to both receivers
 		if (message.isRegularMessage()) {
 			messageIterator.offer(message);
+			blockingReceiver.offer(message);
 		}
 	}
 
@@ -476,6 +562,10 @@ public class DefaultClaudeSession implements ClaudeSession {
 			messageIterator.complete();
 			messageIterator.close();
 		}
+		if (blockingReceiver != null) {
+			blockingReceiver.complete();
+			blockingReceiver.close();
+		}
 		if (transport != null) {
 			transport.close();
 		}
@@ -485,6 +575,13 @@ public class DefaultClaudeSession implements ClaudeSession {
 
 	/**
 	 * Iterator that stops after receiving a ResultMessage.
+	 *
+	 * <p>
+	 * Note: This iterator is designed to be used with the standard iteration pattern
+	 * where {@link #hasNext()} is called before each {@link #next()} call. The
+	 * {@code next()} method does NOT defensively call {@code hasNext()} to avoid race
+	 * conditions with the underlying timeout-based polling iterator.
+	 * </p>
 	 */
 	private static class ResponseBoundedIterator implements Iterator<ParsedMessage> {
 
@@ -522,8 +619,11 @@ public class DefaultClaudeSession implements ClaudeSession {
 
 		@Override
 		public ParsedMessage next() {
-			if (!hasNext()) {
-				throw new NoSuchElementException();
+			// Do NOT call hasNext() here - this causes race conditions with
+			// the underlying timeout-based polling iterator. Per Iterator contract,
+			// caller must call hasNext() before next().
+			if (next == null) {
+				throw new NoSuchElementException("No element available. Did you call hasNext() first?");
 			}
 			ParsedMessage result = next;
 			next = null;

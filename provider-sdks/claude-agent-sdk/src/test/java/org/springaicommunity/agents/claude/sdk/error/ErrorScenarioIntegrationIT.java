@@ -20,7 +20,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.springaicommunity.agents.claude.sdk.config.PermissionMode;
-import org.springaicommunity.agents.claude.sdk.exceptions.ProcessExecutionException;
+import org.springaicommunity.agents.claude.sdk.exceptions.TransportException;
 import org.springaicommunity.agents.claude.sdk.test.ClaudeCliTestBase;
 import org.springaicommunity.agents.claude.sdk.transport.BidirectionalTransport;
 import org.springaicommunity.agents.claude.sdk.transport.CLIOptions;

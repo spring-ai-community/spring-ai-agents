@@ -16,7 +16,7 @@
 
 package org.springaicommunity.agents.claude.sdk.hooks;
 
-import org.junit.jupiter.api.Disabled;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -27,6 +27,7 @@ import org.springaicommunity.agents.claude.sdk.transport.CLIOptions;
 import org.springaicommunity.agents.claude.sdk.types.ResultMessage;
 import org.springaicommunity.agents.claude.sdk.types.control.ControlRequest;
 import org.springaicommunity.agents.claude.sdk.types.control.ControlResponse;
+import org.springaicommunity.agents.claude.sdk.types.control.HookInput;
 import org.springaicommunity.agents.claude.sdk.types.control.HookOutput;
 
 import java.time.Duration;
@@ -62,235 +63,183 @@ class HookIntegrationIT extends ClaudeCliTestBase {
 
 	private static final String HAIKU_MODEL = CLIOptions.MODEL_HAIKU;
 
+	private final ObjectMapper objectMapper = new ObjectMapper();
+
 	/**
-	 * Tests that PreToolUse hooks with permissionDecision and reason fields work
-	 * end-to-end.
-	 *
-	 * <p>
-	 * TODO: Enable when hook config passing via CLIOptions is implemented (P1 feature).
-	 * Currently, hooks need to be registered in CLIOptions and passed to CLI via
-	 * --hook-config flag for the CLI to send hook callbacks.
+	 * Tests that PreToolUse hooks are called when registered.
 	 */
 	@Test
-	@Disabled("Requires hook config passing via CLIOptions - P1 feature")
-	@DisplayName("PreToolUse hook with permissionDecision and reason")
-	void hookWithPermissionDecisionAndReason() throws Exception {
+	@DisplayName("PreToolUse hook is invoked via BidirectionalTransport")
+	void preToolUseHookInvoked() throws Exception {
 		// Given - track hook invocations
 		List<String> hookInvocations = new CopyOnWriteArrayList<>();
 		CountDownLatch resultLatch = new CountDownLatch(1);
 
-		// Use DEFAULT mode to receive hook callbacks
-		CLIOptions options = CLIOptions.builder()
-			.model(HAIKU_MODEL)
-			.permissionMode(PermissionMode.DEFAULT)
-			.allowedTools(List.of("Bash", "Read"))
-			.build();
+		// Use DEFAULT mode to receive hook callbacks (not BYPASS)
+		CLIOptions options = CLIOptions.builder().model(HAIKU_MODEL).permissionMode(PermissionMode.DEFAULT).build();
 
-		try (BidirectionalTransport transport = new BidirectionalTransport(workingDirectory(), Duration.ofMinutes(3),
+		// Create hook registry with PreToolUse hook
+		HookRegistry registry = new HookRegistry();
+		registry.registerPreToolUse("Bash", input -> {
+			System.out.println("PreToolUse hook called for Bash!");
+			hookInvocations.add("PreToolUse:Bash");
+			return HookOutput.allow();
+		});
+
+		try (BidirectionalTransport transport = new BidirectionalTransport(workingDirectory(), Duration.ofMinutes(2),
 				getClaudeCliPath())) {
 
-			// Ask Claude to run a bash command
-			transport.startSession("Run this bash command: echo 'hello'", options, message -> {
-				if (message.isRegularMessage() && message.asMessage() instanceof ResultMessage) {
-					resultLatch.countDown();
-				}
-			}, request -> {
-				// Handle PreToolUse hook callbacks
-				if (request.request() instanceof ControlRequest.HookCallbackRequest hookCallback) {
-					Map<String, Object> input = hookCallback.input();
-					String toolName = (String) input.get("tool_name");
-
-					if (toolName != null) {
-						System.out.println("Hook called for tool: " + toolName);
-						hookInvocations.add(toolName);
-					}
-
-					// Return permissionDecision based on tool
-					if ("Bash".equals(toolName)) {
-						// Block Bash for this test
-						return ControlResponse.success(request.requestId(),
-								Map.of("reason", "Bash commands are blocked in this test for safety", "systemMessage",
-										"Command blocked by hook", "hookSpecificOutput",
-										Map.of("hookEventName", "PreToolUse", "permissionDecision", "deny",
-												"permissionDecisionReason", "Security policy: Bash blocked")));
-					}
-
-					// Allow other tools
-					return ControlResponse.success(request.requestId(),
-							Map.of("reason", "Tool approved by security review", "hookSpecificOutput",
-									Map.of("hookEventName", "PreToolUse", "permissionDecision", "allow",
-											"permissionDecisionReason", "Tool passed security checks")));
-				}
-
-				// Handle CanUseToolRequest (permission callback)
-				if (request.request() instanceof ControlRequest.CanUseToolRequest canUseTool) {
-					String toolName = canUseTool.toolName();
-					System.out.println("Permission requested for tool: " + toolName);
-					hookInvocations.add(toolName);
-
-					// Allow all tools to proceed
-					return ControlResponse.success(request.requestId(), Map.of("behavior", "allow"));
-				}
-
-				// Default allow for other requests
-				return ControlResponse.success(request.requestId(), Map.of("behavior", "allow"));
-			});
-
-			// Wait for completion
-			boolean completed = resultLatch.await(120, TimeUnit.SECONDS);
-			assertThat(completed).as("Should complete within timeout").isTrue();
-
-			// Assert: "Bash" in hook_invocations
-			System.out.println("Hook invocations: " + hookInvocations);
-			assertThat(hookInvocations).as("Hook should have been invoked for Bash tool, got: " + hookInvocations)
-				.contains("Bash");
-		}
-	}
-
-	/**
-	 * Tests that PostToolUse hooks with continue=false and stopReason work end-to-end.
-	 *
-	 * <p>
-	 * TODO: Enable when hook config passing via CLIOptions is implemented (P1 feature).
-	 */
-	@Test
-	@Disabled("Requires hook config passing via CLIOptions - P1 feature")
-	@DisplayName("PostToolUse hook with continue=false and stopReason")
-	void postToolUseHookWithContinueAndStopReason() throws Exception {
-		// Given - track hook invocations
-		List<String> hookInvocations = new CopyOnWriteArrayList<>();
-		CountDownLatch resultLatch = new CountDownLatch(1);
-
-		CLIOptions options = CLIOptions.builder()
-			.model(HAIKU_MODEL)
-			.permissionMode(PermissionMode.DEFAULT)
-			.allowedTools(List.of("Bash"))
-			.build();
-
-		try (BidirectionalTransport transport = new BidirectionalTransport(workingDirectory(), Duration.ofMinutes(3),
-				getClaudeCliPath())) {
-
-			// Ask Claude to run a bash command
-			transport.startSession("Run: echo 'test message'", options, message -> {
-				if (message.isRegularMessage() && message.asMessage() instanceof ResultMessage) {
-					resultLatch.countDown();
-				}
-			}, request -> {
-				// Handle PostToolUse hook callbacks
-				if (request.request() instanceof ControlRequest.HookCallbackRequest hookCallback) {
-					Map<String, Object> input = hookCallback.input();
-					String hookEventName = (String) input.get("hook_event_name");
-					String toolName = (String) input.get("tool_name");
-
-					if ("PostToolUse".equals(hookEventName) && toolName != null) {
-						System.out.println("PostToolUse hook called for: " + toolName);
-						hookInvocations.add(toolName);
-
-						// Return continue=false with stopReason
-						return ControlResponse.success(request.requestId(),
-								Map.of("continue_", false, "stopReason", "Execution halted by test hook for validation",
-										"reason", "Testing continue and stopReason fields", "systemMessage",
-										"Test hook stopped execution"));
-					}
-
-					// For PreToolUse, allow execution
-					if ("PreToolUse".equals(hookEventName)) {
-						return ControlResponse.success(request.requestId(),
-								Map.of("hookSpecificOutput", Map.of("permissionDecision", "allow")));
-					}
-				}
-
-				// Handle CanUseToolRequest
-				if (request.request() instanceof ControlRequest.CanUseToolRequest canUseTool) {
-					hookInvocations.add(canUseTool.toolName());
-					return ControlResponse.success(request.requestId(), Map.of("behavior", "allow"));
-				}
-
-				// Default allow
-				return ControlResponse.success(request.requestId(), Map.of("behavior", "allow"));
-			});
-
-			// Wait for completion
-			boolean completed = resultLatch.await(120, TimeUnit.SECONDS);
-			assertThat(completed).as("Should complete within timeout").isTrue();
-
-			// Assert: "Bash" in hook_invocations
-			System.out.println("Hook invocations: " + hookInvocations);
-			assertThat(hookInvocations).as("PostToolUse hook should have been invoked, got: " + hookInvocations)
-				.contains("Bash");
-		}
-	}
-
-	/**
-	 * Tests that hooks with hookSpecificOutput provide additional context end-to-end.
-	 *
-	 * <p>
-	 * TODO: Enable when hook config passing via CLIOptions is implemented (P1 feature).
-	 */
-	@Test
-	@Disabled("Requires hook config passing via CLIOptions - P1 feature")
-	@DisplayName("Hook with hookSpecificOutput additional context")
-	void hookWithAdditionalContext() throws Exception {
-		// Given - track hook invocations
-		List<String> hookInvocations = new CopyOnWriteArrayList<>();
-		CountDownLatch resultLatch = new CountDownLatch(1);
-
-		CLIOptions options = CLIOptions.builder()
-			.model(HAIKU_MODEL)
-			.permissionMode(PermissionMode.DEFAULT)
-			.allowedTools(List.of("Bash"))
-			.build();
-
-		try (BidirectionalTransport transport = new BidirectionalTransport(workingDirectory(), Duration.ofMinutes(3),
-				getClaudeCliPath())) {
-
-			// Ask Claude to run a bash command
-			transport.startSession("Run: echo 'testing hooks'", options, message -> {
+			// Start session with hook handling via control request handler
+			transport.startSession(null, options, message -> {
 				if (message.isRegularMessage() && message.asMessage() instanceof ResultMessage) {
 					resultLatch.countDown();
 				}
 			}, request -> {
 				// Handle hook callbacks
 				if (request.request() instanceof ControlRequest.HookCallbackRequest hookCallback) {
-					Map<String, Object> input = hookCallback.input();
-					String hookEventName = (String) input.get("hook_event_name");
-
-					if ("PostToolUse".equals(hookEventName)) {
-						System.out.println("PostToolUse hook providing additional context");
-						hookInvocations.add("context_added");
-
-						// Return hookSpecificOutput with additional context
-						return ControlResponse.success(request.requestId(),
-								Map.of("systemMessage", "Additional context provided by hook", "reason",
-										"Hook providing monitoring feedback", "suppressOutput", false,
-										"hookSpecificOutput",
-										Map.of("hookEventName", "PostToolUse", "additionalContext",
-												"The command executed successfully with hook monitoring")));
-					}
-
-					// For PreToolUse, allow
-					return ControlResponse.success(request.requestId(),
-							Map.of("hookSpecificOutput", Map.of("permissionDecision", "allow")));
+					String callbackId = hookCallback.callbackId();
+					// Parse the input to HookInput
+					HookInput input = objectMapper.convertValue(hookCallback.input(), HookInput.class);
+					HookOutput output = registry.executeHook(callbackId, input);
+					return ControlResponse.success(request.requestId(), output);
 				}
-
-				// Handle CanUseToolRequest
-				if (request.request() instanceof ControlRequest.CanUseToolRequest) {
-					return ControlResponse.success(request.requestId(), Map.of("behavior", "allow"));
-				}
-
-				// Default allow
-				return ControlResponse.success(request.requestId(), Map.of("behavior", "allow"));
+				return ControlResponse.success(request.requestId(), Map.of());
 			});
 
-			// Wait for completion
-			boolean completed = resultLatch.await(120, TimeUnit.SECONDS);
-			assertThat(completed).as("Should complete within timeout").isTrue();
+			// Send initialize request with hook configuration
+			ControlRequest initRequest = registry.createInitializeRequest("init_" + System.currentTimeMillis());
+			String initJson = objectMapper.writeValueAsString(initRequest);
+			transport.sendMessage(initJson);
 
-			// Assert: "context_added" in hook_invocations
-			System.out.println("Hook invocations: " + hookInvocations);
-			assertThat(hookInvocations).as("Hook with hookSpecificOutput should have been invoked")
-				.contains("context_added");
+			// Small delay to ensure initialize is processed
+			Thread.sleep(500);
+
+			// Send the prompt that will trigger tool use
+			transport.sendUserMessage("Run this bash command: echo 'hello from hook test'", "default");
+
+			// Wait for result
+			boolean completed = resultLatch.await(60, TimeUnit.SECONDS);
+			assertThat(completed).as("Should receive result within timeout").isTrue();
 		}
+
+		// Assert: PreToolUse hook should have been called
+		System.out.println("Hook invocations: " + hookInvocations);
+		assertThat(hookInvocations).as("PreToolUse hook should have been invoked for Bash tool")
+			.contains("PreToolUse:Bash");
+	}
+
+	/**
+	 * Tests that PostToolUse hooks are called after tool execution.
+	 */
+	@Test
+	@DisplayName("PostToolUse hook is invoked after tool execution")
+	void postToolUseHookInvoked() throws Exception {
+		// Given - track hook invocations
+		List<String> hookInvocations = new CopyOnWriteArrayList<>();
+		CountDownLatch resultLatch = new CountDownLatch(1);
+
+		CLIOptions options = CLIOptions.builder().model(HAIKU_MODEL).permissionMode(PermissionMode.DEFAULT).build();
+
+		// Create hook registry with both PreToolUse (to allow) and PostToolUse
+		HookRegistry registry = new HookRegistry();
+		registry.registerPreToolUse("Bash", input -> {
+			hookInvocations.add("PreToolUse:Bash");
+			return HookOutput.allow();
+		});
+		registry.registerPostToolUse("Bash", input -> {
+			System.out.println("PostToolUse hook called for Bash!");
+			hookInvocations.add("PostToolUse:Bash");
+			return HookOutput.allow();
+		});
+
+		try (BidirectionalTransport transport = new BidirectionalTransport(workingDirectory(), Duration.ofMinutes(2),
+				getClaudeCliPath())) {
+
+			transport.startSession(null, options, message -> {
+				if (message.isRegularMessage() && message.asMessage() instanceof ResultMessage) {
+					resultLatch.countDown();
+				}
+			}, request -> {
+				if (request.request() instanceof ControlRequest.HookCallbackRequest hookCallback) {
+					String callbackId = hookCallback.callbackId();
+					HookInput input = objectMapper.convertValue(hookCallback.input(), HookInput.class);
+					HookOutput output = registry.executeHook(callbackId, input);
+					return ControlResponse.success(request.requestId(), output);
+				}
+				return ControlResponse.success(request.requestId(), Map.of());
+			});
+
+			// Send initialize request with hook configuration
+			ControlRequest initRequest = registry.createInitializeRequest("init_" + System.currentTimeMillis());
+			transport.sendMessage(objectMapper.writeValueAsString(initRequest));
+
+			Thread.sleep(500);
+
+			transport.sendUserMessage("Run this command: echo 'testing post hook'", "default");
+
+			boolean completed = resultLatch.await(60, TimeUnit.SECONDS);
+			assertThat(completed).as("Should receive result within timeout").isTrue();
+		}
+
+		// Assert: Both hooks should have been called
+		System.out.println("Hook invocations: " + hookInvocations);
+		assertThat(hookInvocations).as("PreToolUse hook should have been invoked").contains("PreToolUse:Bash");
+		assertThat(hookInvocations).as("PostToolUse hook should have been invoked").contains("PostToolUse:Bash");
+	}
+
+	/**
+	 * Tests that PreToolUse hooks can block tool execution.
+	 */
+	@Test
+	@DisplayName("PreToolUse hook can block tool execution")
+	void preToolUseHookCanBlock() throws Exception {
+		// Given - track hook invocations
+		List<String> hookInvocations = new CopyOnWriteArrayList<>();
+		CountDownLatch resultLatch = new CountDownLatch(1);
+
+		CLIOptions options = CLIOptions.builder().model(HAIKU_MODEL).permissionMode(PermissionMode.DEFAULT).build();
+
+		// Create hook registry that blocks Bash
+		HookRegistry registry = new HookRegistry();
+		registry.registerPreToolUse("Bash", input -> {
+			System.out.println("PreToolUse hook BLOCKING Bash!");
+			hookInvocations.add("PreToolUse:Bash:BLOCKED");
+			return HookOutput.block("Bash commands are blocked by policy");
+		});
+
+		try (BidirectionalTransport transport = new BidirectionalTransport(workingDirectory(), Duration.ofMinutes(2),
+				getClaudeCliPath())) {
+
+			transport.startSession(null, options, message -> {
+				if (message.isRegularMessage() && message.asMessage() instanceof ResultMessage) {
+					resultLatch.countDown();
+				}
+			}, request -> {
+				if (request.request() instanceof ControlRequest.HookCallbackRequest hookCallback) {
+					String callbackId = hookCallback.callbackId();
+					HookInput input = objectMapper.convertValue(hookCallback.input(), HookInput.class);
+					HookOutput output = registry.executeHook(callbackId, input);
+					return ControlResponse.success(request.requestId(), output);
+				}
+				return ControlResponse.success(request.requestId(), Map.of());
+			});
+
+			// Send initialize request with hook configuration
+			ControlRequest initRequest = registry.createInitializeRequest("init_" + System.currentTimeMillis());
+			transport.sendMessage(objectMapper.writeValueAsString(initRequest));
+
+			Thread.sleep(500);
+
+			transport.sendUserMessage("Execute this exact bash command right now: echo 'test123'", "default");
+
+			boolean completed = resultLatch.await(60, TimeUnit.SECONDS);
+			assertThat(completed).as("Should receive result within timeout").isTrue();
+		}
+
+		// Assert: PreToolUse hook should have been called to block
+		System.out.println("Hook invocations: " + hookInvocations);
+		assertThat(hookInvocations).as("PreToolUse hook should have blocked Bash tool")
+			.contains("PreToolUse:Bash:BLOCKED");
 	}
 
 	/**
@@ -320,6 +269,37 @@ class HookIntegrationIT extends ClaudeCliTestBase {
 		List<ControlRequest.HookMatcherConfig> postToolUseHooks = hookConfig.get("PostToolUse");
 		assertThat(postToolUseHooks).hasSize(1);
 		assertThat(postToolUseHooks.get(0).matcher()).isEqualTo(".*");
+	}
+
+	/**
+	 * Tests that transport without hooks still works normally.
+	 */
+	@Test
+	@DisplayName("Transport without hooks works normally")
+	void transportWithoutHooksWorksNormally() throws Exception {
+		CountDownLatch resultLatch = new CountDownLatch(1);
+		StringBuilder resultText = new StringBuilder();
+
+		CLIOptions options = CLIOptions.builder()
+			.model(HAIKU_MODEL)
+			.permissionMode(PermissionMode.BYPASS_PERMISSIONS)
+			.build();
+
+		try (BidirectionalTransport transport = new BidirectionalTransport(workingDirectory(), Duration.ofMinutes(2),
+				getClaudeCliPath())) {
+
+			transport.startSession("Say hello in exactly 3 words", options, message -> {
+				if (message.isRegularMessage() && message.asMessage() instanceof ResultMessage result) {
+					resultText.append(result.result());
+					resultLatch.countDown();
+				}
+			}, request -> ControlResponse.success(request.requestId(), Map.of("behavior", "allow")));
+
+			boolean completed = resultLatch.await(60, TimeUnit.SECONDS);
+			assertThat(completed).as("Should receive result within timeout").isTrue();
+		}
+
+		assertThat(resultText.toString()).as("Should receive result").isNotEmpty();
 	}
 
 }

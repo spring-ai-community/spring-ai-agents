@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Spring AI Community
+ * Copyright 2024-2025 Spring AI Community
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,28 +17,34 @@
 package org.springaicommunity.agents.claude.sdk.exceptions;
 
 /**
- * Raised when the CLI process fails. Corresponds to ProcessError in Python SDK.
+ * Exception thrown when there is an issue with the transport layer. This includes
+ * connection failures, process execution errors, CLI not found, and protocol violations.
+ *
+ * <p>
+ * Modeled after MCP Java SDK's {@code McpTransportException}.
  */
-public class ProcessExecutionException extends ClaudeSDKException {
+public class TransportException extends ClaudeSDKException {
 
 	private final Integer exitCode;
 
 	private final String stderr;
 
-	public ProcessExecutionException(String message) {
-		this(message, null, null);
+	public TransportException(String message) {
+		super(message);
+		this.exitCode = null;
+		this.stderr = null;
 	}
 
-	public ProcessExecutionException(String message, Integer exitCode, String stderr) {
-		super(buildMessage(message, exitCode, stderr));
-		this.exitCode = exitCode;
-		this.stderr = stderr;
-	}
-
-	public ProcessExecutionException(String message, Throwable cause) {
+	public TransportException(String message, Throwable cause) {
 		super(message, cause);
 		this.exitCode = null;
 		this.stderr = null;
+	}
+
+	public TransportException(String message, Integer exitCode, String stderr) {
+		super(buildMessage(message, exitCode, stderr));
+		this.exitCode = exitCode;
+		this.stderr = stderr;
 	}
 
 	public Integer getExitCode() {
@@ -51,24 +57,25 @@ public class ProcessExecutionException extends ClaudeSDKException {
 
 	private static String buildMessage(String message, Integer exitCode, String stderr) {
 		StringBuilder builder = new StringBuilder(message);
-
 		if (exitCode != null) {
 			builder.append(" (exit code: ").append(exitCode).append(")");
 		}
-
 		if (stderr != null && !stderr.trim().isEmpty()) {
 			builder.append("\nError output: ").append(stderr);
 		}
-
 		return builder.toString();
 	}
 
-	public static ProcessExecutionException withExitCode(String message, int exitCode) {
-		return new ProcessExecutionException(message, exitCode, null);
+	public static TransportException withExitCode(String message, int exitCode) {
+		return new TransportException(message, exitCode, null);
 	}
 
-	public static ProcessExecutionException withStderr(String message, String stderr) {
-		return new ProcessExecutionException(message, null, stderr);
+	public static TransportException withStderr(String message, String stderr) {
+		return new TransportException(message, null, stderr);
+	}
+
+	public static TransportException cliNotFound(String cliPath) {
+		return new TransportException(cliPath != null ? "Claude Code not found: " + cliPath : "Claude Code not found");
 	}
 
 }

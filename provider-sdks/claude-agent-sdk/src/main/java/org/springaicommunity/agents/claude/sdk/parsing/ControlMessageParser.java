@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springaicommunity.agents.claude.sdk.exceptions.CLIJSONDecodeException;
 import org.springaicommunity.agents.claude.sdk.exceptions.MessageParseException;
 import org.springaicommunity.agents.claude.sdk.types.Message;
 import org.springaicommunity.agents.claude.sdk.types.control.ControlRequest;
@@ -82,10 +81,10 @@ public class ControlMessageParser {
 	 * Parses a JSON string into either a regular message or a control request.
 	 * @param json the JSON string to parse
 	 * @return a ParsedMessage containing either a Message or ControlRequest
-	 * @throws CLIJSONDecodeException if the JSON is malformed
-	 * @throws MessageParseException if the message structure is invalid
+	 * @throws MessageParseException if the JSON is malformed or message structure is
+	 * invalid
 	 */
-	public ParsedMessage parse(String json) throws CLIJSONDecodeException, MessageParseException {
+	public ParsedMessage parse(String json) throws MessageParseException {
 		if (json == null || json.isBlank()) {
 			throw new MessageParseException("Cannot parse null or blank JSON");
 		}
@@ -95,7 +94,7 @@ public class ControlMessageParser {
 			return parseFromNode(root, json);
 		}
 		catch (JsonProcessingException e) {
-			throw CLIJSONDecodeException.create(json, e);
+			throw MessageParseException.jsonDecodeError(json, e);
 		}
 	}
 

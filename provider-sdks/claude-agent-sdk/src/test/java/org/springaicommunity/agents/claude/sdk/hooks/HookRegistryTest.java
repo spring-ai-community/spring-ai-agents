@@ -191,7 +191,7 @@ class HookRegistryTest {
 			});
 
 			HookInput input = new HookInput.PreToolUseInput("PreToolUse", "sess_1", "/tmp/t.md", "/home", null, "Bash",
-					Map.of("command", "ls"));
+					"tool_123", Map.of("command", "ls"));
 
 			// When
 			HookOutput output = registry.executeHook(id, input);
@@ -205,7 +205,7 @@ class HookRegistryTest {
 		@DisplayName("Should return null for non-existent hook")
 		void executeNonExistentHook() {
 			HookInput input = new HookInput.PreToolUseInput("PreToolUse", "sess_1", "/tmp/t.md", "/home", null, "Bash",
-					Map.of());
+					"tool_123", Map.of());
 
 			HookOutput output = registry.executeHook("non_existent", input);
 
@@ -221,7 +221,7 @@ class HookRegistryTest {
 			});
 
 			HookInput input = new HookInput.PreToolUseInput("PreToolUse", "sess_1", "/tmp/t.md", "/home", null, "Bash",
-					Map.of());
+					"tool_123", Map.of());
 
 			// When
 			HookOutput output = registry.executeHook(id, input);
@@ -242,7 +242,7 @@ class HookRegistryTest {
 			});
 
 			HookInput input = new HookInput.PreToolUseInput("PreToolUse", "sess_1", "/tmp/t.md", "/home/user",
-					"default", "Write", Map.of("path", "/tmp/file.txt"));
+					"default", "Write", "tool_123", Map.of("path", "/tmp/file.txt"));
 
 			// When
 			registry.executeHook(id, input);
@@ -453,7 +453,7 @@ class HookRegistryTest {
 		void allowCallback() {
 			HookCallback callback = HookCallback.allow();
 			HookInput input = new HookInput.PreToolUseInput("PreToolUse", "sess_1", "/tmp", "/home", null, "Bash",
-					Map.of());
+					"tool_123", Map.of());
 
 			HookOutput output = callback.handle(input);
 
@@ -465,7 +465,7 @@ class HookRegistryTest {
 		void blockCallback() {
 			HookCallback callback = HookCallback.block("Not allowed");
 			HookInput input = new HookInput.PreToolUseInput("PreToolUse", "sess_1", "/tmp", "/home", null, "Bash",
-					Map.of());
+					"tool_123", Map.of());
 
 			HookOutput output = callback.handle(input);
 

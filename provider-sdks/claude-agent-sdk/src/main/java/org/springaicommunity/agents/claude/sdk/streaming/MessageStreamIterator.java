@@ -155,6 +155,9 @@ public class MessageStreamIterator implements Iterator<ParsedMessage>, Iterable<
 		}
 
 		// Try to fetch next message
+		// We rely solely on END_OF_STREAM sentinel for termination to avoid race
+		// conditions.
+		// The complete() method always adds END_OF_STREAM to the queue.
 		try {
 			while (!closed.get()) {
 				nextMessage = queue.poll(pollTimeoutMs, TimeUnit.MILLISECONDS);
@@ -173,10 +176,10 @@ public class MessageStreamIterator implements Iterator<ParsedMessage>, Iterable<
 					return true;
 				}
 
-				// Timeout - check if completed without END_OF_STREAM
-				if (completed.get() && queue.isEmpty()) {
-					return false;
-				}
+				// Timeout - continue polling until closed or END_OF_STREAM received.
+				// Note: We don't check completed.get() && queue.isEmpty() here because
+				// there's a race condition: completed can be set before END_OF_STREAM
+				// is added to the queue, causing premature termination.
 			}
 		}
 		catch (InterruptedException e) {
@@ -188,8 +191,11 @@ public class MessageStreamIterator implements Iterator<ParsedMessage>, Iterable<
 
 	@Override
 	public ParsedMessage next() {
-		if (!hasNext()) {
-			throw new NoSuchElementException("No more messages");
+		// Do NOT call hasNext() here - this causes race conditions with the
+		// timeout-based polling. Per Iterator contract, caller must call hasNext()
+		// before next().
+		if (nextMessage == null) {
+			throw new NoSuchElementException("No element available. Did you call hasNext() first?");
 		}
 
 		ParsedMessage message = nextMessage;

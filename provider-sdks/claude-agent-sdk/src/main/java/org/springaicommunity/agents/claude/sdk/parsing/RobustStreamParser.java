@@ -16,10 +16,8 @@
 
 package org.springaicommunity.agents.claude.sdk.parsing;
 
-import org.springaicommunity.agents.claude.sdk.exceptions.CLIJSONDecodeException;
 import org.springaicommunity.agents.claude.sdk.exceptions.MessageParseException;
 import org.springaicommunity.agents.claude.sdk.types.Message;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,9 +80,9 @@ public class RobustStreamParser {
 	 * @param data the incoming data (typically a line from CLI output)
 	 * @return Optional containing parsed Message if complete JSON was found, empty
 	 * otherwise
-	 * @throws CLIJSONDecodeException if buffer size exceeds maximum limit
+	 * @throws MessageParseException if buffer size exceeds maximum limit
 	 */
-	public Optional<Message> accumulateAndParse(String data) throws CLIJSONDecodeException {
+	public Optional<Message> accumulateAndParse(String data) throws MessageParseException {
 		if (data == null || data.isEmpty()) {
 			return Optional.empty();
 		}
@@ -100,9 +98,8 @@ public class RobustStreamParser {
 					preview);
 
 			jsonBuffer.setLength(0);
-			throw new CLIJSONDecodeException(
-					String.format("JSON message exceeded maximum buffer size of %d bytes", MAX_BUFFER_SIZE),
-					new IllegalStateException("Buffer size limit exceeded"));
+			throw new MessageParseException(
+					String.format("JSON message exceeded maximum buffer size of %d bytes", MAX_BUFFER_SIZE));
 		}
 
 		// Attempt speculative parsing (Python SDK pattern)
@@ -140,19 +137,22 @@ public class RobustStreamParser {
 			return Optional.of(message);
 
 		}
-		catch (CLIJSONDecodeException e) {
-			// Expected: incomplete JSON, continue accumulating (Python SDK pattern)
-			logger.trace("JSON parsing incomplete, continuing accumulation. Buffer size: {} chars",
-					jsonBuffer.length());
-			return Optional.empty();
-
-		}
 		catch (MessageParseException e) {
-			// Unexpected: malformed message structure
-			logger.warn("Failed to parse message structure, clearing buffer. JSON preview: {}",
-					json.substring(0, Math.min(100, json.length())), e);
-			jsonBuffer.setLength(0);
-			return Optional.empty();
+			// Check if this is a JSON decode error (incomplete JSON) vs structural error
+			if (e.getRawInput() != null) {
+				// JSON decode error - incomplete JSON, continue accumulating (Python SDK
+				// pattern)
+				logger.trace("JSON parsing incomplete, continuing accumulation. Buffer size: {} chars",
+						jsonBuffer.length());
+				return Optional.empty();
+			}
+			else {
+				// Structural error - malformed message structure
+				logger.warn("Failed to parse message structure, clearing buffer. JSON preview: {}",
+						json.substring(0, Math.min(100, json.length())), e);
+				jsonBuffer.setLength(0);
+				return Optional.empty();
+			}
 		}
 	}
 

@@ -68,7 +68,7 @@ public sealed interface HookInput {
 	record PreToolUseInput(@JsonProperty("hook_event_name") String hookEventName,
 			@JsonProperty("session_id") String sessionId, @JsonProperty("transcript_path") String transcriptPath,
 			@JsonProperty("cwd") String cwd, @JsonProperty("permission_mode") String permissionModeValue,
-			@JsonProperty("tool_name") String toolName,
+			@JsonProperty("tool_name") String toolName, @JsonProperty("tool_use_id") String toolUseId,
 			@JsonProperty("tool_input") Map<String, Object> toolInput) implements HookInput {
 
 		@Override
@@ -95,7 +95,8 @@ public sealed interface HookInput {
 	record PostToolUseInput(@JsonProperty("hook_event_name") String hookEventName,
 			@JsonProperty("session_id") String sessionId, @JsonProperty("transcript_path") String transcriptPath,
 			@JsonProperty("cwd") String cwd, @JsonProperty("permission_mode") String permissionModeValue,
-			@JsonProperty("tool_name") String toolName, @JsonProperty("tool_input") Map<String, Object> toolInput,
+			@JsonProperty("tool_name") String toolName, @JsonProperty("tool_use_id") String toolUseId,
+			@JsonProperty("tool_input") Map<String, Object> toolInput,
 			@JsonProperty("tool_response") Object toolResponse) implements HookInput {
 
 		@Override

@@ -134,11 +134,11 @@ public class ReactiveTransport implements AutoCloseable {
 							sink.complete();
 						}
 						else {
-							sink.error(ProcessExecutionException.withExitCode("Claude CLI process failed", exitCode));
+							sink.error(TransportException.withExitCode("Claude CLI process failed", exitCode));
 						}
 					}
 					catch (Exception e) {
-						sink.error(new ProcessExecutionException("Process execution failed", e));
+						sink.error(new TransportException("Process execution failed", e));
 					}
 				});
 
@@ -156,7 +156,7 @@ public class ReactiveTransport implements AutoCloseable {
 
 			}
 			catch (Exception e) {
-				sink.error(new ProcessExecutionException("Failed to start reactive query", e));
+				sink.error(new TransportException("Failed to start reactive query", e));
 			}
 		})
 			.doOnSubscribe(subscription -> logger.info("Starting reactive query"))
