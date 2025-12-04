@@ -547,6 +547,52 @@ public class ClaudeAgentModel implements AgentModel, StreamingAgentModel, Iterab
 					org.springaicommunity.agents.claude.sdk.config.PermissionMode.DANGEROUSLY_SKIP_PERMISSIONS);
 		}
 
+		// Extended thinking
+		if (options.getMaxThinkingTokens() != null) {
+			builder.maxThinkingTokens(options.getMaxThinkingTokens());
+		}
+
+		// Max tokens
+		if (options.getMaxTokens() != null) {
+			builder.maxTokens(options.getMaxTokens());
+		}
+
+		// System prompt
+		if (options.getSystemPrompt() != null) {
+			SystemPrompt sp = options.getSystemPrompt();
+			String promptText;
+			if (sp instanceof SystemPrompt.StringPrompt stringPrompt) {
+				promptText = stringPrompt.prompt();
+			}
+			else if (sp instanceof SystemPrompt.PresetPrompt presetPrompt) {
+				promptText = presetPrompt.preset() + (presetPrompt.append() != null ? " " + presetPrompt.append() : "");
+			}
+			else {
+				promptText = null;
+			}
+			if (promptText != null) {
+				builder.systemPrompt(promptText);
+			}
+		}
+
+		// Tool filtering
+		if (options.getAllowedTools() != null && !options.getAllowedTools().isEmpty()) {
+			builder.allowedTools(options.getAllowedTools());
+		}
+		if (options.getDisallowedTools() != null && !options.getDisallowedTools().isEmpty()) {
+			builder.disallowedTools(options.getDisallowedTools());
+		}
+
+		// Structured output
+		if (options.getJsonSchema() != null && !options.getJsonSchema().isEmpty()) {
+			builder.jsonSchema(options.getJsonSchema());
+		}
+
+		// MCP servers
+		if (options.getMcpServers() != null && !options.getMcpServers().isEmpty()) {
+			builder.mcpServers(options.getMcpServers());
+		}
+
 		return builder.build();
 	}
 
