@@ -130,6 +130,26 @@ public class ClaudeAgentOptions implements AgentOptions {
 	 */
 	private Map<String, McpServerConfig> mcpServers = new HashMap<>();
 
+	/**
+	 * Maximum number of agentic turns before stopping.
+	 */
+	private Integer maxTurns;
+
+	/**
+	 * Maximum budget in USD before stopping.
+	 */
+	private Double maxBudgetUsd;
+
+	/**
+	 * Fallback model to use if the primary model is unavailable.
+	 */
+	private String fallbackModel;
+
+	/**
+	 * Additional text to append to the default system prompt.
+	 */
+	private String appendSystemPrompt;
+
 	public ClaudeAgentOptions() {
 	}
 
@@ -273,6 +293,38 @@ public class ClaudeAgentOptions implements AgentOptions {
 		this.mcpServers = mcpServers != null ? mcpServers : new HashMap<>();
 	}
 
+	public Integer getMaxTurns() {
+		return maxTurns;
+	}
+
+	public void setMaxTurns(Integer maxTurns) {
+		this.maxTurns = maxTurns;
+	}
+
+	public Double getMaxBudgetUsd() {
+		return maxBudgetUsd;
+	}
+
+	public void setMaxBudgetUsd(Double maxBudgetUsd) {
+		this.maxBudgetUsd = maxBudgetUsd;
+	}
+
+	public String getFallbackModel() {
+		return fallbackModel;
+	}
+
+	public void setFallbackModel(String fallbackModel) {
+		this.fallbackModel = fallbackModel;
+	}
+
+	public String getAppendSystemPrompt() {
+		return appendSystemPrompt;
+	}
+
+	public void setAppendSystemPrompt(String appendSystemPrompt) {
+		this.appendSystemPrompt = appendSystemPrompt;
+	}
+
 	@Override
 	public Map<String, Object> getExtras() {
 		return extras;
@@ -393,6 +445,26 @@ public class ClaudeAgentOptions implements AgentOptions {
 
 		public Builder mcpServers(Map<String, McpServerConfig> mcpServers) {
 			options.setMcpServers(mcpServers);
+			return this;
+		}
+
+		public Builder maxTurns(Integer maxTurns) {
+			options.setMaxTurns(maxTurns);
+			return this;
+		}
+
+		public Builder maxBudgetUsd(Double maxBudgetUsd) {
+			options.setMaxBudgetUsd(maxBudgetUsd);
+			return this;
+		}
+
+		public Builder fallbackModel(String fallbackModel) {
+			options.setFallbackModel(fallbackModel);
+			return this;
+		}
+
+		public Builder appendSystemPrompt(String appendSystemPrompt) {
+			options.setAppendSystemPrompt(appendSystemPrompt);
 			return this;
 		}
 

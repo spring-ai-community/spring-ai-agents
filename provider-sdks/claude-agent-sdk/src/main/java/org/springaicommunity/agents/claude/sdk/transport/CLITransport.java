@@ -496,6 +496,30 @@ public class CLITransport implements AutoCloseable {
 			}
 		}
 
+		// Add max turns for budget control
+		if (options.getMaxTurns() != null) {
+			command.add("--max-turns");
+			command.add(String.valueOf(options.getMaxTurns()));
+		}
+
+		// Add max budget USD for cost control
+		if (options.getMaxBudgetUsd() != null) {
+			command.add("--max-budget-usd");
+			command.add(String.valueOf(options.getMaxBudgetUsd()));
+		}
+
+		// Add fallback model
+		if (options.getFallbackModel() != null && !options.getFallbackModel().isEmpty()) {
+			command.add("--fallback-model");
+			command.add(options.getFallbackModel());
+		}
+
+		// Add append system prompt (uses preset mode with append)
+		if (options.getAppendSystemPrompt() != null && !options.getAppendSystemPrompt().isEmpty()) {
+			command.add("--append-system-prompt");
+			command.add(options.getAppendSystemPrompt());
+		}
+
 		// Add the prompt using -- separator to prevent argument parsing issues
 		command.add("--"); // Everything after this is positional arguments
 		command.add(prompt);

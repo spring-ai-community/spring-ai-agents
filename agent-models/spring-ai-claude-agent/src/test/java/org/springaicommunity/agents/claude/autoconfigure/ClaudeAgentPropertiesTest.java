@@ -53,6 +53,11 @@ class ClaudeAgentPropertiesTest {
 			assertThat(properties.getPermissionMode()).isNull();
 			assertThat(properties.getJsonSchema()).isNull();
 			assertThat(properties.getMaxTokens()).isNull();
+			// New budget control and fallback model defaults
+			assertThat(properties.getMaxTurns()).isNull();
+			assertThat(properties.getMaxBudgetUsd()).isNull();
+			assertThat(properties.getFallbackModel()).isNull();
+			assertThat(properties.getAppendSystemPrompt()).isNull();
 		}
 
 	}
@@ -210,6 +215,104 @@ class ClaudeAgentPropertiesTest {
 	}
 
 	@Nested
+	@DisplayName("Budget Control Tests")
+	class BudgetControlTests {
+
+		@Test
+		@DisplayName("Should set maxTurns")
+		void shouldSetMaxTurns() {
+			ClaudeAgentProperties properties = new ClaudeAgentProperties();
+			properties.setMaxTurns(10);
+
+			assertThat(properties.getMaxTurns()).isEqualTo(10);
+
+			CLIOptions options = properties.buildCLIOptions();
+			assertThat(options.getMaxTurns()).isEqualTo(10);
+		}
+
+		@Test
+		@DisplayName("Should set maxBudgetUsd")
+		void shouldSetMaxBudgetUsd() {
+			ClaudeAgentProperties properties = new ClaudeAgentProperties();
+			properties.setMaxBudgetUsd(0.50);
+
+			assertThat(properties.getMaxBudgetUsd()).isEqualTo(0.50);
+
+			CLIOptions options = properties.buildCLIOptions();
+			assertThat(options.getMaxBudgetUsd()).isEqualTo(0.50);
+		}
+
+		@Test
+		@DisplayName("Should handle both maxTurns and maxBudgetUsd together")
+		void shouldHandleBothBudgetControls() {
+			ClaudeAgentProperties properties = new ClaudeAgentProperties();
+			properties.setMaxTurns(5);
+			properties.setMaxBudgetUsd(0.25);
+
+			CLIOptions options = properties.buildCLIOptions();
+			assertThat(options.getMaxTurns()).isEqualTo(5);
+			assertThat(options.getMaxBudgetUsd()).isEqualTo(0.25);
+		}
+
+	}
+
+	@Nested
+	@DisplayName("Fallback Model Tests")
+	class FallbackModelTests {
+
+		@Test
+		@DisplayName("Should set fallback model")
+		void shouldSetFallbackModel() {
+			ClaudeAgentProperties properties = new ClaudeAgentProperties();
+			properties.setFallbackModel("claude-haiku-3-5-20241022");
+
+			assertThat(properties.getFallbackModel()).isEqualTo("claude-haiku-3-5-20241022");
+
+			CLIOptions options = properties.buildCLIOptions();
+			assertThat(options.getFallbackModel()).isEqualTo("claude-haiku-3-5-20241022");
+		}
+
+		@Test
+		@DisplayName("Should not set blank fallback model")
+		void shouldNotSetBlankFallbackModel() {
+			ClaudeAgentProperties properties = new ClaudeAgentProperties();
+			properties.setFallbackModel("   ");
+
+			CLIOptions options = properties.buildCLIOptions();
+			assertThat(options.getFallbackModel()).isNull();
+		}
+
+	}
+
+	@Nested
+	@DisplayName("Append System Prompt Tests")
+	class AppendSystemPromptTests {
+
+		@Test
+		@DisplayName("Should set append system prompt")
+		void shouldSetAppendSystemPrompt() {
+			ClaudeAgentProperties properties = new ClaudeAgentProperties();
+			properties.setAppendSystemPrompt("Be concise and helpful.");
+
+			assertThat(properties.getAppendSystemPrompt()).isEqualTo("Be concise and helpful.");
+
+			CLIOptions options = properties.buildCLIOptions();
+			assertThat(options.getAppendSystemPrompt()).isEqualTo("Be concise and helpful.");
+		}
+
+		@Test
+		@DisplayName("Should not set blank append system prompt")
+		void shouldNotSetBlankAppendSystemPrompt() {
+			ClaudeAgentProperties properties = new ClaudeAgentProperties();
+			properties.setAppendSystemPrompt("   ");
+
+			CLIOptions options = properties.buildCLIOptions();
+			assertThat(options.getAppendSystemPrompt()).isNull();
+		}
+
+	}
+
+	@Nested
 	@DisplayName("Build CLI Options Tests")
 	class BuildCLIOptionsTests {
 
@@ -226,6 +329,11 @@ class ClaudeAgentPropertiesTest {
 			properties.setDisallowedTools(List.of("WebSearch"));
 			properties.setPermissionMode("acceptEdits");
 			properties.setJsonSchema(Map.of("type", "object"));
+			// New budget control and fallback model properties
+			properties.setMaxTurns(10);
+			properties.setMaxBudgetUsd(0.50);
+			properties.setFallbackModel("claude-haiku-3-5-20241022");
+			properties.setAppendSystemPrompt("Be helpful.");
 
 			CLIOptions options = properties.buildCLIOptions();
 
@@ -238,6 +346,11 @@ class ClaudeAgentPropertiesTest {
 			assertThat(options.getDisallowedTools()).containsExactly("WebSearch");
 			assertThat(options.getPermissionMode()).isEqualTo(PermissionMode.ACCEPT_EDITS);
 			assertThat(options.getJsonSchema()).isEqualTo(Map.of("type", "object"));
+			// New budget control and fallback model assertions
+			assertThat(options.getMaxTurns()).isEqualTo(10);
+			assertThat(options.getMaxBudgetUsd()).isEqualTo(0.50);
+			assertThat(options.getFallbackModel()).isEqualTo("claude-haiku-3-5-20241022");
+			assertThat(options.getAppendSystemPrompt()).isEqualTo("Be helpful.");
 		}
 
 	}

@@ -45,6 +45,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *         executable-path: "/usr/local/bin/claude"
  *         max-thinking-tokens: 10000
  *         system-prompt: "You are a helpful coding assistant."
+ *         append-system-prompt: "Be concise and focused."
  *         allowed-tools:
  *           - Read
  *           - Write
@@ -52,6 +53,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *         disallowed-tools:
  *           - WebSearch
  *         permission-mode: bypassPermissions
+ *         max-turns: 10
+ *         max-budget-usd: 0.50
+ *         fallback-model: "claude-haiku-3-5-20241022"
  * </pre>
  *
  * @author Spring AI Community
@@ -114,6 +118,27 @@ public class ClaudeAgentProperties {
 	 * Maximum tokens for the response.
 	 */
 	private Integer maxTokens;
+
+	/**
+	 * Maximum number of agentic turns before stopping.
+	 */
+	private Integer maxTurns;
+
+	/**
+	 * Maximum budget in USD before stopping.
+	 */
+	private Double maxBudgetUsd;
+
+	/**
+	 * Fallback model to use if the primary model is unavailable.
+	 */
+	private String fallbackModel;
+
+	/**
+	 * Additional text to append to the default system prompt. Uses preset mode with
+	 * "claude_code" preset.
+	 */
+	private String appendSystemPrompt;
 
 	public String getModel() {
 		return model;
@@ -203,6 +228,38 @@ public class ClaudeAgentProperties {
 		this.maxTokens = maxTokens;
 	}
 
+	public Integer getMaxTurns() {
+		return maxTurns;
+	}
+
+	public void setMaxTurns(Integer maxTurns) {
+		this.maxTurns = maxTurns;
+	}
+
+	public Double getMaxBudgetUsd() {
+		return maxBudgetUsd;
+	}
+
+	public void setMaxBudgetUsd(Double maxBudgetUsd) {
+		this.maxBudgetUsd = maxBudgetUsd;
+	}
+
+	public String getFallbackModel() {
+		return fallbackModel;
+	}
+
+	public void setFallbackModel(String fallbackModel) {
+		this.fallbackModel = fallbackModel;
+	}
+
+	public String getAppendSystemPrompt() {
+		return appendSystemPrompt;
+	}
+
+	public void setAppendSystemPrompt(String appendSystemPrompt) {
+		this.appendSystemPrompt = appendSystemPrompt;
+	}
+
 	/**
 	 * Builds CLI options from these properties.
 	 * @return configured CLI options
@@ -244,6 +301,24 @@ public class ClaudeAgentProperties {
 		// Structured output
 		if (jsonSchema != null && !jsonSchema.isEmpty()) {
 			builder.jsonSchema(jsonSchema);
+		}
+
+		// Budget control
+		if (maxTurns != null) {
+			builder.maxTurns(maxTurns);
+		}
+		if (maxBudgetUsd != null) {
+			builder.maxBudgetUsd(maxBudgetUsd);
+		}
+
+		// Fallback model
+		if (fallbackModel != null && !fallbackModel.isBlank()) {
+			builder.fallbackModel(fallbackModel);
+		}
+
+		// Append system prompt (uses preset mode)
+		if (appendSystemPrompt != null && !appendSystemPrompt.isBlank()) {
+			builder.appendSystemPrompt(appendSystemPrompt);
 		}
 
 		return builder.build();

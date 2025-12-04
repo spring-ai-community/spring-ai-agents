@@ -31,7 +31,8 @@ import java.util.Map;
 public record CLIOptions(String model, String systemPrompt, Integer maxTokens, Integer maxThinkingTokens,
 		Duration timeout, List<String> allowedTools, List<String> disallowedTools, PermissionMode permissionMode,
 		boolean interactive, OutputFormat outputFormat, List<String> settingSources, String agents, boolean forkSession,
-		boolean includePartialMessages, Map<String, Object> jsonSchema, Map<String, McpServerConfig> mcpServers) {
+		boolean includePartialMessages, Map<String, Object> jsonSchema, Map<String, McpServerConfig> mcpServers,
+		Integer maxTurns, Double maxBudgetUsd, String fallbackModel, String appendSystemPrompt) {
 
 	// ============================================================
 	// Model ID Constants
@@ -78,7 +79,7 @@ public record CLIOptions(String model, String systemPrompt, Integer maxTokens, I
 	public static CLIOptions defaultOptions() {
 		return new CLIOptions(null, null, null, null, Duration.ofMinutes(2), List.of(), List.of(),
 				PermissionMode.DANGEROUSLY_SKIP_PERMISSIONS, false, OutputFormat.JSON, List.of(), null, false, false,
-				null, Map.of());
+				null, Map.of(), null, null, null, null);
 	}
 
 	// Convenience getters
@@ -146,6 +147,22 @@ public record CLIOptions(String model, String systemPrompt, Integer maxTokens, I
 		return mcpServers;
 	}
 
+	public Integer getMaxTurns() {
+		return maxTurns;
+	}
+
+	public Double getMaxBudgetUsd() {
+		return maxBudgetUsd;
+	}
+
+	public String getFallbackModel() {
+		return fallbackModel;
+	}
+
+	public String getAppendSystemPrompt() {
+		return appendSystemPrompt;
+	}
+
 	public static class Builder {
 
 		private String model;
@@ -179,6 +196,14 @@ public record CLIOptions(String model, String systemPrompt, Integer maxTokens, I
 		private Map<String, Object> jsonSchema;
 
 		private Map<String, McpServerConfig> mcpServers = Map.of();
+
+		private Integer maxTurns;
+
+		private Double maxBudgetUsd;
+
+		private String fallbackModel;
+
+		private String appendSystemPrompt;
 
 		public Builder model(String model) {
 			this.model = model;
@@ -282,10 +307,51 @@ public record CLIOptions(String model, String systemPrompt, Integer maxTokens, I
 			return this;
 		}
 
+		/**
+		 * Sets the maximum number of agentic turns for this session.
+		 * @param maxTurns maximum turns before stopping
+		 * @return this builder
+		 */
+		public Builder maxTurns(Integer maxTurns) {
+			this.maxTurns = maxTurns;
+			return this;
+		}
+
+		/**
+		 * Sets the maximum budget in USD for this session.
+		 * @param maxBudgetUsd maximum cost before stopping
+		 * @return this builder
+		 */
+		public Builder maxBudgetUsd(Double maxBudgetUsd) {
+			this.maxBudgetUsd = maxBudgetUsd;
+			return this;
+		}
+
+		/**
+		 * Sets the fallback model to use if the primary model is unavailable.
+		 * @param fallbackModel the fallback model ID
+		 * @return this builder
+		 */
+		public Builder fallbackModel(String fallbackModel) {
+			this.fallbackModel = fallbackModel;
+			return this;
+		}
+
+		/**
+		 * Sets additional text to append to the system prompt (uses preset with append).
+		 * @param appendSystemPrompt text to append to the default system prompt
+		 * @return this builder
+		 */
+		public Builder appendSystemPrompt(String appendSystemPrompt) {
+			this.appendSystemPrompt = appendSystemPrompt;
+			return this;
+		}
+
 		public CLIOptions build() {
 			return new CLIOptions(model, systemPrompt, maxTokens, maxThinkingTokens, timeout, allowedTools,
 					disallowedTools, permissionMode, interactive, outputFormat, settingSources, agents, forkSession,
-					includePartialMessages, jsonSchema, mcpServers);
+					includePartialMessages, jsonSchema, mcpServers, maxTurns, maxBudgetUsd, fallbackModel,
+					appendSystemPrompt);
 		}
 
 	}

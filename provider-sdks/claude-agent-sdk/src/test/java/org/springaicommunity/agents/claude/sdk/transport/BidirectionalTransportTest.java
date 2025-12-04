@@ -278,6 +278,104 @@ class BidirectionalTransportTest {
 	}
 
 	@Nested
+	@DisplayName("Budget Control and Advanced Options Tests")
+	class BudgetControlTests {
+
+		@Test
+		@DisplayName("Should include max-turns when specified")
+		void buildCommandWithMaxTurns() {
+			// Given
+			BidirectionalTransport transport = new BidirectionalTransport(tempDir, Duration.ofMinutes(5),
+					"/usr/bin/claude");
+			CLIOptions options = CLIOptions.builder().maxTurns(10).build();
+
+			// When
+			List<String> command = transport.buildBidirectionalCommand(options);
+
+			// Then
+			int turnsIndex = command.indexOf("--max-turns");
+			assertThat(turnsIndex).isGreaterThan(-1);
+			assertThat(command.get(turnsIndex + 1)).isEqualTo("10");
+		}
+
+		@Test
+		@DisplayName("Should include max-budget-usd when specified")
+		void buildCommandWithMaxBudgetUsd() {
+			// Given
+			BidirectionalTransport transport = new BidirectionalTransport(tempDir, Duration.ofMinutes(5),
+					"/usr/bin/claude");
+			CLIOptions options = CLIOptions.builder().maxBudgetUsd(0.50).build();
+
+			// When
+			List<String> command = transport.buildBidirectionalCommand(options);
+
+			// Then
+			int budgetIndex = command.indexOf("--max-budget-usd");
+			assertThat(budgetIndex).isGreaterThan(-1);
+			assertThat(command.get(budgetIndex + 1)).isEqualTo("0.5");
+		}
+
+		@Test
+		@DisplayName("Should include fallback-model when specified")
+		void buildCommandWithFallbackModel() {
+			// Given
+			BidirectionalTransport transport = new BidirectionalTransport(tempDir, Duration.ofMinutes(5),
+					"/usr/bin/claude");
+			CLIOptions options = CLIOptions.builder().fallbackModel("claude-haiku-3-5-20241022").build();
+
+			// When
+			List<String> command = transport.buildBidirectionalCommand(options);
+
+			// Then
+			int fallbackIndex = command.indexOf("--fallback-model");
+			assertThat(fallbackIndex).isGreaterThan(-1);
+			assertThat(command.get(fallbackIndex + 1)).isEqualTo("claude-haiku-3-5-20241022");
+		}
+
+		@Test
+		@DisplayName("Should include append-system-prompt when specified via builder")
+		void buildCommandWithAppendSystemPrompt() {
+			// Given
+			BidirectionalTransport transport = new BidirectionalTransport(tempDir, Duration.ofMinutes(5),
+					"/usr/bin/claude");
+			CLIOptions options = CLIOptions.builder().appendSystemPrompt("Be concise and focused.").build();
+
+			// When
+			List<String> command = transport.buildBidirectionalCommand(options);
+
+			// Then
+			int appendIndex = command.indexOf("--append-system-prompt");
+			assertThat(appendIndex).isGreaterThan(-1);
+			assertThat(command.get(appendIndex + 1)).isEqualTo("Be concise and focused.");
+		}
+
+		@Test
+		@DisplayName("Should include all budget control options together")
+		void buildCommandWithAllBudgetOptions() {
+			// Given
+			BidirectionalTransport transport = new BidirectionalTransport(tempDir, Duration.ofMinutes(5),
+					"/usr/bin/claude");
+			CLIOptions options = CLIOptions.builder()
+				.model("claude-sonnet-4-5")
+				.maxTurns(5)
+				.maxBudgetUsd(0.25)
+				.fallbackModel("claude-haiku-3-5-20241022")
+				.appendSystemPrompt("Be helpful")
+				.build();
+
+			// When
+			List<String> command = transport.buildBidirectionalCommand(options);
+
+			// Then
+			assertThat(command).contains("--max-turns", "5");
+			assertThat(command).contains("--max-budget-usd", "0.25");
+			assertThat(command).contains("--fallback-model", "claude-haiku-3-5-20241022");
+			assertThat(command).contains("--append-system-prompt", "Be helpful");
+		}
+
+	}
+
+	@Nested
 	@DisplayName("Bidirectional Mode Verification")
 	class BidirectionalModeVerification {
 

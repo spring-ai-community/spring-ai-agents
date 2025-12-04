@@ -60,6 +60,27 @@ public record HookOutput(
 	}
 
 	/**
+	 * Create an async hook output that defers execution.
+	 * <p>
+	 * Async hooks allow the hook to defer its decision, letting Claude continue while the
+	 * hook processes in the background. This is useful for long-running validations or
+	 * external service calls.
+	 * @return an async hook output with default timeout
+	 */
+	public static HookOutput async() {
+		return builder().asyncExecution(true).continueExecution(true).build();
+	}
+
+	/**
+	 * Create an async hook output that defers execution with a specified timeout.
+	 * @param timeoutMs timeout in milliseconds for the async operation
+	 * @return an async hook output with the specified timeout
+	 */
+	public static HookOutput async(int timeoutMs) {
+		return builder().asyncExecution(true).asyncTimeout(timeoutMs).continueExecution(true).build();
+	}
+
+	/**
 	 * Create builder for fluent construction.
 	 */
 	public static Builder builder() {

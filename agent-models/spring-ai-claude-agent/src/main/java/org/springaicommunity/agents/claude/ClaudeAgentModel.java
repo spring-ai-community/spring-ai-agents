@@ -593,6 +593,24 @@ public class ClaudeAgentModel implements AgentModel, StreamingAgentModel, Iterab
 			builder.mcpServers(options.getMcpServers());
 		}
 
+		// Budget control
+		if (options.getMaxTurns() != null) {
+			builder.maxTurns(options.getMaxTurns());
+		}
+		if (options.getMaxBudgetUsd() != null) {
+			builder.maxBudgetUsd(options.getMaxBudgetUsd());
+		}
+
+		// Fallback model
+		if (options.getFallbackModel() != null && !options.getFallbackModel().isEmpty()) {
+			builder.fallbackModel(options.getFallbackModel());
+		}
+
+		// Append system prompt (uses preset mode)
+		if (options.getAppendSystemPrompt() != null && !options.getAppendSystemPrompt().isEmpty()) {
+			builder.appendSystemPrompt(options.getAppendSystemPrompt());
+		}
+
 		return builder.build();
 	}
 

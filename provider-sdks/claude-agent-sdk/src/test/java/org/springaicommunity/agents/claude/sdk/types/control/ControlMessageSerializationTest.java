@@ -511,6 +511,50 @@ class ControlMessageSerializationTest {
 			assertThat(deserialized.hookSpecificOutput().permissionDecision()).isEqualTo("deny");
 		}
 
+		@Test
+		@DisplayName("Should create async output without timeout")
+		void asyncOutputWithoutTimeout() throws JsonProcessingException {
+			// Given
+			var output = HookOutput.async();
+
+			// When
+			String json = objectMapper.writeValueAsString(output);
+
+			// Then
+			assertThat(json).contains("\"async\":true");
+			assertThat(json).contains("\"continue\":true");
+			assertThat(json).doesNotContain("asyncTimeout");
+		}
+
+		@Test
+		@DisplayName("Should create async output with timeout")
+		void asyncOutputWithTimeout() throws JsonProcessingException {
+			// Given
+			var output = HookOutput.async(5000);
+
+			// When
+			String json = objectMapper.writeValueAsString(output);
+
+			// Then
+			assertThat(json).contains("\"async\":true");
+			assertThat(json).contains("\"asyncTimeout\":5000");
+			assertThat(json).contains("\"continue\":true");
+		}
+
+		@Test
+		@DisplayName("Should serialize async output matching Python SDK format")
+		void asyncOutputMatchesPythonFormat() throws JsonProcessingException {
+			// Given - Python SDK uses async_ to avoid keyword, serializes as "async"
+			var output = HookOutput.async(3000);
+
+			// When
+			String json = objectMapper.writeValueAsString(output);
+
+			// Then - should use "async" in JSON, not "asyncExecution"
+			assertThat(json).contains("\"async\":true");
+			assertThat(json).doesNotContain("asyncExecution");
+		}
+
 	}
 
 	@Nested
