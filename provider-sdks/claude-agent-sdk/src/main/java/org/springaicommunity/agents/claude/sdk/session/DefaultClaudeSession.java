@@ -23,6 +23,8 @@ import org.springaicommunity.agents.claude.sdk.exceptions.TransportException;
 import org.springaicommunity.agents.claude.sdk.exceptions.ClaudeSDKException;
 import org.springaicommunity.agents.claude.sdk.hooks.HookCallback;
 import org.springaicommunity.agents.claude.sdk.hooks.HookRegistry;
+import org.springaicommunity.agents.claude.sdk.mcp.McpMessageHandler;
+import org.springaicommunity.agents.claude.sdk.mcp.McpServerConfig;
 import org.springaicommunity.agents.claude.sdk.parsing.ParsedMessage;
 import org.springaicommunity.agents.claude.sdk.streaming.BlockingMessageReceiver;
 import org.springaicommunity.agents.claude.sdk.streaming.MessageReceiver;
@@ -89,6 +91,9 @@ public class DefaultClaudeSession implements ClaudeSession {
 
 	private final ObjectMapper objectMapper;
 
+	// MCP message handler for in-process SDK servers
+	private final McpMessageHandler mcpMessageHandler;
+
 	// Session state
 	private final AtomicBoolean connected = new AtomicBoolean(false);
 
@@ -151,6 +156,7 @@ public class DefaultClaudeSession implements ClaudeSession {
 		this.sandbox = sandbox;
 		this.hookRegistry = hookRegistry != null ? hookRegistry : new HookRegistry();
 		this.objectMapper = new ObjectMapper();
+		this.mcpMessageHandler = new McpMessageHandler(this.objectMapper);
 
 		// Initialize runtime state from options
 		if (this.options.getModel() != null) {
@@ -158,6 +164,32 @@ public class DefaultClaudeSession implements ClaudeSession {
 		}
 		if (this.options.getPermissionMode() != null) {
 			this.currentPermissionMode.set(this.options.getPermissionMode().getValue());
+		}
+
+		// Register SDK MCP servers for mcp_message handling
+		registerMcpServers();
+	}
+
+	/**
+	 * Registers SDK MCP servers from configuration for mcp_message control protocol
+	 * handling.
+	 */
+	private void registerMcpServers() {
+		Map<String, McpServerConfig> servers = this.options.getMcpServers();
+		if (servers == null || servers.isEmpty()) {
+			return;
+		}
+
+		for (Map.Entry<String, McpServerConfig> entry : servers.entrySet()) {
+			if (entry.getValue() instanceof McpServerConfig.McpSdkServerConfig sdkConfig) {
+				if (sdkConfig.instance() != null) {
+					mcpMessageHandler.registerServer(entry.getKey(), sdkConfig.instance());
+					logger.info("Registered SDK MCP server: {}", entry.getKey());
+				}
+				else {
+					logger.warn("SDK MCP server {} has null instance", entry.getKey());
+				}
+			}
 		}
 	}
 
@@ -420,6 +452,9 @@ public class DefaultClaudeSession implements ClaudeSession {
 				serverInfo.set(Map.of("hooks", init.hooks() != null ? init.hooks() : Collections.emptyMap()));
 				return ControlResponse.success(requestId, Map.of("status", "ok"));
 			}
+			else if (payload instanceof ControlRequest.McpMessageRequest mcpMessage) {
+				return handleMcpMessage(requestId, mcpMessage);
+			}
 			else {
 				// Unknown request type - acknowledge
 				return ControlResponse.success(requestId, Map.of());
@@ -469,6 +504,37 @@ public class DefaultClaudeSession implements ClaudeSession {
 		catch (Exception e) {
 			logger.error("Error executing hook callback", e);
 			return ControlResponse.error(requestId, e.getMessage());
+		}
+	}
+
+	/**
+	 * Handles mcp_message control requests by routing to the appropriate SDK MCP server.
+	 */
+	private ControlResponse handleMcpMessage(String requestId, ControlRequest.McpMessageRequest mcpMessage) {
+		String serverName = mcpMessage.serverName();
+		Map<String, Object> message = mcpMessage.message();
+
+		logger.debug("Handling MCP message for server {}: method={}", serverName, mcpMessage.getMethod());
+
+		if (!mcpMessageHandler.hasServer(serverName)) {
+			logger.warn("MCP server not registered: {}", serverName);
+			return ControlResponse.error(requestId, "Unknown MCP server: " + serverName);
+		}
+
+		try {
+			Map<String, Object> response = mcpMessageHandler.handleMcpMessage(serverName, message);
+
+			// Notifications return null - acknowledge with empty success
+			if (response == null) {
+				return ControlResponse.success(requestId, Map.of());
+			}
+
+			// Wrap the JSON-RPC response in our control response format
+			return ControlResponse.success(requestId, Map.of("mcp_response", response));
+		}
+		catch (Exception e) {
+			logger.error("Error handling MCP message for server {}", serverName, e);
+			return ControlResponse.error(requestId, "MCP error: " + e.getMessage());
 		}
 	}
 

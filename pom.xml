@@ -177,6 +177,7 @@
         <!-- Agent SDK specific versions -->
         <zt-exec.version>1.12</zt-exec.version>
         <jackson.version>2.17.2</jackson.version>
+        <mcp-sdk.version>0.15.0</mcp-sdk.version>
 
         <!-- Test dependency versions -->
         <junit-jupiter.version>5.10.1</junit-jupiter.version>
@@ -290,6 +291,13 @@
                 <groupId>org.zeroturnaround</groupId>
                 <artifactId>zt-exec</artifactId>
                 <version>${zt-exec.version}</version>
+            </dependency>
+
+            <!-- MCP Java SDK (Spring-independent core) -->
+            <dependency>
+                <groupId>io.modelcontextprotocol.sdk</groupId>
+                <artifactId>mcp</artifactId>
+                <version>${mcp-sdk.version}</version>
             </dependency>
 
             <!-- TestContainers for Docker sandbox -->

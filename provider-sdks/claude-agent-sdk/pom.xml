@@ -57,6 +57,12 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- MCP Java SDK (Spring-independent core) -->
+        <dependency>
+            <groupId>io.modelcontextprotocol.sdk</groupId>
+            <artifactId>mcp</artifactId>
+        </dependency>
+
         <!-- Test dependencies -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>

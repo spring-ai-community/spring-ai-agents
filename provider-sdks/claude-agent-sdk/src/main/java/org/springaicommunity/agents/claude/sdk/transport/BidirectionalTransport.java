@@ -16,6 +16,7 @@
 
 package org.springaicommunity.agents.claude.sdk.transport;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +25,7 @@ import org.springaicommunity.agents.claude.sdk.config.PermissionMode;
 import org.springaicommunity.agents.claude.sdk.exceptions.ClaudeSDKException;
 import org.springaicommunity.agents.claude.sdk.exceptions.SessionClosedException;
 import org.springaicommunity.agents.claude.sdk.exceptions.TransportException;
+import org.springaicommunity.agents.claude.sdk.mcp.McpServerConfig;
 import org.springaicommunity.agents.claude.sdk.parsing.ControlMessageParser;
 import org.springaicommunity.agents.claude.sdk.parsing.ParsedMessage;
 import org.springaicommunity.agents.claude.sdk.types.control.ControlRequest;
@@ -45,6 +47,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
@@ -438,7 +441,62 @@ public class BidirectionalTransport implements AutoCloseable {
 			}
 		}
 
+		// Add max thinking tokens for extended thinking support
+		if (options.getMaxThinkingTokens() != null) {
+			command.add("--max-thinking-tokens");
+			command.add(String.valueOf(options.getMaxThinkingTokens()));
+		}
+
+		// Add JSON schema for structured output support
+		if (options.getJsonSchema() != null && !options.getJsonSchema().isEmpty()) {
+			try {
+				String schemaJson = objectMapper.writeValueAsString(options.getJsonSchema());
+				command.add("--json-schema");
+				command.add(schemaJson);
+			}
+			catch (JsonProcessingException e) {
+				logger.warn("Failed to serialize JSON schema, skipping --json-schema flag", e);
+			}
+		}
+
+		// Add MCP server configuration
+		if (options.getMcpServers() != null && !options.getMcpServers().isEmpty()) {
+			try {
+				Map<String, Object> serversForCli = buildMcpConfigForCli(options.getMcpServers());
+				if (!serversForCli.isEmpty()) {
+					String mcpConfigJson = objectMapper.writeValueAsString(Map.of("mcpServers", serversForCli));
+					command.add("--mcp-config");
+					command.add(mcpConfigJson);
+				}
+			}
+			catch (JsonProcessingException e) {
+				logger.warn("Failed to serialize MCP config, skipping --mcp-config flag", e);
+			}
+		}
+
 		return command;
+	}
+
+	/**
+	 * Builds the MCP config map for CLI serialization. SDK servers have their instances
+	 * stripped (not serializable); only type and name are passed.
+	 * @param mcpServers the MCP server configuration map
+	 * @return map suitable for JSON serialization to CLI
+	 */
+	private Map<String, Object> buildMcpConfigForCli(Map<String, McpServerConfig> mcpServers) {
+		Map<String, Object> serversForCli = new LinkedHashMap<>();
+		for (Map.Entry<String, McpServerConfig> entry : mcpServers.entrySet()) {
+			McpServerConfig config = entry.getValue();
+			if (config instanceof McpServerConfig.McpSdkServerConfig sdk) {
+				// SDK servers: pass type and name only, NOT the instance
+				serversForCli.put(entry.getKey(), Map.of("type", "sdk", "name", sdk.name()));
+			}
+			else {
+				// External servers (stdio, sse, http): pass as-is
+				serversForCli.put(entry.getKey(), config);
+			}
+		}
+		return serversForCli;
 	}
 
 	// ============================================================

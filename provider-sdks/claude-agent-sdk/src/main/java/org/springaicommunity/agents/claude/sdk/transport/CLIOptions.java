@@ -18,17 +18,20 @@ package org.springaicommunity.agents.claude.sdk.transport;
 
 import org.springaicommunity.agents.claude.sdk.config.OutputFormat;
 import org.springaicommunity.agents.claude.sdk.config.PermissionMode;
+import org.springaicommunity.agents.claude.sdk.mcp.McpServerConfig;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Configuration options for Claude CLI commands. Corresponds to ClaudeAgentOptions in
  * Python SDK.
  */
-public record CLIOptions(String model, String systemPrompt, Integer maxTokens, Duration timeout,
-		List<String> allowedTools, List<String> disallowedTools, PermissionMode permissionMode, boolean interactive,
-		OutputFormat outputFormat, List<String> settingSources, String agents, boolean forkSession,
-		boolean includePartialMessages) {
+public record CLIOptions(String model, String systemPrompt, Integer maxTokens, Integer maxThinkingTokens,
+		Duration timeout, List<String> allowedTools, List<String> disallowedTools, PermissionMode permissionMode,
+		boolean interactive, OutputFormat outputFormat, List<String> settingSources, String agents, boolean forkSession,
+		boolean includePartialMessages, Map<String, Object> jsonSchema, Map<String, McpServerConfig> mcpServers) {
 
 	// ============================================================
 	// Model ID Constants
@@ -63,6 +66,9 @@ public record CLIOptions(String model, String systemPrompt, Integer maxTokens, D
 		if (settingSources == null) {
 			settingSources = List.of(); // Default: no filesystem settings loaded
 		}
+		if (mcpServers == null) {
+			mcpServers = Map.of();
+		}
 	}
 
 	public static Builder builder() {
@@ -70,8 +76,9 @@ public record CLIOptions(String model, String systemPrompt, Integer maxTokens, D
 	}
 
 	public static CLIOptions defaultOptions() {
-		return new CLIOptions(null, null, null, Duration.ofMinutes(2), List.of(), List.of(),
-				PermissionMode.DANGEROUSLY_SKIP_PERMISSIONS, false, OutputFormat.JSON, List.of(), null, false, false);
+		return new CLIOptions(null, null, null, null, Duration.ofMinutes(2), List.of(), List.of(),
+				PermissionMode.DANGEROUSLY_SKIP_PERMISSIONS, false, OutputFormat.JSON, List.of(), null, false, false,
+				null, Map.of());
 	}
 
 	// Convenience getters
@@ -89,6 +96,10 @@ public record CLIOptions(String model, String systemPrompt, Integer maxTokens, D
 
 	public Integer getMaxTokens() {
 		return maxTokens;
+	}
+
+	public Integer getMaxThinkingTokens() {
+		return maxThinkingTokens;
 	}
 
 	public List<String> getAllowedTools() {
@@ -127,6 +138,14 @@ public record CLIOptions(String model, String systemPrompt, Integer maxTokens, D
 		return includePartialMessages;
 	}
 
+	public Map<String, Object> getJsonSchema() {
+		return jsonSchema;
+	}
+
+	public Map<String, McpServerConfig> getMcpServers() {
+		return mcpServers;
+	}
+
 	public static class Builder {
 
 		private String model;
@@ -134,6 +153,8 @@ public record CLIOptions(String model, String systemPrompt, Integer maxTokens, D
 		private String systemPrompt;
 
 		private Integer maxTokens;
+
+		private Integer maxThinkingTokens;
 
 		private Duration timeout = Duration.ofMinutes(2);
 
@@ -155,6 +176,10 @@ public record CLIOptions(String model, String systemPrompt, Integer maxTokens, D
 
 		private boolean includePartialMessages = false;
 
+		private Map<String, Object> jsonSchema;
+
+		private Map<String, McpServerConfig> mcpServers = Map.of();
+
 		public Builder model(String model) {
 			this.model = model;
 			return this;
@@ -167,6 +192,11 @@ public record CLIOptions(String model, String systemPrompt, Integer maxTokens, D
 
 		public Builder maxTokens(Integer maxTokens) {
 			this.maxTokens = maxTokens;
+			return this;
+		}
+
+		public Builder maxThinkingTokens(Integer maxThinkingTokens) {
+			this.maxThinkingTokens = maxThinkingTokens;
 			return this;
 		}
 
@@ -220,10 +250,42 @@ public record CLIOptions(String model, String systemPrompt, Integer maxTokens, D
 			return this;
 		}
 
+		public Builder jsonSchema(Map<String, Object> jsonSchema) {
+			this.jsonSchema = jsonSchema != null ? Map.copyOf(jsonSchema) : null;
+			return this;
+		}
+
+		/**
+		 * Sets all MCP servers for this session.
+		 * @param mcpServers map of server name to configuration
+		 * @return this builder
+		 */
+		public Builder mcpServers(Map<String, McpServerConfig> mcpServers) {
+			this.mcpServers = mcpServers != null ? Map.copyOf(mcpServers) : Map.of();
+			return this;
+		}
+
+		/**
+		 * Adds a single MCP server to this session.
+		 * @param name the server name (used in tool naming: mcp__{name}__{tool})
+		 * @param config the server configuration
+		 * @return this builder
+		 */
+		public Builder mcpServer(String name, McpServerConfig config) {
+			if (this.mcpServers.isEmpty()) {
+				this.mcpServers = new HashMap<>();
+			}
+			else if (!(this.mcpServers instanceof HashMap)) {
+				this.mcpServers = new HashMap<>(this.mcpServers);
+			}
+			this.mcpServers.put(name, config);
+			return this;
+		}
+
 		public CLIOptions build() {
-			return new CLIOptions(model, systemPrompt, maxTokens, timeout, allowedTools, disallowedTools,
-					permissionMode, interactive, outputFormat, settingSources, agents, forkSession,
-					includePartialMessages);
+			return new CLIOptions(model, systemPrompt, maxTokens, maxThinkingTokens, timeout, allowedTools,
+					disallowedTools, permissionMode, interactive, outputFormat, settingSources, agents, forkSession,
+					includePartialMessages, jsonSchema, mcpServers);
 		}
 
 	}

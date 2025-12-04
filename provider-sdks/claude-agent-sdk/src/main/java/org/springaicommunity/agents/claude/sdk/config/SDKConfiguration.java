@@ -66,6 +66,7 @@ public record SDKConfiguration(String model, String systemPrompt, String appendS
 			.model(model)
 			.systemPrompt(buildSystemPrompt())
 			.maxTokens(maxTokens)
+			.maxThinkingTokens(maxThinkingTokens)
 			.timeout(timeout)
 			.allowedTools(allowedTools)
 			.disallowedTools(disallowedTools)

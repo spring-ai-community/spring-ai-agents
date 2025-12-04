@@ -19,6 +19,7 @@ package org.springaicommunity.agents.claude.sdk.transport;
 import org.springaicommunity.agents.claude.sdk.config.ClaudeCliDiscovery;
 import org.springaicommunity.agents.claude.sdk.config.OutputFormat;
 import org.springaicommunity.agents.claude.sdk.exceptions.*;
+import org.springaicommunity.agents.claude.sdk.mcp.McpServerConfig;
 import org.springaicommunity.agents.claude.sdk.parsing.JsonResultParser;
 import org.springaicommunity.agents.claude.sdk.parsing.MessageParser;
 import org.springaicommunity.agents.claude.sdk.types.AssistantMessage;
@@ -32,12 +33,17 @@ import org.zeroturnaround.exec.ProcessResult;
 import org.zeroturnaround.exec.stream.LogOutputStream;
 import org.zeroturnaround.exec.stream.slf4j.Slf4jStream;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
@@ -59,6 +65,8 @@ public class CLITransport implements AutoCloseable {
 
 	private final Duration defaultTimeout;
 
+	private final ObjectMapper objectMapper;
+
 	public CLITransport(Path workingDirectory) {
 		this(workingDirectory, Duration.ofMinutes(2));
 	}
@@ -72,6 +80,7 @@ public class CLITransport implements AutoCloseable {
 		this.defaultTimeout = defaultTimeout;
 		this.messageParser = new MessageParser();
 		this.jsonResultParser = new JsonResultParser();
+		this.objectMapper = new ObjectMapper();
 		this.claudeCommand = claudePath != null ? claudePath : discoverClaudePathFallback();
 	}
 
@@ -454,6 +463,39 @@ public class CLITransport implements AutoCloseable {
 			command.add("--include-partial-messages");
 		}
 
+		// Add max thinking tokens for extended thinking support
+		if (options.getMaxThinkingTokens() != null) {
+			command.add("--max-thinking-tokens");
+			command.add(String.valueOf(options.getMaxThinkingTokens()));
+		}
+
+		// Add JSON schema for structured output support
+		if (options.getJsonSchema() != null && !options.getJsonSchema().isEmpty()) {
+			try {
+				String schemaJson = objectMapper.writeValueAsString(options.getJsonSchema());
+				command.add("--json-schema");
+				command.add(schemaJson);
+			}
+			catch (JsonProcessingException e) {
+				logger.warn("Failed to serialize JSON schema, skipping --json-schema flag", e);
+			}
+		}
+
+		// Add MCP server configuration
+		if (options.getMcpServers() != null && !options.getMcpServers().isEmpty()) {
+			try {
+				Map<String, Object> serversForCli = buildMcpConfigForCli(options.getMcpServers());
+				if (!serversForCli.isEmpty()) {
+					String mcpConfigJson = objectMapper.writeValueAsString(Map.of("mcpServers", serversForCli));
+					command.add("--mcp-config");
+					command.add(mcpConfigJson);
+				}
+			}
+			catch (JsonProcessingException e) {
+				logger.warn("Failed to serialize MCP config, skipping --mcp-config flag", e);
+			}
+		}
+
 		// Add the prompt using -- separator to prevent argument parsing issues
 		command.add("--"); // Everything after this is positional arguments
 		command.add(prompt);
@@ -504,6 +546,28 @@ public class CLITransport implements AutoCloseable {
 
 		logger.warn("Claude CLI not found, using default 'claude'");
 		return "claude";
+	}
+
+	/**
+	 * Builds the MCP config map for CLI serialization. SDK servers have their instances
+	 * stripped (not serializable); only type and name are passed.
+	 * @param mcpServers the MCP server configuration map
+	 * @return map suitable for JSON serialization to CLI
+	 */
+	private Map<String, Object> buildMcpConfigForCli(Map<String, McpServerConfig> mcpServers) {
+		Map<String, Object> serversForCli = new LinkedHashMap<>();
+		for (Map.Entry<String, McpServerConfig> entry : mcpServers.entrySet()) {
+			McpServerConfig config = entry.getValue();
+			if (config instanceof McpServerConfig.McpSdkServerConfig sdk) {
+				// SDK servers: pass type and name only, NOT the instance
+				serversForCli.put(entry.getKey(), Map.of("type", "sdk", "name", sdk.name()));
+			}
+			else {
+				// External servers (stdio, sse, http): pass as-is
+				serversForCli.put(entry.getKey(), config);
+			}
+		}
+		return serversForCli;
 	}
 
 	@Override

@@ -124,13 +124,44 @@ public record ControlRequest(@JsonProperty("type") String type, @JsonProperty("r
 	}
 
 	/**
-	 * MCP message request - for MCP protocol bridging.
+	 * MCP message request - routes JSON-RPC messages to in-process SDK MCP servers.
+	 * <p>
+	 * The CLI sends this when it needs to invoke tools on SDK-managed MCP servers. The
+	 * message field contains a JSON-RPC 2.0 request (with method, params, id fields).
+	 *
+	 * @param serverName the MCP server name (matches key in mcpServers config)
+	 * @param message the JSON-RPC 2.0 message (request or notification)
 	 */
 	public record McpMessageRequest(@JsonProperty("server_name") String serverName,
-			@JsonProperty("message") Object message) implements ControlRequestPayload {
+			@JsonProperty("message") Map<String, Object> message) implements ControlRequestPayload {
 		@Override
 		public String subtype() {
 			return "mcp_message";
+		}
+
+		/**
+		 * Extracts the JSON-RPC method name from the message.
+		 * @return the method name, or null if not present
+		 */
+		public String getMethod() {
+			return message != null ? (String) message.get("method") : null;
+		}
+
+		/**
+		 * Extracts the JSON-RPC request ID from the message.
+		 * @return the request ID, or null if not present (notification)
+		 */
+		public Object getId() {
+			return message != null ? message.get("id") : null;
+		}
+
+		/**
+		 * Extracts the JSON-RPC params from the message.
+		 * @return the params map, or null if not present
+		 */
+		@SuppressWarnings("unchecked")
+		public Map<String, Object> getParams() {
+			return message != null ? (Map<String, Object>) message.get("params") : null;
 		}
 	}
 
