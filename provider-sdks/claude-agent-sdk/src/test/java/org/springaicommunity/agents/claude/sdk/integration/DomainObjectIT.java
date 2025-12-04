@@ -370,7 +370,6 @@ class DomainObjectIT extends ClaudeCliTestBase {
 	}
 
 	@Test
-	@Disabled("Flaky test - intermittently fails with exit code 1. Manual execution succeeds. TODO: investigate timing/environment issues")
 	void testStreamingCalculationsAccuracy() throws Exception {
 		logger.info("Testing streaming response calculations");
 

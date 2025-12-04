@@ -31,6 +31,7 @@ import org.springaicommunity.agents.claude.sdk.types.control.ControlResponse;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -257,29 +258,97 @@ class SessionControlIT extends ClaudeCliTestBase {
 	}
 
 	/**
-	 * Tests multi-turn conversation with DefaultClaudeSession. NOTE: This test is
-	 * disabled because the current implementation completes the message iterator after
-	 * the first result message. Multi-turn requires re-architecting the message flow.
+	 * Tests multi-turn conversation with DefaultClaudeSession using the Iterator API.
 	 */
 	@Test
-	@Disabled("Multi-turn requires message iterator to stay open after first result - P2 enhancement")
-	@DisplayName("Multi-turn conversation preserves context")
+	@DisplayName("Multi-turn conversation preserves context via Iterator API")
 	void multiTurnConversationPreservesContext() throws Exception {
-		// This test documents the expected behavior for multi-turn sessions
-		// Currently blocked on iterator completion behavior
+		CLIOptions options = CLIOptions.builder()
+			.model(HAIKU_MODEL)
+			.permissionMode(PermissionMode.BYPASS_PERMISSIONS)
+			.build();
+
+		try (DefaultClaudeSession session = DefaultClaudeSession.builder()
+			.workingDirectory(workingDirectory())
+			.options(options)
+			.timeout(Duration.ofMinutes(2))
+			.claudePath(getClaudeCliPath())
+			.build()) {
+
+			// First turn - establish context
+			session.connect("My favorite number is 42. Remember this.");
+
+			List<ParsedMessage> firstTurnMessages = new ArrayList<>();
+			Iterator<ParsedMessage> firstIterator = session.receiveResponse();
+			while (firstIterator.hasNext()) {
+				firstTurnMessages.add(firstIterator.next());
+			}
+
+			assertThat(firstTurnMessages).as("First turn should receive messages").isNotEmpty();
+
+			// Verify first turn ended with ResultMessage
+			ParsedMessage lastFirst = firstTurnMessages.get(firstTurnMessages.size() - 1);
+			assertThat(lastFirst.isRegularMessage()).isTrue();
+			assertThat(lastFirst.asMessage()).isInstanceOf(ResultMessage.class);
+
+			// Second turn - verify context maintained
+			session.query("What is my favorite number?");
+
+			List<ParsedMessage> secondTurnMessages = new ArrayList<>();
+			Iterator<ParsedMessage> secondIterator = session.receiveResponse();
+			while (secondIterator.hasNext()) {
+				secondTurnMessages.add(secondIterator.next());
+			}
+
+			assertThat(secondTurnMessages).as("Second turn should receive messages").isNotEmpty();
+
+			// Verify the response mentions 42
+			ParsedMessage lastSecond = secondTurnMessages.get(secondTurnMessages.size() - 1);
+			assertThat(lastSecond.isRegularMessage()).isTrue();
+			ResultMessage result = (ResultMessage) lastSecond.asMessage();
+			assertThat(result.result()).as("Response should mention 42").contains("42");
+		}
 	}
 
 	/**
-	 * Tests session control operations (interrupt, setModel, setPermissionMode). NOTE:
-	 * These tests are disabled until we verify the control response correlation works
-	 * end-to-end with the CLI.
+	 * Tests session control operations (setModel, setPermissionMode). Verifies that
+	 * control requests are sent and local state is updated.
 	 */
 	@Test
-	@Disabled("Control operations require verified CLI protocol support - needs protocol testing")
 	@DisplayName("Session control operations work end-to-end")
 	void sessionControlOperationsWork() throws Exception {
-		// This test documents the expected behavior for control operations
-		// Needs verification that CLI responds correctly to control requests
+		CLIOptions options = CLIOptions.builder()
+			.model(HAIKU_MODEL)
+			.permissionMode(PermissionMode.BYPASS_PERMISSIONS)
+			.build();
+
+		try (DefaultClaudeSession session = DefaultClaudeSession.builder()
+			.workingDirectory(workingDirectory())
+			.options(options)
+			.timeout(Duration.ofMinutes(2))
+			.claudePath(getClaudeCliPath())
+			.build()) {
+
+			session.connect("Hello");
+			assertThat(session.isConnected()).isTrue();
+
+			// Test setPermissionMode
+			session.setPermissionMode("acceptEdits");
+			assertThat(session.getCurrentPermissionMode()).isEqualTo("acceptEdits");
+
+			// Test setModel
+			session.setModel("claude-3-5-haiku-20241022");
+			assertThat(session.getCurrentModel()).isEqualTo("claude-3-5-haiku-20241022");
+
+			// Verify session still responds after control operations
+			session.query("What is 2+2?");
+
+			// Use responseReceiver to get response
+			try (var receiver = session.responseReceiver()) {
+				ParsedMessage msg = receiver.next();
+				assertThat(msg).as("Should receive at least one message").isNotNull();
+			}
+		}
 	}
 
 }

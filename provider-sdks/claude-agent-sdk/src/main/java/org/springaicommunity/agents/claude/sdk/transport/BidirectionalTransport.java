@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springaicommunity.agents.claude.sdk.config.ClaudeCliDiscovery;
+import org.springaicommunity.agents.claude.sdk.config.PermissionMode;
 import org.springaicommunity.agents.claude.sdk.exceptions.ClaudeSDKException;
 import org.springaicommunity.agents.claude.sdk.exceptions.SessionClosedException;
 import org.springaicommunity.agents.claude.sdk.exceptions.TransportException;
@@ -426,8 +427,15 @@ public class BidirectionalTransport implements AutoCloseable {
 		}
 
 		if (options.getPermissionMode() != null) {
-			command.add("--permission-mode");
-			command.add(options.getPermissionMode().getValue());
+			if (options.getPermissionMode() == PermissionMode.DANGEROUSLY_SKIP_PERMISSIONS) {
+				// DANGEROUSLY_SKIP_PERMISSIONS uses a separate flag, not
+				// --permission-mode
+				command.add("--dangerously-skip-permissions");
+			}
+			else {
+				command.add("--permission-mode");
+				command.add(options.getPermissionMode().getValue());
+			}
 		}
 
 		return command;

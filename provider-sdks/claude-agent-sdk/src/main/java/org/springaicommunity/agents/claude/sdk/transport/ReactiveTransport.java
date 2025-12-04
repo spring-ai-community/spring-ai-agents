@@ -102,51 +102,66 @@ public class ReactiveTransport implements AutoCloseable {
 
 	/**
 	 * Internal implementation using BidirectionalTransport for robust streaming.
+	 * <p>
+	 * Uses Flux.create() to ensure subscription happens BEFORE startSession begins
+	 * emitting messages, avoiding the unicast sink race condition.
+	 * </p>
 	 */
 	private Flux<Message> executeReactiveQueryInternal(String prompt, CLIOptions options) {
 		if (closed.get()) {
 			return Flux.error(new ClaudeSDKException("Transport is closed"));
 		}
 
-		return Flux.defer(() -> {
+		return Flux.<Message>create(sink -> {
 			logger.info("Starting reactive query with BidirectionalTransport");
 
 			// Create ephemeral transport for this query
 			BidirectionalTransport transport = new BidirectionalTransport(workingDirectory,
-					options.getTimeout() != null ? options.getTimeout() : defaultTimeout, claudePath, null // no
-																											// sandbox
-																											// for
-																											// reactive
-																											// queries
-			);
+					options.getTimeout() != null ? options.getTimeout() : defaultTimeout, claudePath, null);
 
-			// Start session with null handlers - we just consume messages
-			try {
-				transport.startSession(prompt, options, msg -> {
-				}, // messages go to inbound sink
-						request -> {
-							// For reactive queries, auto-allow all tool usage
-							return org.springaicommunity.agents.claude.sdk.types.control.ControlResponse
-								.success(request.requestId(), java.util.Map.of("behavior", "allow"));
-						});
-			}
-			catch (Exception e) {
-				transport.close();
-				return Flux.error(new TransportException("Failed to start reactive session", e));
-			}
+			AtomicBoolean completed = new AtomicBoolean(false);
 
-			// Get the inbound flux and transform ParsedMessage -> Message
-			return transport.getInboundFlux()
+			// Subscribe to inbound flux FIRST (before startSession emits)
+			transport.getInboundFlux()
 				.filter(ParsedMessage::isRegularMessage)
 				.map(ParsedMessage::asMessage)
 				.takeUntil(msg -> msg instanceof ResultMessage)
-				.doOnSubscribe(sub -> logger.debug("Subscribed to reactive query"))
-				.doOnComplete(() -> logger.debug("Reactive query completed"))
-				.doOnError(err -> logger.error("Reactive query failed", err))
-				.doFinally(signal -> {
-					logger.debug("Closing ephemeral transport (signal: {})", signal);
-					transport.close();
+				.subscribe(message -> {
+					sink.next(message);
+					if (message instanceof ResultMessage) {
+						if (completed.compareAndSet(false, true)) {
+							sink.complete();
+						}
+					}
+				}, error -> {
+					logger.error("Reactive query failed", error);
+					sink.error(error);
+				}, () -> {
+					if (completed.compareAndSet(false, true)) {
+						sink.complete();
+					}
 				});
+
+			// THEN start session (messages now flow to subscriber)
+			try {
+				transport.startSession(prompt, options, msg -> {
+				}, request -> {
+					return org.springaicommunity.agents.claude.sdk.types.control.ControlResponse
+						.success(request.requestId(), java.util.Map.of("behavior", "allow"));
+				});
+			}
+			catch (Exception e) {
+				transport.close();
+				sink.error(new TransportException("Failed to start reactive session", e));
+				return;
+			}
+
+			// Cleanup on disposal
+			sink.onDispose(() -> {
+				logger.debug("Closing ephemeral transport on disposal");
+				transport.close();
+			});
+
 		}).subscribeOn(Schedulers.boundedElastic());
 	}
 
