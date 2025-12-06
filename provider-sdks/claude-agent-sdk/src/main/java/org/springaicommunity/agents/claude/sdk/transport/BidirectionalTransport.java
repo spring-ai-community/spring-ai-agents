@@ -112,7 +112,8 @@ public class BidirectionalTransport implements AutoCloseable {
 
 	private final Sandbox sandbox;
 
-	private final ControlMessageParser parser;
+	/** Parser is re-created per session to respect maxBufferSize from options. */
+	private ControlMessageParser parser;
 
 	private final ObjectMapper objectMapper;
 
@@ -128,6 +129,12 @@ public class BidirectionalTransport implements AutoCloseable {
 
 	/** Flag for clean shutdown - volatile for visibility across threads (MCP pattern) */
 	private volatile boolean isClosing = false;
+
+	/** Stderr handler for the current session (may be null if using default logging). */
+	private volatile StderrHandler currentStderrHandler;
+
+	/** Tool permission callback for the current session (may be null). */
+	private volatile ToolPermissionCallback currentToolPermissionCallback;
 
 	// ============================================================
 	// Scheduler Separation (from MCP SDK pattern)
@@ -321,18 +328,25 @@ public class BidirectionalTransport implements AutoCloseable {
 		}
 
 		try {
+			// Create parser with buffer size from options (buffer overflow protection)
+			this.parser = new ControlMessageParser(options.getEffectiveMaxBufferSize());
+
+			// Store stderr handler for this session
+			this.currentStderrHandler = options.getStderrHandler();
+
+			// Store tool permission callback for this session
+			this.currentToolPermissionCallback = options.getToolPermissionCallback();
+
 			// Build command with bidirectional flags (no prompt - sent via stdin)
 			List<String> command = buildBidirectionalCommand(options);
 
+			// Wrap command with sudo if user is specified (Unix only)
+			command = wrapCommandForUser(command, options.getUser());
+
 			logger.info("Starting bidirectional session: {}", command);
 
-			// Build environment variables
-			Map<String, String> env = new HashMap<>();
-			env.put("CLAUDE_CODE_ENTRYPOINT", "sdk-java");
-			String apiKey = System.getenv("ANTHROPIC_API_KEY");
-			if (apiKey != null) {
-				env.put("ANTHROPIC_API_KEY", apiKey);
-			}
+			// Build environment variables with MCP-style safe filtering
+			Map<String, String> env = buildProcessEnvironment(options);
 
 			// Start process using sandbox if available, otherwise direct ProcessBuilder
 			if (sandbox != null) {
@@ -498,6 +512,64 @@ public class BidirectionalTransport implements AutoCloseable {
 			command.add(options.getAppendSystemPrompt());
 		}
 
+		// ============================================================
+		// Advanced options for full Python SDK parity
+		// ============================================================
+
+		// Add directories (repeated flag)
+		if (options.getAddDirs() != null && !options.getAddDirs().isEmpty()) {
+			for (var dir : options.getAddDirs()) {
+				command.add("--add-dir");
+				command.add(dir.toString());
+			}
+		}
+
+		// Custom settings file
+		if (options.getSettings() != null && !options.getSettings().isBlank()) {
+			command.add("--settings");
+			command.add(options.getSettings());
+		}
+
+		// Permission prompt tool name override (note: bidirectional mode already sets
+		// stdio,
+		// but this allows override for custom implementations)
+		if (options.getPermissionPromptToolName() != null && !options.getPermissionPromptToolName().isBlank()) {
+			// Remove the default --permission-prompt-tool stdio if user specified
+			// custom
+			int idx = command.indexOf("--permission-prompt-tool");
+			if (idx >= 0 && idx + 1 < command.size()) {
+				command.remove(idx + 1);
+				command.remove(idx);
+			}
+			command.add("--permission-prompt-tool");
+			command.add(options.getPermissionPromptToolName());
+		}
+
+		// Plugins (repeated flag)
+		if (options.getPlugins() != null && !options.getPlugins().isEmpty()) {
+			for (var plugin : options.getPlugins()) {
+				command.add("--plugin-dir");
+				command.add(plugin.path().toString());
+			}
+		}
+
+		// Extra args (arbitrary flags - MUST BE LAST before return)
+		if (options.getExtraArgs() != null && !options.getExtraArgs().isEmpty()) {
+			for (var entry : options.getExtraArgs().entrySet()) {
+				String flag = entry.getKey();
+				String value = entry.getValue();
+				if (value == null) {
+					// Boolean flag (no value)
+					command.add("--" + flag);
+				}
+				else {
+					// Flag with value
+					command.add("--" + flag);
+					command.add(value);
+				}
+			}
+		}
+
 		return command;
 	}
 
@@ -521,6 +593,85 @@ public class BidirectionalTransport implements AutoCloseable {
 			}
 		}
 		return serversForCli;
+	}
+
+	/**
+	 * Safe inherited environment variables (MCP SDK pattern). These are the only system
+	 * env vars that are inherited by default for security.
+	 */
+	private static final List<String> SAFE_INHERITED_ENV_VARS_UNIX = List.of("HOME", "LOGNAME", "PATH", "SHELL", "TERM",
+			"USER", "LANG", "LC_ALL", "LC_CTYPE");
+
+	private static final List<String> SAFE_INHERITED_ENV_VARS_WINDOWS = List.of("APPDATA", "HOMEDRIVE", "HOMEPATH",
+			"LOCALAPPDATA", "PATH", "PROCESSOR_ARCHITECTURE", "SYSTEMDRIVE", "SYSTEMROOT", "TEMP", "USERNAME",
+			"USERPROFILE");
+
+	/**
+	 * Builds the process environment with MCP-style safe filtering. Follows the MCP SDK
+	 * pattern: whitelist safe vars, filter shell functions, add SDK identity, merge user
+	 * vars.
+	 * @param options CLI options that may contain user-provided env vars
+	 * @return environment map for process execution
+	 */
+	private Map<String, String> buildProcessEnvironment(CLIOptions options) {
+		Map<String, String> env = new HashMap<>();
+
+		// 1. Start with safe inherited vars (whitelist approach, MCP pattern)
+		List<String> safeVars = System.getProperty("os.name").toLowerCase().contains("win")
+				? SAFE_INHERITED_ENV_VARS_WINDOWS : SAFE_INHERITED_ENV_VARS_UNIX;
+
+		for (String key : safeVars) {
+			String value = System.getenv(key);
+			// Exclude shell functions (start with '()') for security
+			if (value != null && !value.startsWith("()")) {
+				env.put(key, value);
+			}
+		}
+
+		// 2. Always pass API key if available
+		String apiKey = System.getenv("ANTHROPIC_API_KEY");
+		if (apiKey != null) {
+			env.put("ANTHROPIC_API_KEY", apiKey);
+		}
+
+		// 3. SDK identification
+		env.put("CLAUDE_CODE_ENTRYPOINT", "sdk-java");
+		env.put("CLAUDE_AGENT_SDK_JAVA_VERSION", getClass().getPackage().getImplementationVersion() != null
+				? getClass().getPackage().getImplementationVersion() : "dev");
+
+		// 4. User-provided env vars override (last wins)
+		if (options.getEnv() != null && !options.getEnv().isEmpty()) {
+			env.putAll(options.getEnv());
+		}
+
+		return env;
+	}
+
+	/**
+	 * Wraps a command with sudo for user switching (Unix only). On Windows, user
+	 * switching is not supported and a warning is logged.
+	 * @param command the original command
+	 * @param user the Unix user to run as (null or blank to skip)
+	 * @return the wrapped command, or original if no wrapping needed
+	 */
+	private List<String> wrapCommandForUser(List<String> command, String user) {
+		if (user == null || user.isBlank()) {
+			return command;
+		}
+
+		// Check if running on Unix
+		if (!System.getProperty("os.name").toLowerCase().contains("win")) {
+			List<String> wrapped = new ArrayList<>();
+			wrapped.add("sudo");
+			wrapped.add("-u");
+			wrapped.add(user);
+			wrapped.addAll(command);
+			logger.info("Wrapping command for user '{}' with sudo", user);
+			return wrapped;
+		}
+
+		logger.warn("User switching not supported on Windows, ignoring user: {}", user);
+		return command;
 	}
 
 	// ============================================================
@@ -633,7 +784,13 @@ public class BidirectionalTransport implements AutoCloseable {
 		try {
 			String line;
 			while (!isClosing && (line = stderrReader.readLine()) != null) {
-				logger.warn("CLI stderr: {}", line);
+				// Use custom handler if provided, otherwise log at warn level
+				if (currentStderrHandler != null) {
+					currentStderrHandler.handle(line);
+				}
+				else {
+					logger.warn("CLI stderr: {}", line);
+				}
 			}
 		}
 		catch (IOException e) {
@@ -989,6 +1146,69 @@ public class BidirectionalTransport implements AutoCloseable {
 		 */
 		ControlResponse handle(ControlRequest request);
 
+	}
+
+	// ============================================================
+	// Tool Permission Support
+	// ============================================================
+
+	/**
+	 * Returns the tool permission callback for this session, if configured.
+	 * @return the callback, or null if not configured
+	 */
+	public ToolPermissionCallback getToolPermissionCallback() {
+		return currentToolPermissionCallback;
+	}
+
+	/**
+	 * Handles a can_use_tool request using the configured callback. This is a convenience
+	 * method for ControlRequestHandler implementations.
+	 * @param requestId the control request ID
+	 * @param request the can_use_tool request payload
+	 * @return the control response to send back to CLI
+	 */
+	public ControlResponse handleCanUseTool(String requestId, ControlRequest.CanUseToolRequest request) {
+		if (currentToolPermissionCallback == null) {
+			// No callback configured - allow by default
+			return ControlResponse.success(requestId, Map.of("decision", "allow"));
+		}
+
+		// Create context from request
+		ToolPermissionCallback.ToolPermissionContext context = ToolPermissionCallback.ToolPermissionContext
+			.of(request.permissionSuggestions(), request.blockedPath());
+
+		try {
+			// Invoke callback (synchronously for now, could be enhanced to async)
+			ToolPermissionCallback.ToolPermissionResult result = currentToolPermissionCallback
+				.canUseTool(request.toolName(), request.input(), context)
+				.get(); // Block for result
+
+			// Convert result to response format
+			if (result instanceof ToolPermissionCallback.ToolPermissionResult.Allow allow) {
+				if (allow.updatedInput() != null) {
+					return ControlResponse.success(requestId,
+							Map.of("decision", "allow", "updated_input", allow.updatedInput()));
+				}
+				return ControlResponse.success(requestId, Map.of("decision", "allow"));
+			}
+			else if (result instanceof ToolPermissionCallback.ToolPermissionResult.Deny deny) {
+				Map<String, Object> response = new java.util.HashMap<>();
+				response.put("decision", "deny");
+				response.put("reason", deny.reason());
+				if (deny.interrupt()) {
+					response.put("interrupt", true);
+				}
+				return ControlResponse.success(requestId, response);
+			}
+
+			// Should never reach here due to sealed interface
+			return ControlResponse.error(requestId, "Unknown permission result type");
+
+		}
+		catch (Exception e) {
+			logger.error("Error in tool permission callback", e);
+			return ControlResponse.error(requestId, "Permission callback error: " + e.getMessage());
+		}
 	}
 
 }

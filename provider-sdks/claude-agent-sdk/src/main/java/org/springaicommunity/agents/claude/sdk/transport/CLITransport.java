@@ -520,6 +520,55 @@ public class CLITransport implements AutoCloseable {
 			command.add(options.getAppendSystemPrompt());
 		}
 
+		// ============================================================
+		// Advanced options for full Python SDK parity
+		// ============================================================
+
+		// Add directories (repeated flag)
+		if (options.getAddDirs() != null && !options.getAddDirs().isEmpty()) {
+			for (var dir : options.getAddDirs()) {
+				command.add("--add-dir");
+				command.add(dir.toString());
+			}
+		}
+
+		// Custom settings file
+		if (options.getSettings() != null && !options.getSettings().isBlank()) {
+			command.add("--settings");
+			command.add(options.getSettings());
+		}
+
+		// Permission prompt tool name
+		if (options.getPermissionPromptToolName() != null && !options.getPermissionPromptToolName().isBlank()) {
+			command.add("--permission-prompt-tool");
+			command.add(options.getPermissionPromptToolName());
+		}
+
+		// Plugins (repeated flag)
+		if (options.getPlugins() != null && !options.getPlugins().isEmpty()) {
+			for (var plugin : options.getPlugins()) {
+				command.add("--plugin-dir");
+				command.add(plugin.path().toString());
+			}
+		}
+
+		// Extra args (arbitrary flags - MUST BE LAST before prompt)
+		if (options.getExtraArgs() != null && !options.getExtraArgs().isEmpty()) {
+			for (var entry : options.getExtraArgs().entrySet()) {
+				String flag = entry.getKey();
+				String value = entry.getValue();
+				if (value == null) {
+					// Boolean flag (no value)
+					command.add("--" + flag);
+				}
+				else {
+					// Flag with value
+					command.add("--" + flag);
+					command.add(value);
+				}
+			}
+		}
+
 		// Add the prompt using -- separator to prevent argument parsing issues
 		command.add("--"); // Everything after this is positional arguments
 		command.add(prompt);

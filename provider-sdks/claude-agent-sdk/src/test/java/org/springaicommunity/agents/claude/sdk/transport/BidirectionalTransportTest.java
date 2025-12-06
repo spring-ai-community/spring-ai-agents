@@ -25,6 +25,9 @@ import org.springaicommunity.agents.claude.sdk.config.PermissionMode;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
+
+import org.springaicommunity.agents.claude.sdk.config.PluginConfig;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -429,6 +432,184 @@ class BidirectionalTransportTest {
 
 			// --verbose is required with stream-json to get all message types
 			assertThat(command).contains("--verbose");
+
+			transport.close();
+		}
+
+	}
+
+	@Nested
+	@DisplayName("Advanced Python SDK Parity Options Tests")
+	class AdvancedOptionsTests {
+
+		@Test
+		@DisplayName("Should include add-dir flags for each directory")
+		void buildCommandWithAddDirs() {
+			// Given
+			BidirectionalTransport transport = new BidirectionalTransport(tempDir, Duration.ofMinutes(5),
+					"/usr/bin/claude");
+			CLIOptions options = CLIOptions.builder()
+				.addDirs(List.of(Path.of("/workspace/libs"), Path.of("/workspace/docs")))
+				.build();
+
+			// When
+			List<String> command = transport.buildBidirectionalCommand(options);
+
+			// Then - each directory gets its own --add-dir flag
+			int firstIndex = command.indexOf("--add-dir");
+			assertThat(firstIndex).isGreaterThan(-1);
+			assertThat(command.get(firstIndex + 1)).isEqualTo("/workspace/libs");
+
+			int secondIndex = command.indexOf("--add-dir");
+			List<String> afterFirst = command.subList(firstIndex + 2, command.size());
+			int secondPos = afterFirst.indexOf("--add-dir");
+			assertThat(secondPos).isGreaterThan(-1);
+			assertThat(afterFirst.get(secondPos + 1)).isEqualTo("/workspace/docs");
+
+			transport.close();
+		}
+
+		@Test
+		@DisplayName("Should include settings flag when specified")
+		void buildCommandWithSettings() {
+			// Given
+			BidirectionalTransport transport = new BidirectionalTransport(tempDir, Duration.ofMinutes(5),
+					"/usr/bin/claude");
+			CLIOptions options = CLIOptions.builder().settings("/etc/claude/settings.json").build();
+
+			// When
+			List<String> command = transport.buildBidirectionalCommand(options);
+
+			// Then
+			int settingsIndex = command.indexOf("--settings");
+			assertThat(settingsIndex).isGreaterThan(-1);
+			assertThat(command.get(settingsIndex + 1)).isEqualTo("/etc/claude/settings.json");
+
+			transport.close();
+		}
+
+		@Test
+		@DisplayName("Should include permission-prompt-tool-name when specified")
+		void buildCommandWithPermissionPromptToolName() {
+			// Given
+			BidirectionalTransport transport = new BidirectionalTransport(tempDir, Duration.ofMinutes(5),
+					"/usr/bin/claude");
+			CLIOptions options = CLIOptions.builder().permissionPromptToolName("custom-tool").build();
+
+			// When
+			List<String> command = transport.buildBidirectionalCommand(options);
+
+			// Then - custom permission prompt tool replaces default "stdio"
+			int toolIndex = command.indexOf("--permission-prompt-tool");
+			assertThat(toolIndex).isGreaterThan(-1);
+			assertThat(command.get(toolIndex + 1)).isEqualTo("custom-tool");
+
+			transport.close();
+		}
+
+		@Test
+		@DisplayName("Should include plugin-dir flags for each plugin")
+		void buildCommandWithPlugins() {
+			// Given
+			BidirectionalTransport transport = new BidirectionalTransport(tempDir, Duration.ofMinutes(5),
+					"/usr/bin/claude");
+			CLIOptions options = CLIOptions.builder()
+				.plugins(List.of(PluginConfig.local("/opt/plugins/custom"), PluginConfig.local("/home/user/plugins")))
+				.build();
+
+			// When
+			List<String> command = transport.buildBidirectionalCommand(options);
+
+			// Then
+			int pluginIndex = command.indexOf("--plugin-dir");
+			assertThat(pluginIndex).isGreaterThan(-1);
+			assertThat(command.get(pluginIndex + 1)).isEqualTo("/opt/plugins/custom");
+
+			transport.close();
+		}
+
+		@Test
+		@DisplayName("Should include extra args with values")
+		void buildCommandWithExtraArgsWithValue() {
+			// Given
+			BidirectionalTransport transport = new BidirectionalTransport(tempDir, Duration.ofMinutes(5),
+					"/usr/bin/claude");
+			CLIOptions options = CLIOptions.builder().extraArgs(Map.of("custom-flag", "custom-value")).build();
+
+			// When
+			List<String> command = transport.buildBidirectionalCommand(options);
+
+			// Then
+			int flagIndex = command.indexOf("--custom-flag");
+			assertThat(flagIndex).isGreaterThan(-1);
+			assertThat(command.get(flagIndex + 1)).isEqualTo("custom-value");
+
+			transport.close();
+		}
+
+		@Test
+		@DisplayName("Should include extra args as boolean flags when value is null")
+		void buildCommandWithExtraArgsBooleanFlag() {
+			// Given
+			BidirectionalTransport transport = new BidirectionalTransport(tempDir, Duration.ofMinutes(5),
+					"/usr/bin/claude");
+			// Use HashMap to allow null values
+			Map<String, String> extraArgs = new java.util.HashMap<>();
+			extraArgs.put("debug-to-stderr", null);
+			CLIOptions options = CLIOptions.builder().extraArgs(extraArgs).build();
+
+			// When
+			List<String> command = transport.buildBidirectionalCommand(options);
+
+			// Then - boolean flag should be present without a value
+			assertThat(command).contains("--debug-to-stderr");
+			int flagIndex = command.indexOf("--debug-to-stderr");
+			// Next element should not be the value (either another flag or end)
+			if (flagIndex + 1 < command.size()) {
+				String nextElement = command.get(flagIndex + 1);
+				assertThat(nextElement).startsWith("--").describedAs("Boolean flag should not have a value");
+			}
+
+			transport.close();
+		}
+
+		@Test
+		@DisplayName("Should store user option in CLIOptions")
+		void buildCommandWithUser() {
+			// Given - user wrapping is done at startSession time, not in
+			// buildBidirectionalCommand
+			// The buildBidirectionalCommand only generates CLI flags, the
+			// wrapCommandForUser
+			// is called separately in startSession(). This test verifies the option is
+			// stored.
+			CLIOptions options = CLIOptions.builder().user("claude-runner").build();
+
+			// Then
+			assertThat(options.getUser()).isEqualTo("claude-runner");
+		}
+
+		@Test
+		@DisplayName("Should include all advanced options together")
+		void buildCommandWithAllAdvancedOptions() {
+			// Given
+			BidirectionalTransport transport = new BidirectionalTransport(tempDir, Duration.ofMinutes(5),
+					"/usr/bin/claude");
+			CLIOptions options = CLIOptions.builder()
+				.model("claude-sonnet-4-5")
+				.addDirs(List.of(Path.of("/workspace")))
+				.settings("/etc/claude/settings.json")
+				.plugins(List.of(PluginConfig.local("/opt/plugins/custom")))
+				.extraArgs(Map.of("custom-flag", "value"))
+				.build();
+
+			// When
+			List<String> command = transport.buildBidirectionalCommand(options);
+
+			// Then - all options should be present
+			assertThat(command).contains("--add-dir", "/workspace");
+			assertThat(command).contains("--settings", "/etc/claude/settings.json");
+			assertThat(command).contains("--plugin-dir", "/opt/plugins/custom");
+			assertThat(command).contains("--custom-flag", "value");
 
 			transport.close();
 		}

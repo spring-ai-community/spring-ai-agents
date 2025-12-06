@@ -56,16 +56,30 @@ public class ControlMessageParser {
 
 	private static final String TYPE_CONTROL_RESPONSE = "control_response";
 
+	/** Default maximum buffer size for JSON parsing (1MB). */
+	public static final int DEFAULT_MAX_BUFFER_SIZE = 1024 * 1024;
+
 	private final ObjectMapper objectMapper;
 
 	private final MessageParser messageParser;
+
+	private final int maxBufferSize;
 
 	/**
 	 * Creates a new parser with default configuration.
 	 */
 	public ControlMessageParser() {
+		this(DEFAULT_MAX_BUFFER_SIZE);
+	}
+
+	/**
+	 * Creates a new parser with custom max buffer size.
+	 * @param maxBufferSize maximum message size in bytes (for buffer overflow protection)
+	 */
+	public ControlMessageParser(int maxBufferSize) {
 		this.objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 		this.messageParser = new MessageParser();
+		this.maxBufferSize = maxBufferSize > 0 ? maxBufferSize : DEFAULT_MAX_BUFFER_SIZE;
 	}
 
 	/**
@@ -73,20 +87,37 @@ public class ControlMessageParser {
 	 * @param objectMapper the ObjectMapper to use for JSON processing
 	 */
 	public ControlMessageParser(ObjectMapper objectMapper) {
+		this(objectMapper, DEFAULT_MAX_BUFFER_SIZE);
+	}
+
+	/**
+	 * Creates a new parser with a custom ObjectMapper and max buffer size.
+	 * @param objectMapper the ObjectMapper to use for JSON processing
+	 * @param maxBufferSize maximum message size in bytes (for buffer overflow protection)
+	 */
+	public ControlMessageParser(ObjectMapper objectMapper, int maxBufferSize) {
 		this.objectMapper = objectMapper.copy().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 		this.messageParser = new MessageParser();
+		this.maxBufferSize = maxBufferSize > 0 ? maxBufferSize : DEFAULT_MAX_BUFFER_SIZE;
 	}
 
 	/**
 	 * Parses a JSON string into either a regular message or a control request.
 	 * @param json the JSON string to parse
 	 * @return a ParsedMessage containing either a Message or ControlRequest
-	 * @throws MessageParseException if the JSON is malformed or message structure is
-	 * invalid
+	 * @throws MessageParseException if the JSON is malformed, message structure is
+	 * invalid, or message exceeds max buffer size
 	 */
 	public ParsedMessage parse(String json) throws MessageParseException {
 		if (json == null || json.isBlank()) {
 			throw new MessageParseException("Cannot parse null or blank JSON");
+		}
+
+		// Buffer overflow protection - check message size before parsing
+		if (json.length() > maxBufferSize) {
+			throw new MessageParseException(
+					String.format("JSON message exceeds maximum buffer size: %d bytes > %d bytes limit", json.length(),
+							maxBufferSize));
 		}
 
 		try {
@@ -96,6 +127,14 @@ public class ControlMessageParser {
 		catch (JsonProcessingException e) {
 			throw MessageParseException.jsonDecodeError(json, e);
 		}
+	}
+
+	/**
+	 * Returns the configured maximum buffer size.
+	 * @return max buffer size in bytes
+	 */
+	public int getMaxBufferSize() {
+		return maxBufferSize;
 	}
 
 	/**

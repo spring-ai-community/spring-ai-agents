@@ -15,6 +15,7 @@
  */
 package org.springaicommunity.agents.claude.autoconfigure;
 
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -56,6 +57,20 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *         max-turns: 10
  *         max-budget-usd: 0.50
  *         fallback-model: "claude-haiku-3-5-20241022"
+ *         # Advanced options for Python SDK parity
+ *         add-dirs:
+ *           - /workspace/shared-libs
+ *           - /workspace/docs
+ *         settings: /etc/claude/custom-settings.json
+ *         permission-prompt-tool-name: MyPermissionTool
+ *         extra-args:
+ *           debug-to-stderr: ~
+ *           custom-flag: "value"
+ *         env:
+ *           CUSTOM_API_KEY: "${CUSTOM_API_KEY}"
+ *           DEBUG_MODE: "true"
+ *         max-buffer-size: 2097152
+ *         user: claude-runner
  * </pre>
  *
  * @author Spring AI Community
@@ -139,6 +154,46 @@ public class ClaudeAgentProperties {
 	 * "claude_code" preset.
 	 */
 	private String appendSystemPrompt;
+
+	// ============================================================
+	// Advanced options for full Python SDK parity
+	// ============================================================
+
+	/**
+	 * Additional directories to include in Claude's context.
+	 */
+	private List<String> addDirs = new ArrayList<>();
+
+	/**
+	 * Custom settings file path.
+	 */
+	private String settings;
+
+	/**
+	 * Permission prompt tool name for interactive permission handling.
+	 */
+	private String permissionPromptToolName;
+
+	/**
+	 * Arbitrary extra CLI arguments. Keys are flag names (without --), values are flag
+	 * values (null for boolean flags).
+	 */
+	private Map<String, String> extraArgs;
+
+	/**
+	 * Custom environment variables for the CLI process.
+	 */
+	private Map<String, String> env;
+
+	/**
+	 * Maximum buffer size for JSON parsing in bytes (default 1MB).
+	 */
+	private Integer maxBufferSize;
+
+	/**
+	 * Unix user to run the CLI process as (requires sudo configuration).
+	 */
+	private String user;
 
 	public String getModel() {
 		return model;
@@ -260,6 +315,66 @@ public class ClaudeAgentProperties {
 		this.appendSystemPrompt = appendSystemPrompt;
 	}
 
+	// ============================================================
+	// Getters and Setters for Advanced Options
+	// ============================================================
+
+	public List<String> getAddDirs() {
+		return addDirs;
+	}
+
+	public void setAddDirs(List<String> addDirs) {
+		this.addDirs = addDirs;
+	}
+
+	public String getSettings() {
+		return settings;
+	}
+
+	public void setSettings(String settings) {
+		this.settings = settings;
+	}
+
+	public String getPermissionPromptToolName() {
+		return permissionPromptToolName;
+	}
+
+	public void setPermissionPromptToolName(String permissionPromptToolName) {
+		this.permissionPromptToolName = permissionPromptToolName;
+	}
+
+	public Map<String, String> getExtraArgs() {
+		return extraArgs;
+	}
+
+	public void setExtraArgs(Map<String, String> extraArgs) {
+		this.extraArgs = extraArgs;
+	}
+
+	public Map<String, String> getEnv() {
+		return env;
+	}
+
+	public void setEnv(Map<String, String> env) {
+		this.env = env;
+	}
+
+	public Integer getMaxBufferSize() {
+		return maxBufferSize;
+	}
+
+	public void setMaxBufferSize(Integer maxBufferSize) {
+		this.maxBufferSize = maxBufferSize;
+	}
+
+	public String getUser() {
+		return user;
+	}
+
+	public void setUser(String user) {
+		this.user = user;
+	}
+
 	/**
 	 * Builds CLI options from these properties.
 	 * @return configured CLI options
@@ -319,6 +434,45 @@ public class ClaudeAgentProperties {
 		// Append system prompt (uses preset mode)
 		if (appendSystemPrompt != null && !appendSystemPrompt.isBlank()) {
 			builder.appendSystemPrompt(appendSystemPrompt);
+		}
+
+		// ============================================================
+		// Advanced options for full Python SDK parity
+		// ============================================================
+
+		// Additional context directories
+		if (addDirs != null && !addDirs.isEmpty()) {
+			builder.addDirs(addDirs.stream().map(Path::of).toList());
+		}
+
+		// Custom settings file
+		if (settings != null && !settings.isBlank()) {
+			builder.settings(settings);
+		}
+
+		// Permission prompt tool
+		if (permissionPromptToolName != null && !permissionPromptToolName.isBlank()) {
+			builder.permissionPromptToolName(permissionPromptToolName);
+		}
+
+		// Extra CLI arguments
+		if (extraArgs != null && !extraArgs.isEmpty()) {
+			builder.extraArgs(extraArgs);
+		}
+
+		// Environment variables
+		if (env != null && !env.isEmpty()) {
+			builder.env(env);
+		}
+
+		// Buffer size protection
+		if (maxBufferSize != null) {
+			builder.maxBufferSize(maxBufferSize);
+		}
+
+		// Unix user
+		if (user != null && !user.isBlank()) {
+			builder.user(user);
 		}
 
 		return builder.build();
