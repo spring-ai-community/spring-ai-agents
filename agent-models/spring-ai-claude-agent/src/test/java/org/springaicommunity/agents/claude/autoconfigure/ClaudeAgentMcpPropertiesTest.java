@@ -19,7 +19,7 @@ package org.springaicommunity.agents.claude.autoconfigure;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springaicommunity.agents.claude.sdk.mcp.McpServerConfig;
+import org.springaicommunity.claude.agent.sdk.mcp.McpServerConfig;
 
 import java.util.List;
 import java.util.Map;

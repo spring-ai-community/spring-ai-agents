@@ -16,17 +16,17 @@
 
 package org.springaicommunity.agents.claude;
 
-import org.springaicommunity.agents.claude.sdk.config.PermissionMode;
-import org.springaicommunity.agents.claude.sdk.hooks.HookCallback;
-import org.springaicommunity.agents.claude.sdk.hooks.HookRegistry;
-import org.springaicommunity.agents.claude.sdk.types.control.HookEvent;
-import org.springaicommunity.agents.claude.sdk.parsing.ParsedMessage;
-import org.springaicommunity.agents.claude.sdk.session.ClaudeSession;
-import org.springaicommunity.agents.claude.sdk.session.DefaultClaudeSession;
-import org.springaicommunity.agents.claude.sdk.transport.CLIOptions;
-import org.springaicommunity.agents.claude.sdk.types.AssistantMessage;
-import org.springaicommunity.agents.claude.sdk.types.Message;
-import org.springaicommunity.agents.claude.sdk.types.ResultMessage;
+import org.springaicommunity.claude.agent.sdk.config.PermissionMode;
+import org.springaicommunity.claude.agent.sdk.hooks.HookCallback;
+import org.springaicommunity.claude.agent.sdk.hooks.HookRegistry;
+import org.springaicommunity.claude.agent.sdk.types.control.HookEvent;
+import org.springaicommunity.claude.agent.sdk.parsing.ParsedMessage;
+import org.springaicommunity.claude.agent.sdk.session.ClaudeSession;
+import org.springaicommunity.agents.claude.sdk.session.SandboxClaudeSession;
+import org.springaicommunity.claude.agent.sdk.transport.CLIOptions;
+import org.springaicommunity.claude.agent.sdk.types.AssistantMessage;
+import org.springaicommunity.claude.agent.sdk.types.Message;
+import org.springaicommunity.claude.agent.sdk.types.ResultMessage;
 import org.springaicommunity.agents.model.AgentGeneration;
 import org.springaicommunity.agents.model.AgentGenerationMetadata;
 import org.springaicommunity.agents.model.AgentResponse;
@@ -84,7 +84,7 @@ import java.util.NoSuchElementException;
  */
 public class ClaudeAgentSession implements AutoCloseable {
 
-	private final DefaultClaudeSession delegate;
+	private final SandboxClaudeSession delegate;
 
 	private final HookRegistry hookRegistry;
 
@@ -93,7 +93,7 @@ public class ClaudeAgentSession implements AutoCloseable {
 	 * @param delegate the underlying session implementation
 	 * @param hookRegistry the hook registry (may be shared with parent model)
 	 */
-	ClaudeAgentSession(DefaultClaudeSession delegate, HookRegistry hookRegistry) {
+	ClaudeAgentSession(SandboxClaudeSession delegate, HookRegistry hookRegistry) {
 		this.delegate = delegate;
 		this.hookRegistry = hookRegistry;
 	}
@@ -108,7 +108,7 @@ public class ClaudeAgentSession implements AutoCloseable {
 
 	/**
 	 * Connects to Claude CLI without an initial prompt.
-	 * @throws org.springaicommunity.agents.claude.sdk.exceptions.ClaudeSDKException if
+	 * @throws org.springaicommunity.claude.agent.sdk.exceptions.ClaudeSDKException if
 	 * connection fails
 	 */
 	public void connect() {
@@ -118,7 +118,7 @@ public class ClaudeAgentSession implements AutoCloseable {
 	/**
 	 * Connects to Claude CLI with an initial prompt.
 	 * @param initialPrompt the first prompt to send
-	 * @throws org.springaicommunity.agents.claude.sdk.exceptions.ClaudeSDKException if
+	 * @throws org.springaicommunity.claude.agent.sdk.exceptions.ClaudeSDKException if
 	 * connection fails
 	 */
 	public void connect(String initialPrompt) {
@@ -129,7 +129,7 @@ public class ClaudeAgentSession implements AutoCloseable {
 	 * Sends a follow-up query in the existing session context. Claude will remember
 	 * previous messages in this session.
 	 * @param prompt the prompt to send
-	 * @throws org.springaicommunity.agents.claude.sdk.exceptions.ClaudeSDKException if
+	 * @throws org.springaicommunity.claude.agent.sdk.exceptions.ClaudeSDKException if
 	 * sending fails
 	 */
 	public void query(String prompt) {
@@ -140,7 +140,7 @@ public class ClaudeAgentSession implements AutoCloseable {
 	 * Sends a follow-up query with a specific session ID.
 	 * @param prompt the prompt to send
 	 * @param sessionId the session ID to use
-	 * @throws org.springaicommunity.agents.claude.sdk.exceptions.ClaudeSDKException if
+	 * @throws org.springaicommunity.claude.agent.sdk.exceptions.ClaudeSDKException if
 	 * sending fails
 	 */
 	public void query(String prompt, String sessionId) {
@@ -190,7 +190,7 @@ public class ClaudeAgentSession implements AutoCloseable {
 
 	/**
 	 * Interrupts the current operation.
-	 * @throws org.springaicommunity.agents.claude.sdk.exceptions.ClaudeSDKException if
+	 * @throws org.springaicommunity.claude.agent.sdk.exceptions.ClaudeSDKException if
 	 * interrupt fails
 	 */
 	public void interrupt() {
@@ -200,7 +200,7 @@ public class ClaudeAgentSession implements AutoCloseable {
 	/**
 	 * Changes the permission mode mid-session.
 	 * @param mode the new permission mode
-	 * @throws org.springaicommunity.agents.claude.sdk.exceptions.ClaudeSDKException if
+	 * @throws org.springaicommunity.claude.agent.sdk.exceptions.ClaudeSDKException if
 	 * setting mode fails
 	 */
 	public void setPermissionMode(PermissionMode mode) {
@@ -210,7 +210,7 @@ public class ClaudeAgentSession implements AutoCloseable {
 	/**
 	 * Changes the permission mode mid-session using a string value.
 	 * @param mode the new permission mode as string
-	 * @throws org.springaicommunity.agents.claude.sdk.exceptions.ClaudeSDKException if
+	 * @throws org.springaicommunity.claude.agent.sdk.exceptions.ClaudeSDKException if
 	 * setting mode fails
 	 */
 	public void setPermissionMode(String mode) {
@@ -220,7 +220,7 @@ public class ClaudeAgentSession implements AutoCloseable {
 	/**
 	 * Changes the model mid-session.
 	 * @param model the new model name (e.g., "claude-sonnet-4-20250514")
-	 * @throws org.springaicommunity.agents.claude.sdk.exceptions.ClaudeSDKException if
+	 * @throws org.springaicommunity.claude.agent.sdk.exceptions.ClaudeSDKException if
 	 * setting model fails
 	 */
 	public void setModel(String model) {
@@ -416,7 +416,7 @@ public class ClaudeAgentSession implements AutoCloseable {
 				workingDirectory = Path.of(System.getProperty("user.dir"));
 			}
 			HookRegistry registry = hookRegistry != null ? hookRegistry : new HookRegistry();
-			DefaultClaudeSession delegate = DefaultClaudeSession.builder()
+			SandboxClaudeSession delegate = SandboxClaudeSession.builder()
 				.workingDirectory(workingDirectory)
 				.options(options)
 				.timeout(timeout)

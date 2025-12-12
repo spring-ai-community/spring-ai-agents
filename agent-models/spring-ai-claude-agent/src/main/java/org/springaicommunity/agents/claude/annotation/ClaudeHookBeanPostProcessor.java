@@ -18,12 +18,12 @@ package org.springaicommunity.agents.claude.annotation;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springaicommunity.agents.claude.sdk.hooks.HookCallback;
-import org.springaicommunity.agents.claude.sdk.hooks.HookRegistration;
-import org.springaicommunity.agents.claude.sdk.hooks.HookRegistry;
-import org.springaicommunity.agents.claude.sdk.types.control.HookEvent;
-import org.springaicommunity.agents.claude.sdk.types.control.HookInput;
-import org.springaicommunity.agents.claude.sdk.types.control.HookOutput;
+import org.springaicommunity.claude.agent.sdk.hooks.HookCallback;
+import org.springaicommunity.claude.agent.sdk.hooks.HookRegistration;
+import org.springaicommunity.claude.agent.sdk.hooks.HookRegistry;
+import org.springaicommunity.claude.agent.sdk.types.control.HookEvent;
+import org.springaicommunity.claude.agent.sdk.types.control.HookInput;
+import org.springaicommunity.claude.agent.sdk.types.control.HookOutput;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;

@@ -22,7 +22,7 @@ import org.springaicommunity.agents.client.AgentClient;
 import org.springaicommunity.agents.client.AgentClientResponse;
 import org.springaicommunity.agents.claude.ClaudeAgentModel;
 import org.springaicommunity.agents.claude.ClaudeAgentOptions;
-import org.springaicommunity.agents.claude.sdk.config.ClaudeCliDiscovery;
+import org.springaicommunity.claude.agent.sdk.config.ClaudeCliDiscovery;
 import org.springaicommunity.agents.core.AgentRunner;
 import org.springaicommunity.agents.core.LauncherSpec;
 import org.springaicommunity.agents.core.Result;

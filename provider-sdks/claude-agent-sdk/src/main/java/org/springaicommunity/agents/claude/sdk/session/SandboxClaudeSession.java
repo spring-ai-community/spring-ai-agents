@@ -19,28 +19,29 @@ package org.springaicommunity.agents.claude.sdk.session;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springaicommunity.agents.claude.sdk.exceptions.TransportException;
-import org.springaicommunity.agents.claude.sdk.exceptions.ClaudeSDKException;
-import org.springaicommunity.agents.claude.sdk.hooks.HookCallback;
-import org.springaicommunity.agents.claude.sdk.hooks.HookRegistry;
-import org.springaicommunity.agents.claude.sdk.mcp.McpMessageHandler;
-import org.springaicommunity.agents.claude.sdk.mcp.McpServerConfig;
-import org.springaicommunity.agents.claude.sdk.parsing.ParsedMessage;
-import org.springaicommunity.agents.claude.sdk.streaming.BlockingMessageReceiver;
-import org.springaicommunity.agents.claude.sdk.streaming.MessageReceiver;
-import org.springaicommunity.agents.claude.sdk.streaming.MessageStreamIterator;
-import org.springaicommunity.agents.claude.sdk.streaming.ResponseBoundedReceiver;
-import org.springaicommunity.agents.claude.sdk.transport.BidirectionalTransport;
-import org.springaicommunity.agents.claude.sdk.transport.CLIOptions;
-import org.springaicommunity.agents.claude.sdk.types.Message;
-import org.springaicommunity.agents.claude.sdk.types.ResultMessage;
-import org.springaicommunity.agents.claude.sdk.types.control.ControlRequest;
-import org.springaicommunity.agents.claude.sdk.types.control.ControlResponse;
-import org.springaicommunity.agents.claude.sdk.types.control.HookInput;
-import org.springaicommunity.agents.claude.sdk.types.control.HookOutput;
-import org.springaicommunity.agents.claude.sdk.permission.PermissionResult;
-import org.springaicommunity.agents.claude.sdk.permission.ToolPermissionCallback;
-import org.springaicommunity.agents.claude.sdk.permission.ToolPermissionContext;
+import org.springaicommunity.claude.agent.sdk.exceptions.TransportException;
+import org.springaicommunity.claude.agent.sdk.exceptions.ClaudeSDKException;
+import org.springaicommunity.claude.agent.sdk.hooks.HookCallback;
+import org.springaicommunity.claude.agent.sdk.hooks.HookRegistry;
+import org.springaicommunity.claude.agent.sdk.mcp.McpMessageHandler;
+import org.springaicommunity.claude.agent.sdk.mcp.McpServerConfig;
+import org.springaicommunity.claude.agent.sdk.parsing.ParsedMessage;
+import org.springaicommunity.claude.agent.sdk.streaming.BlockingMessageReceiver;
+import org.springaicommunity.claude.agent.sdk.streaming.MessageReceiver;
+import org.springaicommunity.claude.agent.sdk.streaming.MessageStreamIterator;
+import org.springaicommunity.claude.agent.sdk.streaming.ResponseBoundedReceiver;
+import org.springaicommunity.agents.claude.sdk.transport.SandboxBidirectionalTransport;
+import org.springaicommunity.claude.agent.sdk.transport.CLIOptions;
+import org.springaicommunity.claude.agent.sdk.types.Message;
+import org.springaicommunity.claude.agent.sdk.types.ResultMessage;
+import org.springaicommunity.claude.agent.sdk.types.control.ControlRequest;
+import org.springaicommunity.claude.agent.sdk.types.control.ControlResponse;
+import org.springaicommunity.claude.agent.sdk.types.control.HookInput;
+import org.springaicommunity.claude.agent.sdk.types.control.HookOutput;
+import org.springaicommunity.claude.agent.sdk.permission.PermissionResult;
+import org.springaicommunity.claude.agent.sdk.permission.ToolPermissionCallback;
+import org.springaicommunity.claude.agent.sdk.permission.ToolPermissionContext;
+import org.springaicommunity.claude.agent.sdk.session.ClaudeSession;
 import org.springaicommunity.agents.model.sandbox.Sandbox;
 
 import reactor.core.publisher.Mono;
@@ -71,9 +72,9 @@ import java.util.concurrent.atomic.AtomicReference;
  * @see ClaudeSession
  * @see BidirectionalTransport
  */
-public class DefaultClaudeSession implements ClaudeSession {
+public class SandboxClaudeSession implements ClaudeSession {
 
-	private static final Logger logger = LoggerFactory.getLogger(DefaultClaudeSession.class);
+	private static final Logger logger = LoggerFactory.getLogger(SandboxClaudeSession.class);
 
 	private static final String DEFAULT_SESSION_ID = "default";
 
@@ -112,7 +113,7 @@ public class DefaultClaudeSession implements ClaudeSession {
 	private volatile ToolPermissionCallback toolPermissionCallback;
 
 	// Transport and streaming
-	private volatile BidirectionalTransport transport;
+	private volatile SandboxBidirectionalTransport transport;
 
 	private volatile MessageStreamIterator messageIterator;
 
@@ -134,7 +135,7 @@ public class DefaultClaudeSession implements ClaudeSession {
 	 * Creates a session with the specified working directory.
 	 * @param workingDirectory the working directory for Claude CLI
 	 */
-	public DefaultClaudeSession(Path workingDirectory) {
+	public SandboxClaudeSession(Path workingDirectory) {
 		this(workingDirectory, CLIOptions.builder().build(), Duration.ofMinutes(10), null, null, null);
 	}
 
@@ -147,7 +148,7 @@ public class DefaultClaudeSession implements ClaudeSession {
 	 * @param sandbox optional sandbox for process execution
 	 * @param hookRegistry optional hook registry
 	 */
-	public DefaultClaudeSession(Path workingDirectory, CLIOptions options, Duration timeout, String claudePath,
+	public SandboxClaudeSession(Path workingDirectory, CLIOptions options, Duration timeout, String claudePath,
 			Sandbox sandbox, HookRegistry hookRegistry) {
 		this.workingDirectory = workingDirectory;
 		this.options = options != null ? options : CLIOptions.builder().build();
@@ -194,7 +195,7 @@ public class DefaultClaudeSession implements ClaudeSession {
 	}
 
 	/**
-	 * Builder for creating DefaultClaudeSession instances.
+	 * Builder for creating SandboxClaudeSession instances.
 	 */
 	public static Builder builder() {
 		return new Builder();
@@ -216,7 +217,7 @@ public class DefaultClaudeSession implements ClaudeSession {
 
 		try {
 			// Create transport
-			transport = new BidirectionalTransport(workingDirectory, timeout, claudePath, sandbox);
+			transport = new SandboxBidirectionalTransport(workingDirectory, timeout, claudePath, sandbox);
 
 			// Create message receivers (both iterator and POC pattern)
 			messageIterator = new MessageStreamIterator();
@@ -412,7 +413,7 @@ public class DefaultClaudeSession implements ClaudeSession {
 	 * @param callback the callback to execute
 	 * @return this session for chaining
 	 */
-	public DefaultClaudeSession registerHook(org.springaicommunity.agents.claude.sdk.types.control.HookEvent event,
+	public SandboxClaudeSession registerHook(org.springaicommunity.claude.agent.sdk.types.control.HookEvent event,
 			String toolPattern, HookCallback callback) {
 		hookRegistry.register(event, toolPattern, callback);
 		return this;
@@ -808,7 +809,7 @@ public class DefaultClaudeSession implements ClaudeSession {
 	}
 
 	/**
-	 * Builder for DefaultClaudeSession.
+	 * Builder for SandboxClaudeSession.
 	 */
 	public static class Builder {
 
@@ -854,11 +855,11 @@ public class DefaultClaudeSession implements ClaudeSession {
 			return this;
 		}
 
-		public DefaultClaudeSession build() {
+		public SandboxClaudeSession build() {
 			if (workingDirectory == null) {
 				throw new IllegalArgumentException("workingDirectory is required");
 			}
-			return new DefaultClaudeSession(workingDirectory, options, timeout, claudePath, sandbox, hookRegistry);
+			return new SandboxClaudeSession(workingDirectory, options, timeout, claudePath, sandbox, hookRegistry);
 		}
 
 	}

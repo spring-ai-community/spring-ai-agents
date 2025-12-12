@@ -20,11 +20,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springaicommunity.agents.claude.sdk.config.PermissionMode;
-import org.springaicommunity.agents.claude.sdk.hooks.HookRegistry;
-import org.springaicommunity.agents.claude.sdk.transport.CLIOptions;
-import org.springaicommunity.agents.claude.sdk.types.control.HookEvent;
-import org.springaicommunity.agents.claude.sdk.types.control.HookOutput;
+import org.springaicommunity.claude.agent.sdk.config.PermissionMode;
+import org.springaicommunity.claude.agent.sdk.hooks.HookRegistry;
+import org.springaicommunity.claude.agent.sdk.transport.CLIOptions;
+import org.springaicommunity.claude.agent.sdk.types.control.HookEvent;
+import org.springaicommunity.claude.agent.sdk.types.control.HookOutput;
 
 import java.nio.file.Path;
 import java.time.Duration;

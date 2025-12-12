@@ -34,12 +34,12 @@ import java.lang.annotation.Target;
  * Method signature requirements:
  * </p>
  * <ul>
- * <li>Parameter: {@link org.springaicommunity.agents.claude.sdk.types.control.HookInput}
+ * <li>Parameter: {@link org.springaicommunity.claude.agent.sdk.types.control.HookInput}
  * or
- * {@link org.springaicommunity.agents.claude.sdk.types.control.HookInput.StopInput}</li>
+ * {@link org.springaicommunity.claude.agent.sdk.types.control.HookInput.StopInput}</li>
  * <li>Return type:
- * {@link org.springaicommunity.agents.claude.sdk.types.control.HookOutput} or
- * {@code void} (void implies allow)</li>
+ * {@link org.springaicommunity.claude.agent.sdk.types.control.HookOutput} or {@code void}
+ * (void implies allow)</li>
  * </ul>
  *
  * <p>
@@ -69,8 +69,8 @@ import java.lang.annotation.Target;
  *
  * @author Spring AI Community
  * @since 0.1.0
- * @see org.springaicommunity.agents.claude.sdk.hooks.HookCallback
- * @see org.springaicommunity.agents.claude.sdk.types.control.HookOutput
+ * @see org.springaicommunity.claude.agent.sdk.hooks.HookCallback
+ * @see org.springaicommunity.claude.agent.sdk.types.control.HookOutput
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)

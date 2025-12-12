@@ -20,16 +20,19 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springaicommunity.agents.claude.sdk.config.ClaudeCliDiscovery;
-import org.springaicommunity.agents.claude.sdk.config.PermissionMode;
-import org.springaicommunity.agents.claude.sdk.exceptions.ClaudeSDKException;
-import org.springaicommunity.agents.claude.sdk.exceptions.SessionClosedException;
-import org.springaicommunity.agents.claude.sdk.exceptions.TransportException;
-import org.springaicommunity.agents.claude.sdk.mcp.McpServerConfig;
-import org.springaicommunity.agents.claude.sdk.parsing.ControlMessageParser;
-import org.springaicommunity.agents.claude.sdk.parsing.ParsedMessage;
-import org.springaicommunity.agents.claude.sdk.types.control.ControlRequest;
-import org.springaicommunity.agents.claude.sdk.types.control.ControlResponse;
+import org.springaicommunity.claude.agent.sdk.config.ClaudeCliDiscovery;
+import org.springaicommunity.claude.agent.sdk.config.PermissionMode;
+import org.springaicommunity.claude.agent.sdk.exceptions.ClaudeSDKException;
+import org.springaicommunity.claude.agent.sdk.exceptions.SessionClosedException;
+import org.springaicommunity.claude.agent.sdk.exceptions.TransportException;
+import org.springaicommunity.claude.agent.sdk.mcp.McpServerConfig;
+import org.springaicommunity.claude.agent.sdk.parsing.ControlMessageParser;
+import org.springaicommunity.claude.agent.sdk.parsing.ParsedMessage;
+import org.springaicommunity.claude.agent.sdk.types.control.ControlRequest;
+import org.springaicommunity.claude.agent.sdk.types.control.ControlResponse;
+import org.springaicommunity.claude.agent.sdk.transport.CLIOptions;
+import org.springaicommunity.claude.agent.sdk.transport.StderrHandler;
+import org.springaicommunity.claude.agent.sdk.transport.ToolPermissionCallback;
 import org.springaicommunity.agents.model.sandbox.ExecSpec;
 import org.springaicommunity.agents.model.sandbox.Sandbox;
 import reactor.core.Disposable;
@@ -77,9 +80,9 @@ import java.util.function.Consumer;
  * @see ControlRequest
  * @see ControlResponse
  */
-public class BidirectionalTransport implements AutoCloseable {
+public class SandboxBidirectionalTransport implements AutoCloseable {
 
-	private static final Logger logger = LoggerFactory.getLogger(BidirectionalTransport.class);
+	private static final Logger logger = LoggerFactory.getLogger(SandboxBidirectionalTransport.class);
 
 	// ============================================================
 	// State Machine Constants
@@ -181,15 +184,15 @@ public class BidirectionalTransport implements AutoCloseable {
 	// Constructors
 	// ============================================================
 
-	public BidirectionalTransport(Path workingDirectory) {
+	public SandboxBidirectionalTransport(Path workingDirectory) {
 		this(workingDirectory, Duration.ofMinutes(10), null, null);
 	}
 
-	public BidirectionalTransport(Path workingDirectory, Duration defaultTimeout) {
+	public SandboxBidirectionalTransport(Path workingDirectory, Duration defaultTimeout) {
 		this(workingDirectory, defaultTimeout, null, null);
 	}
 
-	public BidirectionalTransport(Path workingDirectory, Duration defaultTimeout, String claudePath) {
+	public SandboxBidirectionalTransport(Path workingDirectory, Duration defaultTimeout, String claudePath) {
 		this(workingDirectory, defaultTimeout, claudePath, null);
 	}
 
@@ -201,7 +204,8 @@ public class BidirectionalTransport implements AutoCloseable {
 	 * @param sandbox optional Sandbox for process execution (enables Docker support)
 	 * @throws IllegalArgumentException if workingDirectory or defaultTimeout is null
 	 */
-	public BidirectionalTransport(Path workingDirectory, Duration defaultTimeout, String claudePath, Sandbox sandbox) {
+	public SandboxBidirectionalTransport(Path workingDirectory, Duration defaultTimeout, String claudePath,
+			Sandbox sandbox) {
 		// MCP SDK pattern: strict validation for required arguments
 		if (workingDirectory == null) {
 			throw new IllegalArgumentException("workingDirectory must not be null");

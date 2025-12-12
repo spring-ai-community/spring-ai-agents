@@ -18,7 +18,7 @@ package org.springaicommunity.agents.claude.autoconfigure;
 
 import org.springaicommunity.agents.claude.ClaudeAgentModel;
 import org.springaicommunity.agents.claude.annotation.ClaudeHookBeanPostProcessor;
-import org.springaicommunity.agents.claude.sdk.hooks.HookRegistry;
+import org.springaicommunity.claude.agent.sdk.hooks.HookRegistry;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;

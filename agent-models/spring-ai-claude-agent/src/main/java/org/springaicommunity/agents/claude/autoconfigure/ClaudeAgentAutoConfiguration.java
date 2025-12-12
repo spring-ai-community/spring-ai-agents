@@ -17,8 +17,8 @@ package org.springaicommunity.agents.claude.autoconfigure;
 
 import org.springaicommunity.agents.claude.ClaudeAgentModel;
 import org.springaicommunity.agents.claude.ClaudeAgentOptions;
-import org.springaicommunity.agents.claude.sdk.hooks.HookRegistry;
-import org.springaicommunity.agents.claude.sdk.mcp.McpServerConfig;
+import org.springaicommunity.claude.agent.sdk.hooks.HookRegistry;
+import org.springaicommunity.claude.agent.sdk.mcp.McpServerConfig;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;

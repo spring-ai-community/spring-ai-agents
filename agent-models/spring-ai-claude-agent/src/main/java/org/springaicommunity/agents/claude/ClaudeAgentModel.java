@@ -19,20 +19,20 @@ package org.springaicommunity.agents.claude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springaicommunity.agents.claude.sdk.exceptions.ClaudeSDKException;
-import org.springaicommunity.agents.claude.sdk.hooks.HookCallback;
-import org.springaicommunity.agents.claude.sdk.hooks.HookRegistry;
-import org.springaicommunity.agents.claude.sdk.parsing.ParsedMessage;
-import org.springaicommunity.agents.claude.sdk.streaming.MessageStreamIterator;
-import org.springaicommunity.agents.claude.sdk.transport.BidirectionalTransport;
-import org.springaicommunity.agents.claude.sdk.transport.CLIOptions;
-import org.springaicommunity.agents.claude.sdk.types.AssistantMessage;
-import org.springaicommunity.agents.claude.sdk.types.Message;
-import org.springaicommunity.agents.claude.sdk.types.ResultMessage;
-import org.springaicommunity.agents.claude.sdk.types.control.ControlRequest;
-import org.springaicommunity.agents.claude.sdk.types.control.ControlResponse;
-import org.springaicommunity.agents.claude.sdk.types.control.HookInput;
-import org.springaicommunity.agents.claude.sdk.types.control.HookOutput;
+import org.springaicommunity.claude.agent.sdk.exceptions.ClaudeSDKException;
+import org.springaicommunity.claude.agent.sdk.hooks.HookCallback;
+import org.springaicommunity.claude.agent.sdk.hooks.HookRegistry;
+import org.springaicommunity.claude.agent.sdk.parsing.ParsedMessage;
+import org.springaicommunity.claude.agent.sdk.streaming.MessageStreamIterator;
+import org.springaicommunity.agents.claude.sdk.transport.SandboxBidirectionalTransport;
+import org.springaicommunity.claude.agent.sdk.transport.CLIOptions;
+import org.springaicommunity.claude.agent.sdk.types.AssistantMessage;
+import org.springaicommunity.claude.agent.sdk.types.Message;
+import org.springaicommunity.claude.agent.sdk.types.ResultMessage;
+import org.springaicommunity.claude.agent.sdk.types.control.ControlRequest;
+import org.springaicommunity.claude.agent.sdk.types.control.ControlResponse;
+import org.springaicommunity.claude.agent.sdk.types.control.HookInput;
+import org.springaicommunity.claude.agent.sdk.types.control.HookOutput;
 import org.springaicommunity.agents.model.AgentGeneration;
 import org.springaicommunity.agents.model.AgentGenerationMetadata;
 import org.springaicommunity.agents.model.AgentModel;
@@ -363,8 +363,8 @@ public class ClaudeAgentModel implements AgentModel, StreamingAgentModel, Iterab
 	@Override
 	public boolean isAvailable() {
 		try {
-			BidirectionalTransport transport = new BidirectionalTransport(workingDirectory, timeout, claudePath,
-					sandbox);
+			SandboxBidirectionalTransport transport = new SandboxBidirectionalTransport(workingDirectory, timeout,
+					claudePath, sandbox);
 			transport.close();
 			return true;
 		}
@@ -401,8 +401,8 @@ public class ClaudeAgentModel implements AgentModel, StreamingAgentModel, Iterab
 
 	private void streamInternal(AgentTaskRequest request, Sinks.Many<AgentResponse> sink) {
 		Path effectiveWorkingDir = request.workingDirectory() != null ? request.workingDirectory() : workingDirectory;
-		BidirectionalTransport transport = new BidirectionalTransport(effectiveWorkingDir, timeout, claudePath,
-				sandbox);
+		SandboxBidirectionalTransport transport = new SandboxBidirectionalTransport(effectiveWorkingDir, timeout,
+				claudePath, sandbox);
 
 		try {
 			CLIOptions options = buildCLIOptions(request);
@@ -432,8 +432,8 @@ public class ClaudeAgentModel implements AgentModel, StreamingAgentModel, Iterab
 
 	private void streamToIterator(AgentTaskRequest request, MessageStreamIterator iterator) {
 		Path effectiveWorkingDir = request.workingDirectory() != null ? request.workingDirectory() : workingDirectory;
-		BidirectionalTransport transport = new BidirectionalTransport(effectiveWorkingDir, timeout, claudePath,
-				sandbox);
+		SandboxBidirectionalTransport transport = new SandboxBidirectionalTransport(effectiveWorkingDir, timeout,
+				claudePath, sandbox);
 
 		try {
 			CLIOptions options = buildCLIOptions(request);
@@ -455,7 +455,7 @@ public class ClaudeAgentModel implements AgentModel, StreamingAgentModel, Iterab
 		}
 	}
 
-	private ControlResponse handleControlRequest(ControlRequest request, BidirectionalTransport transport,
+	private ControlResponse handleControlRequest(ControlRequest request, SandboxBidirectionalTransport transport,
 			AtomicBoolean initialized) {
 		logger.debug("Handling control request: type={}",
 				request.request() != null ? request.request().subtype() : "null");
@@ -544,7 +544,7 @@ public class ClaudeAgentModel implements AgentModel, StreamingAgentModel, Iterab
 
 		if (options.isYolo()) {
 			builder.permissionMode(
-					org.springaicommunity.agents.claude.sdk.config.PermissionMode.DANGEROUSLY_SKIP_PERMISSIONS);
+					org.springaicommunity.claude.agent.sdk.config.PermissionMode.DANGEROUSLY_SKIP_PERMISSIONS);
 		}
 
 		// Extended thinking

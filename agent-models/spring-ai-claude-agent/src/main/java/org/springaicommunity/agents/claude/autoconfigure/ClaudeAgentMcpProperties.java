@@ -16,7 +16,7 @@
 
 package org.springaicommunity.agents.claude.autoconfigure;
 
-import org.springaicommunity.agents.claude.sdk.mcp.McpServerConfig;
+import org.springaicommunity.claude.agent.sdk.mcp.McpServerConfig;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.ArrayList;

@@ -19,8 +19,8 @@ package org.springaicommunity.agents.claude.autoconfigure;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springaicommunity.agents.claude.sdk.config.PermissionMode;
-import org.springaicommunity.agents.claude.sdk.transport.CLIOptions;
+import org.springaicommunity.claude.agent.sdk.config.PermissionMode;
+import org.springaicommunity.claude.agent.sdk.transport.CLIOptions;
 
 import java.time.Duration;
 import java.util.List;

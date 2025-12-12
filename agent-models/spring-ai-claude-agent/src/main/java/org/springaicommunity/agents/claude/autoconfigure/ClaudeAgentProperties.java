@@ -21,8 +21,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.springaicommunity.agents.claude.sdk.config.PermissionMode;
-import org.springaicommunity.agents.claude.sdk.transport.CLIOptions;
+import org.springaicommunity.claude.agent.sdk.config.PermissionMode;
+import org.springaicommunity.claude.agent.sdk.transport.CLIOptions;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
