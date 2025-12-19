@@ -253,39 +253,6 @@
                 <scope>import</scope>
             </dependency>
 
-            <!-- Spring AI dependencies -->
-            <dependency>
-                <groupId>org.springframework.ai</groupId>
-                <artifactId>spring-ai-client-chat</artifactId>
-                <version>${spring-ai.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework.ai</groupId>
-                <artifactId>spring-ai-model</artifactId>
-                <version>${spring-ai.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework.ai</groupId>
-                <artifactId>spring-ai-core</artifactId>
-                <version>${spring-ai.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework.ai</groupId>
-                <artifactId>spring-ai-retry</artifactId>
-                <version>${spring-ai.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework.ai</groupId>
-                <artifactId>spring-ai-test</artifactId>
-                <version>${spring-ai.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework.ai</groupId>
-                <artifactId>spring-ai-template-st</artifactId>
-                <version>${spring-ai.version}</version>
-            </dependency>
-
             <!-- Agent SDK dependencies -->
             <dependency>
                 <groupId>org.zeroturnaround</groupId>
