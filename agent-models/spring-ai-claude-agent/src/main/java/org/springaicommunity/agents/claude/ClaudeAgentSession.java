@@ -176,9 +176,12 @@ public class ClaudeAgentSession implements AutoCloseable {
 		Thread.startVirtualThread(() -> {
 			try {
 				for (AgentResponse response : receiveResponse()) {
-					sink.tryEmitNext(response);
-				}
-				sink.tryEmitComplete();
+                    if (response == null) {
+                        sink.tryEmitComplete();
+                        break;
+                    }
+                    sink.tryEmitNext(response);
+                }
 			}
 			catch (Exception e) {
 				sink.tryEmitError(e);
@@ -336,7 +339,7 @@ public class ClaudeAgentSession implements AutoCloseable {
 		@Override
 		public AgentResponse next() {
 			if (!hasNext()) {
-				throw new NoSuchElementException();
+                return null;
 			}
 			AgentResponse result = next;
 			next = null;
