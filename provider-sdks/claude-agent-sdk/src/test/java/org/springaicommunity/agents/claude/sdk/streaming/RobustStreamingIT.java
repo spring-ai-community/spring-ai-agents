@@ -46,7 +46,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * </p>
  * <ul>
  * <li>Parse stream-json correctly with character-based accumulation</li>
- * <li>Validate message flow matches Python SDK exactly</li>
+ * <li>Validate message flow matches expected protocol</li>
  * <li>Handle edge cases and error scenarios gracefully</li>
  * <li>Provide comprehensive diagnostics and monitoring</li>
  * </ul>
@@ -80,8 +80,7 @@ class RobustStreamingIT extends ClaudeCliTestBase {
 		// Validate process success
 		assertThat(result.getExitValue()).isEqualTo(0);
 
-		// Validate message flow matches Python SDK: SystemMessage -> AssistantMessage ->
-		// ResultMessage
+		// Validate message flow: SystemMessage -> AssistantMessage -> ResultMessage
 		assertThat(messages).hasSizeGreaterThanOrEqualTo(3);
 		assertThat(messages.get(0)).isInstanceOf(SystemMessage.class);
 

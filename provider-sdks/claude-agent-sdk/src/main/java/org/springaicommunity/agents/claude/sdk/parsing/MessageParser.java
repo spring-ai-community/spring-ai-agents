@@ -16,7 +16,6 @@
 
 package org.springaicommunity.agents.claude.sdk.parsing;
 
-import org.springaicommunity.agents.claude.sdk.exceptions.CLIJSONDecodeException;
 import org.springaicommunity.agents.claude.sdk.exceptions.MessageParseException;
 import org.springaicommunity.agents.claude.sdk.types.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -47,13 +46,13 @@ public class MessageParser {
 	/**
 	 * Parses a JSON string into a Message object.
 	 */
-	public Message parseMessage(String json) throws CLIJSONDecodeException, MessageParseException {
+	public Message parseMessage(String json) throws MessageParseException {
 		try {
 			JsonNode root = objectMapper.readTree(json);
 			return parseMessageFromNode(root);
 		}
 		catch (JsonProcessingException e) {
-			throw CLIJSONDecodeException.create(json, e);
+			throw MessageParseException.jsonDecodeError(json, e);
 		}
 	}
 

@@ -17,6 +17,7 @@
 package org.springaicommunity.agents.claude.sdk.types;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.Map;
 
@@ -40,7 +41,9 @@ public record ResultMessage(@JsonProperty("subtype") String subtype,
 
 		@JsonProperty("usage") Map<String, Object> usage,
 
-		@JsonProperty("result") String result) implements Message {
+		@JsonProperty("result") String result,
+
+		@JsonProperty("structured_output") Object structuredOutput) implements Message {
 
 	@Override
 	public String getType() {
@@ -108,6 +111,40 @@ public record ResultMessage(@JsonProperty("subtype") String subtype,
 		return defaultValue;
 	}
 
+	/**
+	 * Gets the structured output as a typed object using the provided ObjectMapper.
+	 * @param <T> the target type
+	 * @param type the class of the target type
+	 * @param mapper the ObjectMapper to use for conversion
+	 * @return the structured output as the target type, or null if not present
+	 */
+	public <T> T getStructuredOutputAs(Class<T> type, ObjectMapper mapper) {
+		if (structuredOutput == null) {
+			return null;
+		}
+		return mapper.convertValue(structuredOutput, type);
+	}
+
+	/**
+	 * Gets the structured output as a Map.
+	 * @return the structured output as a Map, or null if not present or not a Map
+	 */
+	@SuppressWarnings("unchecked")
+	public Map<String, Object> getStructuredOutputAsMap() {
+		if (structuredOutput instanceof Map) {
+			return (Map<String, Object>) structuredOutput;
+		}
+		return null;
+	}
+
+	/**
+	 * Checks if structured output is present.
+	 * @return true if structured output is present, false otherwise
+	 */
+	public boolean hasStructuredOutput() {
+		return structuredOutput != null;
+	}
+
 	public static Builder builder() {
 		return new Builder();
 	}
@@ -131,6 +168,8 @@ public record ResultMessage(@JsonProperty("subtype") String subtype,
 		private Map<String, Object> usage;
 
 		private String result;
+
+		private Object structuredOutput;
 
 		public Builder subtype(String subtype) {
 			this.subtype = subtype;
@@ -177,9 +216,14 @@ public record ResultMessage(@JsonProperty("subtype") String subtype,
 			return this;
 		}
 
+		public Builder structuredOutput(Object structuredOutput) {
+			this.structuredOutput = structuredOutput;
+			return this;
+		}
+
 		public ResultMessage build() {
 			return new ResultMessage(subtype, durationMs, durationApiMs, isError, numTurns, sessionId, totalCostUsd,
-					usage, result);
+					usage, result, structuredOutput);
 		}
 
 	}

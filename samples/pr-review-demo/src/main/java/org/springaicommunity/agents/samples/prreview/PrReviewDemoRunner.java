@@ -8,11 +8,7 @@ import org.springframework.stereotype.Component;
 import org.springaicommunity.agents.client.AgentClient;
 import org.springaicommunity.agents.claude.ClaudeAgentModel;
 import org.springaicommunity.agents.claude.ClaudeAgentOptions;
-import org.springaicommunity.agents.claude.sdk.ClaudeAgentClient;
-import org.springaicommunity.agents.model.sandbox.LocalSandbox;
-import org.springaicommunity.agents.model.sandbox.Sandbox;
 
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -115,21 +111,18 @@ public class PrReviewDemoRunner implements CommandLineRunner {
 	}
 
 	private AgentClient createAgentClient() throws Exception {
-		// Create Claude Code client (uses current directory by default)
-		ClaudeAgentClient claudeClient = ClaudeAgentClient.create();
-		
 		// Configure agent options
 		ClaudeAgentOptions options = ClaudeAgentOptions.builder()
 			.model("claude-sonnet-4-20250514")
 			.yolo(true)
 			.build();
-		
-		// Create sandbox for execution
-		Sandbox sandbox = new LocalSandbox(Paths.get(System.getProperty("user.dir")));
 
-		// Create agent model
-		ClaudeAgentModel agentModel = new ClaudeAgentModel(claudeClient, options, sandbox);
-		
+		// Create agent model using builder pattern
+		ClaudeAgentModel agentModel = ClaudeAgentModel.builder()
+			.workingDirectory(Paths.get(System.getProperty("user.dir")))
+			.defaultOptions(options)
+			.build();
+
 		return AgentClient.create(agentModel);
 	}
 

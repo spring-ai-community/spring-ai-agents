@@ -19,6 +19,7 @@ package org.springaicommunity.agents.claude.sdk.transport;
 import org.springaicommunity.agents.claude.sdk.config.ClaudeCliDiscovery;
 import org.springaicommunity.agents.claude.sdk.config.OutputFormat;
 import org.springaicommunity.agents.claude.sdk.exceptions.*;
+import org.springaicommunity.agents.claude.sdk.mcp.McpServerConfig;
 import org.springaicommunity.agents.claude.sdk.parsing.JsonResultParser;
 import org.springaicommunity.agents.claude.sdk.parsing.MessageParser;
 import org.springaicommunity.agents.claude.sdk.types.AssistantMessage;
@@ -32,12 +33,17 @@ import org.zeroturnaround.exec.ProcessResult;
 import org.zeroturnaround.exec.stream.LogOutputStream;
 import org.zeroturnaround.exec.stream.slf4j.Slf4jStream;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
@@ -59,6 +65,8 @@ public class CLITransport implements AutoCloseable {
 
 	private final Duration defaultTimeout;
 
+	private final ObjectMapper objectMapper;
+
 	public CLITransport(Path workingDirectory) {
 		this(workingDirectory, Duration.ofMinutes(2));
 	}
@@ -72,6 +80,7 @@ public class CLITransport implements AutoCloseable {
 		this.defaultTimeout = defaultTimeout;
 		this.messageParser = new MessageParser();
 		this.jsonResultParser = new JsonResultParser();
+		this.objectMapper = new ObjectMapper();
 		this.claudeCommand = claudePath != null ? claudePath : discoverClaudePathFallback();
 	}
 
@@ -126,7 +135,7 @@ public class CLITransport implements AutoCloseable {
 					logger.error("Command executed: {}", command);
 					logger.error("Working directory: {}", workingDirectory);
 					logger.error("Stdout output: {}", result.outputUTF8());
-					throw ProcessExecutionException.withExitCode("Claude CLI process failed", result.getExitValue());
+					throw TransportException.withExitCode("Claude CLI process failed", result.getExitValue());
 				}
 
 				// Parse the complete JSON result with retry logic for empty responses
@@ -187,8 +196,7 @@ public class CLITransport implements AutoCloseable {
 					logger.error("Command executed: {}", command);
 					logger.error("Working directory: {}", workingDirectory);
 					logger.error("Stdout output: {}", result.outputUTF8());
-					throw ProcessExecutionException.withExitCode("Claude CLI streaming process failed",
-							result.getExitValue());
+					throw TransportException.withExitCode("Claude CLI streaming process failed", result.getExitValue());
 				}
 
 				// Manually close collector to flush any buffered content (important for
@@ -210,13 +218,13 @@ public class CLITransport implements AutoCloseable {
 		}
 		catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
-			throw new ProcessExecutionException("Query was interrupted", e);
+			throw new TransportException("Query was interrupted", e);
 		}
 		catch (IOException | TimeoutException e) {
-			throw new ProcessExecutionException("Failed to execute query", e);
+			throw new TransportException("Failed to execute query", e);
 		}
 		catch (Exception e) {
-			throw new ProcessExecutionException("Unexpected error during query", e);
+			throw new TransportException("Unexpected error during query", e);
 		}
 	}
 
@@ -263,8 +271,7 @@ public class CLITransport implements AutoCloseable {
 				logger.error("Command executed: {}", command);
 				logger.error("Working directory: {}", workingDirectory);
 				logger.error("Stdout output: {}", result.outputUTF8());
-				throw ProcessExecutionException.withExitCode("Claude CLI streaming process failed",
-						result.getExitValue());
+				throw TransportException.withExitCode("Claude CLI streaming process failed", result.getExitValue());
 			}
 
 			logger.info("Streaming query completed successfully");
@@ -275,13 +282,13 @@ public class CLITransport implements AutoCloseable {
 		}
 		catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
-			throw new ProcessExecutionException("Streaming query was interrupted", e);
+			throw new TransportException("Streaming query was interrupted", e);
 		}
 		catch (IOException | TimeoutException e) {
-			throw new ProcessExecutionException("Failed to execute streaming query", e);
+			throw new TransportException("Failed to execute streaming query", e);
 		}
 		catch (Exception e) {
-			throw new ProcessExecutionException("Unexpected error during streaming query", e);
+			throw new TransportException("Unexpected error during streaming query", e);
 		}
 	}
 
@@ -314,13 +321,13 @@ public class CLITransport implements AutoCloseable {
 				.execute();
 
 			if (result.getExitValue() != 0) {
-				throw new CLIConnectionException("Failed to get Claude CLI version");
+				throw new TransportException("Failed to get Claude CLI version");
 			}
 
 			return result.outputUTF8().trim();
 		}
 		catch (Exception e) {
-			throw new CLIConnectionException("Failed to get Claude CLI version", e);
+			throw new TransportException("Failed to get Claude CLI version", e);
 		}
 	}
 
@@ -372,7 +379,7 @@ public class CLITransport implements AutoCloseable {
 			}
 		}
 		catch (Exception e) {
-			throw new ProcessExecutionException("Failed to parse command output: " + e.getMessage(), e);
+			throw new TransportException("Failed to parse command output: " + e.getMessage(), e);
 		}
 
 		return messages;
@@ -456,6 +463,112 @@ public class CLITransport implements AutoCloseable {
 			command.add("--include-partial-messages");
 		}
 
+		// Add max thinking tokens for extended thinking support
+		if (options.getMaxThinkingTokens() != null) {
+			command.add("--max-thinking-tokens");
+			command.add(String.valueOf(options.getMaxThinkingTokens()));
+		}
+
+		// Add JSON schema for structured output support
+		if (options.getJsonSchema() != null && !options.getJsonSchema().isEmpty()) {
+			try {
+				String schemaJson = objectMapper.writeValueAsString(options.getJsonSchema());
+				command.add("--json-schema");
+				command.add(schemaJson);
+			}
+			catch (JsonProcessingException e) {
+				logger.warn("Failed to serialize JSON schema, skipping --json-schema flag", e);
+			}
+		}
+
+		// Add MCP server configuration
+		if (options.getMcpServers() != null && !options.getMcpServers().isEmpty()) {
+			try {
+				Map<String, Object> serversForCli = buildMcpConfigForCli(options.getMcpServers());
+				if (!serversForCli.isEmpty()) {
+					String mcpConfigJson = objectMapper.writeValueAsString(Map.of("mcpServers", serversForCli));
+					command.add("--mcp-config");
+					command.add(mcpConfigJson);
+				}
+			}
+			catch (JsonProcessingException e) {
+				logger.warn("Failed to serialize MCP config, skipping --mcp-config flag", e);
+			}
+		}
+
+		// Add max turns for budget control
+		if (options.getMaxTurns() != null) {
+			command.add("--max-turns");
+			command.add(String.valueOf(options.getMaxTurns()));
+		}
+
+		// Add max budget USD for cost control
+		if (options.getMaxBudgetUsd() != null) {
+			command.add("--max-budget-usd");
+			command.add(String.valueOf(options.getMaxBudgetUsd()));
+		}
+
+		// Add fallback model
+		if (options.getFallbackModel() != null && !options.getFallbackModel().isEmpty()) {
+			command.add("--fallback-model");
+			command.add(options.getFallbackModel());
+		}
+
+		// Add append system prompt (uses preset mode with append)
+		if (options.getAppendSystemPrompt() != null && !options.getAppendSystemPrompt().isEmpty()) {
+			command.add("--append-system-prompt");
+			command.add(options.getAppendSystemPrompt());
+		}
+
+		// ============================================================
+		// Advanced options for full Python SDK parity
+		// ============================================================
+
+		// Add directories (repeated flag)
+		if (options.getAddDirs() != null && !options.getAddDirs().isEmpty()) {
+			for (var dir : options.getAddDirs()) {
+				command.add("--add-dir");
+				command.add(dir.toString());
+			}
+		}
+
+		// Custom settings file
+		if (options.getSettings() != null && !options.getSettings().isBlank()) {
+			command.add("--settings");
+			command.add(options.getSettings());
+		}
+
+		// Permission prompt tool name
+		if (options.getPermissionPromptToolName() != null && !options.getPermissionPromptToolName().isBlank()) {
+			command.add("--permission-prompt-tool");
+			command.add(options.getPermissionPromptToolName());
+		}
+
+		// Plugins (repeated flag)
+		if (options.getPlugins() != null && !options.getPlugins().isEmpty()) {
+			for (var plugin : options.getPlugins()) {
+				command.add("--plugin-dir");
+				command.add(plugin.path().toString());
+			}
+		}
+
+		// Extra args (arbitrary flags - MUST BE LAST before prompt)
+		if (options.getExtraArgs() != null && !options.getExtraArgs().isEmpty()) {
+			for (var entry : options.getExtraArgs().entrySet()) {
+				String flag = entry.getKey();
+				String value = entry.getValue();
+				if (value == null) {
+					// Boolean flag (no value)
+					command.add("--" + flag);
+				}
+				else {
+					// Flag with value
+					command.add("--" + flag);
+					command.add(value);
+				}
+			}
+		}
+
 		// Add the prompt using -- separator to prevent argument parsing issues
 		command.add("--"); // Everything after this is positional arguments
 		command.add(prompt);
@@ -506,6 +619,28 @@ public class CLITransport implements AutoCloseable {
 
 		logger.warn("Claude CLI not found, using default 'claude'");
 		return "claude";
+	}
+
+	/**
+	 * Builds the MCP config map for CLI serialization. SDK servers have their instances
+	 * stripped (not serializable); only type and name are passed.
+	 * @param mcpServers the MCP server configuration map
+	 * @return map suitable for JSON serialization to CLI
+	 */
+	private Map<String, Object> buildMcpConfigForCli(Map<String, McpServerConfig> mcpServers) {
+		Map<String, Object> serversForCli = new LinkedHashMap<>();
+		for (Map.Entry<String, McpServerConfig> entry : mcpServers.entrySet()) {
+			McpServerConfig config = entry.getValue();
+			if (config instanceof McpServerConfig.McpSdkServerConfig sdk) {
+				// SDK servers: pass type and name only, NOT the instance
+				serversForCli.put(entry.getKey(), Map.of("type", "sdk", "name", sdk.name()));
+			}
+			else {
+				// External servers (stdio, sse, http): pass as-is
+				serversForCli.put(entry.getKey(), config);
+			}
+		}
+		return serversForCli;
 	}
 
 	@Override

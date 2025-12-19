@@ -20,11 +20,7 @@ import java.nio.file.Path;
 
 import org.springaicommunity.agents.claude.ClaudeAgentModel;
 import org.springaicommunity.agents.claude.ClaudeAgentOptions;
-import org.springaicommunity.agents.claude.sdk.ClaudeAgentClient;
-import org.springaicommunity.agents.claude.sdk.transport.CLIOptions;
 import org.springaicommunity.agents.model.AgentModel;
-import org.springaicommunity.agents.model.sandbox.LocalSandbox;
-import org.springaicommunity.agents.model.sandbox.Sandbox;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -32,7 +28,7 @@ import org.springframework.context.annotation.Configuration;
  * Configuration for Context Engineering sample.
  *
  * <p>
- * Creates necessary beans for Claude agent execution including sandbox and agent model.
+ * Creates necessary beans for Claude agent execution using the builder pattern.
  * </p>
  *
  * @author Spring AI Community
@@ -41,25 +37,16 @@ import org.springframework.context.annotation.Configuration;
 public class ContextEngineeringConfiguration {
 
 	@Bean
-	public Sandbox localSandbox() {
-		return new LocalSandbox(Path.of(System.getProperty("user.dir")));
-	}
+	public AgentModel claudeAgentModel() {
+		ClaudeAgentOptions options = ClaudeAgentOptions.builder()
+			.model("claude-sonnet-4-20250514")
+			.yolo(true)
+			.build();
 
-	@Bean
-	public ClaudeAgentClient claudeAgentClient() {
-		try {
-			return ClaudeAgentClient.create(CLIOptions.defaultOptions());
-		}
-		catch (Exception e) {
-			throw new RuntimeException("Failed to create Claude agent client", e);
-		}
-	}
-
-	@Bean
-	public AgentModel claudeAgentModel(Sandbox sandbox, ClaudeAgentClient claudeAgentClient) {
-		ClaudeAgentOptions options = ClaudeAgentOptions.builder().model("claude-sonnet-4-20250514").yolo(true).build();
-
-		return new ClaudeAgentModel(claudeAgentClient, options, sandbox);
+		return ClaudeAgentModel.builder()
+			.workingDirectory(Path.of(System.getProperty("user.dir")))
+			.defaultOptions(options)
+			.build();
 	}
 
 }

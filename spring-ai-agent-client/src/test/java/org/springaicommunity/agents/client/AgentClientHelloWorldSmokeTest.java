@@ -26,11 +26,9 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.io.TempDir;
 import org.springaicommunity.agents.claude.ClaudeAgentModel;
 import org.springaicommunity.agents.claude.ClaudeAgentOptions;
-import org.springaicommunity.agents.model.sandbox.LocalSandbox;
-import org.springaicommunity.agents.claude.sdk.ClaudeAgentClient;
-import org.springaicommunity.agents.claude.sdk.transport.CLIOptions;
 import org.springaicommunity.agents.claude.sdk.config.ClaudeCliDiscovery;
 import org.springaicommunity.agents.gemini.GeminiAgentModel;
+import org.springaicommunity.agents.model.sandbox.LocalSandbox;
 import org.springaicommunity.agents.gemini.GeminiAgentOptions;
 import org.springaicommunity.agents.geminisdk.GeminiClient;
 import org.springaicommunity.agents.geminisdk.util.GeminiCliDiscovery;
@@ -73,15 +71,16 @@ class AgentClientHelloWorldSmokeTest {
 		// Skip test if Claude CLI not available
 		assumeTrue(isClaudeCliAvailable(), "Claude CLI must be available for this test");
 
-		// Create Claude Code agent
+		// Create Claude Code agent using builder pattern
 		ClaudeAgentOptions options = ClaudeAgentOptions.builder()
 			.model("claude-sonnet-4-20250514")
 			.yolo(true) // Bypass permissions for test
 			.build();
 
-		ClaudeAgentClient claudeClient = ClaudeAgentClient.create(CLIOptions.defaultOptions(), this.tempWorkspace);
-		LocalSandbox sandbox = new LocalSandbox(this.tempWorkspace);
-		ClaudeAgentModel agentModel = new ClaudeAgentModel(claudeClient, options, sandbox);
+		ClaudeAgentModel agentModel = ClaudeAgentModel.builder()
+			.workingDirectory(this.tempWorkspace)
+			.defaultOptions(options)
+			.build();
 
 		// Skip if agent not available
 		assumeTrue(agentModel.isAvailable(), "Claude agent must be available");

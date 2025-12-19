@@ -16,7 +16,6 @@
 
 package org.springaicommunity.agents.claude.sdk.parsing;
 
-import org.springaicommunity.agents.claude.sdk.exceptions.CLIJSONDecodeException;
 import org.springaicommunity.agents.claude.sdk.exceptions.MessageParseException;
 import org.springaicommunity.agents.claude.sdk.types.ResultMessage;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -78,16 +77,15 @@ public class JsonResultParser {
 	 * Parses a complete JSON result from Claude CLI into a ResultMessage.
 	 * @param json the complete JSON response from Claude CLI
 	 * @return a ResultMessage containing the parsed data
-	 * @throws CLIJSONDecodeException if JSON parsing fails
-	 * @throws MessageParseException if the JSON structure is invalid
+	 * @throws MessageParseException if JSON parsing fails or the structure is invalid
 	 */
-	public ResultMessage parseJsonResult(String json) throws CLIJSONDecodeException, MessageParseException {
+	public ResultMessage parseJsonResult(String json) throws MessageParseException {
 		try {
 			JsonNode root = objectMapper.readTree(json);
 			return parseResultFromNode(root);
 		}
 		catch (JsonProcessingException e) {
-			throw CLIJSONDecodeException.create(json, e);
+			throw MessageParseException.jsonDecodeError(json, e);
 		}
 	}
 

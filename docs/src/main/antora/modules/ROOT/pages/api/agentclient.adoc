@@ -78,7 +78,7 @@ public class StandaloneExample {
 
         // 2. Configure agent options
         ClaudeAgentOptions options = ClaudeAgentOptions.builder()
-            .model("claude-sonnet-4.5")
+            .model("claude-sonnet-4-5")
             .yolo(true)
             .build();
 

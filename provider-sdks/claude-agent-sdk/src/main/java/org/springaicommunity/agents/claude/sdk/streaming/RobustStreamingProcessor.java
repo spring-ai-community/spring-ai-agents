@@ -17,8 +17,8 @@
 package org.springaicommunity.agents.claude.sdk.streaming;
 
 import org.springaicommunity.agents.claude.sdk.config.OutputFormat;
-import org.springaicommunity.agents.claude.sdk.exceptions.CLIJSONDecodeException;
-import org.springaicommunity.agents.claude.sdk.exceptions.StreamingException;
+import org.springaicommunity.agents.claude.sdk.exceptions.ClaudeSDKException;
+import org.springaicommunity.agents.claude.sdk.exceptions.MessageParseException;
 import org.springaicommunity.agents.claude.sdk.parsing.RobustStreamParser;
 import org.springaicommunity.agents.claude.sdk.types.Message;
 import org.springaicommunity.agents.claude.sdk.types.ResultMessage;
@@ -130,7 +130,7 @@ public class RobustStreamingProcessor extends LogOutputStream {
 					line.substring(0, Math.min(100, line.length())), e);
 
 			// For critical errors, attempt recovery
-			if (e instanceof CLIJSONDecodeException) {
+			if (e instanceof MessageParseException) {
 				logger.warn("JSON decode error, clearing parser buffer for recovery");
 				parser.clearBuffer();
 			}
@@ -142,7 +142,7 @@ public class RobustStreamingProcessor extends LogOutputStream {
 		textBuffer.append(line).append("\n");
 	}
 
-	private void processStreamJsonLine(String line) throws CLIJSONDecodeException, StreamingException {
+	private void processStreamJsonLine(String line) throws MessageParseException, ClaudeSDKException {
 		// Use robust character-based accumulation (Python SDK pattern)
 		Optional<Message> messageOpt = parser.accumulateAndParse(line);
 
@@ -166,7 +166,7 @@ public class RobustStreamingProcessor extends LogOutputStream {
 		}
 	}
 
-	private void processJsonLine(String line) throws CLIJSONDecodeException {
+	private void processJsonLine(String line) throws MessageParseException {
 		// For single JSON format, accumulate until we have complete JSON
 		Optional<Message> messageOpt = parser.accumulateAndParse(line);
 
@@ -227,7 +227,7 @@ public class RobustStreamingProcessor extends LogOutputStream {
 		}
 	}
 
-	private void flushStreamJson() throws StreamingException {
+	private void flushStreamJson() throws ClaudeSDKException {
 		// Attempt to parse any remaining buffer content
 		Optional<Message> messageOpt = parser.flushBuffer();
 		if (messageOpt.isPresent()) {
@@ -256,7 +256,7 @@ public class RobustStreamingProcessor extends LogOutputStream {
 				logger.info("Stream validation successful: {} messages in {} ms", summary.totalMessages(),
 						summary.streamDuration().toMillis());
 			}
-			catch (StreamingException e) {
+			catch (ClaudeSDKException e) {
 				logger.warn("Stream validation failed: {}", e.getMessage());
 				// Don't throw - we want to return partial results
 			}

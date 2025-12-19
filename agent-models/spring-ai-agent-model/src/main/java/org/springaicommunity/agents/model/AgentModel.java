@@ -17,47 +17,33 @@
 package org.springaicommunity.agents.model;
 
 /**
- * Interface for autonomous development agents that can execute tasks in developer
- * workspaces. This represents the core abstraction for CLI-based agents in Spring AI that
- * handle a broad range of developer tasks beyond just code editing.
+ * Functional interface for blocking/imperative agent execution. Executes tasks in
+ * developer workspaces and returns results synchronously.
  *
  * <p>
- * Unlike chat models that engage in conversations, agent models are task-oriented and
- * work within defined workspaces with file access controls. They can perform various
- * developer tasks including:
+ * This is one of three programming models for agent execution:
  * </p>
- *
  * <ul>
- * <li>Code analysis and modification</li>
- * <li>Git operations (commits, branches, diffs)</li>
- * <li>Test generation and execution</li>
- * <li>Documentation creation and updates</li>
- * <li>Build and dependency management</li>
- * <li>Code review and refactoring</li>
- * <li>Issue classification and triage</li>
- * <li>Configuration file management</li>
- * <li>And other development workflow tasks</li>
+ * <li>{@link AgentModel} - Blocking/imperative (this interface)</li>
+ * <li>{@link StreamingAgentModel} - Reactive with Flux</li>
+ * <li>{@link IterableAgentModel} - Iterator/callback based</li>
  * </ul>
+ *
+ * <p>
+ * As a functional interface, it can be used with lambdas:
+ * </p>
+ * <pre>{@code
+ * AgentModel agent = request -> myClient.execute(request);
+ * AgentResponse response = agent.call(request);
+ * }</pre>
  *
  * <p>
  * Example usage:
  * </p>
  * <pre>{@code
  * // Fix a failing test
- * var result = agent.call(new AgentTaskRequest.builder()
+ * var result = agent.call(AgentTaskRequest.builder()
  *     .goal("Fix the failing test in UserServiceTest")
- *     .workingDirectory(projectRoot)
- *     .build());
- *
- * // Create documentation
- * var result = agent.call(new AgentTaskRequest.builder()
- *     .goal("Generate API documentation for the UserController")
- *     .workingDirectory(projectRoot)
- *     .build());
- *
- * // Git operations
- * var result = agent.call(new AgentTaskRequest.builder()
- *     .goal("Create a well-structured commit for the authentication changes")
  *     .workingDirectory(projectRoot)
  *     .build());
  * }</pre>
@@ -65,6 +51,7 @@ package org.springaicommunity.agents.model;
  * @author Mark Pollack
  * @since 0.1.0
  */
+@FunctionalInterface
 public interface AgentModel {
 
 	/**
@@ -76,9 +63,12 @@ public interface AgentModel {
 	AgentResponse call(AgentTaskRequest request);
 
 	/**
-	 * Check if the agent is available and ready to accept tasks.
+	 * Check if the agent is available and ready to accept tasks. Implementations may
+	 * override this to perform actual availability checks.
 	 * @return true if the agent is available, false otherwise
 	 */
-	boolean isAvailable();
+	default boolean isAvailable() {
+		return true;
+	}
 
 }

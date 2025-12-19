@@ -30,10 +30,7 @@ import org.springaicommunity.agents.client.AgentClient;
 import org.springaicommunity.agents.client.AgentClientResponse;
 import org.springaicommunity.agents.claude.ClaudeAgentModel;
 import org.springaicommunity.agents.claude.ClaudeAgentOptions;
-import org.springaicommunity.agents.claude.sdk.ClaudeAgentClient;
 import org.springaicommunity.agents.claude.sdk.config.ClaudeCliDiscovery;
-import org.springaicommunity.agents.claude.sdk.transport.CLIOptions;
-import org.springaicommunity.agents.model.sandbox.LocalSandbox;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -77,9 +74,10 @@ class VendirContextAdvisorIT {
 				.yolo(true)
 				.build();
 
-			ClaudeAgentClient claudeClient = ClaudeAgentClient.create(CLIOptions.defaultOptions(), this.testWorkspace);
-			LocalSandbox sandbox = new LocalSandbox(this.testWorkspace);
-			this.claudeAgentModel = new ClaudeAgentModel(claudeClient, options, sandbox);
+			this.claudeAgentModel = ClaudeAgentModel.builder()
+				.workingDirectory(this.testWorkspace)
+				.defaultOptions(options)
+				.build();
 
 			assumeTrue(this.claudeAgentModel.isAvailable(), "Claude agent must be available");
 		}

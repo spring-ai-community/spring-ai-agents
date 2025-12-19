@@ -30,7 +30,7 @@ import org.springaicommunity.agents.client.AgentClientResponse;
  * <p>
  * This runner uses Spring Boot auto-configuration to automatically set up: - Claude agent
  * model (spring.ai.claude-agent.*) - Local or Docker sandbox (spring.ai.sandbox.*) -
- * AgentClient bean
+ * AgentClient.Builder bean
  * </p>
  *
  * <p>
@@ -45,24 +45,42 @@ public class HelloWorldRunner implements CommandLineRunner {
 
 	private static final Logger log = LoggerFactory.getLogger(HelloWorldRunner.class);
 
-	private final AgentClient agentClient;
+	private final AgentClient.Builder agentClientBuilder;
 
-	public HelloWorldRunner(AgentClient agentClient) {
-		this.agentClient = agentClient;
+	public HelloWorldRunner(AgentClient.Builder agentClientBuilder) {
+		this.agentClientBuilder = agentClientBuilder;
 	}
 
 	@Override
 	public void run(String... args) {
 		log.info("Starting Spring AI Agents Hello World sample...");
 
+		// Clean up from previous runs to ensure clean demonstration
+		java.nio.file.Path targetFile = java.nio.file.Path.of("hello.txt");
+		try {
+			if (java.nio.file.Files.deleteIfExists(targetFile)) {
+				log.info("Cleaned up hello.txt from previous run");
+			}
+		}
+		catch (java.io.IOException e) {
+			log.warn("Could not delete existing hello.txt: {}", e.getMessage());
+		}
+
 		String goal = "Create a simple hello.txt file with the content 'Hello, World!'";
 
 		log.info("Executing goal: {}", goal);
+
+		AgentClient agentClient = agentClientBuilder.build();
 		AgentClientResponse response = agentClient.run(goal);
 
 		if (response.isSuccessful()) {
 			log.info("✅ Goal completed successfully!");
 			log.info("Agent response: {}", response.getResult());
+
+			// Verify the file was created
+			if (java.nio.file.Files.exists(targetFile)) {
+				log.info("✅ Verified: hello.txt was created successfully");
+			}
 		}
 		else {
 			log.error("❌ Goal execution failed: {}", response.getResult());

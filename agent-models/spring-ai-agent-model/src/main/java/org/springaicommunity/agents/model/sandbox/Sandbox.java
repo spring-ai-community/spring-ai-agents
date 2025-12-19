@@ -31,13 +31,31 @@ import java.nio.file.Path;
 public interface Sandbox extends AutoCloseable {
 
 	/**
-	 * Execute a command specification in the sandbox.
+	 * Execute a command specification in the sandbox and wait for completion.
 	 * @param spec the execution specification containing command, environment, etc.
 	 * @return the execution result
 	 * @throws SandboxException if execution fails (wraps IOException,
 	 * InterruptedException, TimeoutException)
 	 */
 	ExecResult exec(ExecSpec spec);
+
+	/**
+	 * Start an interactive process in the sandbox without waiting for completion. This is
+	 * used for bidirectional communication where the caller needs access to stdin/stdout
+	 * streams for ongoing interaction.
+	 *
+	 * <p>
+	 * The caller is responsible for managing the process lifecycle, including reading
+	 * from stdout/stderr and writing to stdin, and eventually destroying the process.
+	 * </p>
+	 * @param spec the execution specification containing command, environment, etc.
+	 * @return the started Process with access to I/O streams
+	 * @throws SandboxException if the process fails to start
+	 */
+	default Process startInteractive(ExecSpec spec) {
+		throw new UnsupportedOperationException(
+				"Interactive process execution not supported by this sandbox implementation");
+	}
 
 	/**
 	 * Get the working directory path within the sandbox.

@@ -16,7 +16,7 @@
 
 package org.springaicommunity.agents.claude.sdk.streaming;
 
-import org.springaicommunity.agents.claude.sdk.exceptions.StreamingException;
+import org.springaicommunity.agents.claude.sdk.exceptions.ClaudeSDKException;
 import org.springaicommunity.agents.claude.sdk.types.Message;
 import org.springaicommunity.agents.claude.sdk.types.AssistantMessage;
 import org.springaicommunity.agents.claude.sdk.types.ResultMessage;
@@ -87,11 +87,11 @@ public class StreamingStateMachine {
 	/**
 	 * Validates and processes the next message in the stream.
 	 * @param message the message to validate and process
-	 * @throws StreamingException if the message violates expected flow
+	 * @throws ClaudeSDKException if the message violates expected flow
 	 */
-	public void processMessage(Message message) throws StreamingException {
+	public void processMessage(Message message) throws ClaudeSDKException {
 		if (message == null) {
-			throw new StreamingException("Received null message");
+			throw new ClaudeSDKException("Received null message");
 		}
 
 		lastMessageTime = Instant.now();
@@ -107,7 +107,7 @@ public class StreamingStateMachine {
 		}
 	}
 
-	private void handleAwaitingInit(Message message) throws StreamingException {
+	private void handleAwaitingInit(Message message) throws ClaudeSDKException {
 		if (message instanceof SystemMessage systemMsg) {
 			// Extract session information for validation
 			if (systemMsg.subtype().equals("init")) {
@@ -116,16 +116,16 @@ public class StreamingStateMachine {
 				logger.debug("Stream initialized with session ID: {}", sessionId);
 			}
 			else {
-				throw new StreamingException("Expected 'init' system message, got: " + systemMsg.subtype());
+				throw new ClaudeSDKException("Expected 'init' system message, got: " + systemMsg.subtype());
 			}
 		}
 		else {
 			currentState = State.ERROR;
-			throw new StreamingException("Expected SystemMessage (init), got: " + message.getClass().getSimpleName());
+			throw new ClaudeSDKException("Expected SystemMessage (init), got: " + message.getClass().getSimpleName());
 		}
 	}
 
-	private void handleAwaitingContent(Message message) throws StreamingException {
+	private void handleAwaitingContent(Message message) throws ClaudeSDKException {
 		if (message instanceof AssistantMessage assistantMsg) {
 			hasAssistantResponse = true;
 			logger.debug("Received assistant message with {} content blocks", assistantMsg.content().size());
@@ -147,24 +147,24 @@ public class StreamingStateMachine {
 		}
 		else {
 			currentState = State.ERROR;
-			throw new StreamingException("Unexpected message type: " + message.getClass().getSimpleName());
+			throw new ClaudeSDKException("Unexpected message type: " + message.getClass().getSimpleName());
 		}
 	}
 
-	private void handleUnexpectedMessage(Message message) throws StreamingException {
+	private void handleUnexpectedMessage(Message message) throws ClaudeSDKException {
 		logger.warn("Received message after stream completion: {}", message.getClass().getSimpleName());
 		// Could be additional metadata or late messages - log but don't fail
 	}
 
-	private void handleErrorState(Message message) throws StreamingException {
+	private void handleErrorState(Message message) throws ClaudeSDKException {
 		logger.error("Received message in error state: {}", message.getClass().getSimpleName());
-		throw new StreamingException("Stream is in error state, cannot process messages");
+		throw new ClaudeSDKException("Stream is in error state, cannot process messages");
 	}
 
-	private void validateResultMessage(ResultMessage resultMsg) throws StreamingException {
+	private void validateResultMessage(ResultMessage resultMsg) throws ClaudeSDKException {
 		// Validate session consistency
 		if (sessionId != null && !sessionId.equals(resultMsg.sessionId())) {
-			throw new StreamingException(
+			throw new ClaudeSDKException(
 					"Session ID mismatch: expected " + sessionId + ", got " + resultMsg.sessionId());
 		}
 
@@ -238,15 +238,15 @@ public class StreamingStateMachine {
 	/**
 	 * Validates stream completion and returns summary.
 	 * @return stream completion summary
-	 * @throws StreamingException if stream is not properly completed
+	 * @throws ClaudeSDKException if stream is not properly completed
 	 */
-	public StreamCompletionSummary validateCompletion() throws StreamingException {
+	public StreamCompletionSummary validateCompletion() throws ClaudeSDKException {
 		if (currentState == State.ERROR) {
-			throw new StreamingException("Stream ended in error state");
+			throw new ClaudeSDKException("Stream ended in error state");
 		}
 
 		if (currentState != State.COMPLETED) {
-			throw new StreamingException("Stream incomplete: " + currentState);
+			throw new ClaudeSDKException("Stream incomplete: " + currentState);
 		}
 
 		return new StreamCompletionSummary(receivedMessages.size(), Duration.between(streamStartTime, lastMessageTime),

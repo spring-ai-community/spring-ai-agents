@@ -49,7 +49,20 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
-        
+
+        <!-- Agent model for Sandbox abstraction -->
+        <dependency>
+            <groupId>org.springaicommunity.agents</groupId>
+            <artifactId>spring-ai-agent-model</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- MCP Java SDK (Spring-independent core) -->
+        <dependency>
+            <groupId>io.modelcontextprotocol.sdk</groupId>
+            <artifactId>mcp</artifactId>
+        </dependency>
+
         <!-- Test dependencies -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -76,6 +89,29 @@
 
     <build>
         <plugins>
+            <!-- JaCoCo Code Coverage Plugin -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.11</version>
+                <executions>
+                    <!-- Prepare agent for test coverage -->
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <!-- Generate coverage report -->
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>

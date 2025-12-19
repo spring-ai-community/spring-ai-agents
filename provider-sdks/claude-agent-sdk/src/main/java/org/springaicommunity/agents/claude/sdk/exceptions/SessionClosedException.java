@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Spring AI Community
+ * Copyright 2025 Spring AI Community
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,16 +17,16 @@
 package org.springaicommunity.agents.claude.sdk.exceptions;
 
 /**
- * Raised when unable to connect to Claude Code. Corresponds to CLIConnectionError in
- * Python SDK.
+ * Exception thrown when an operation is attempted on a closed session. This is a
+ * recoverable error - the client should create a new session.
  */
-public class CLIConnectionException extends ClaudeSDKException {
+public class SessionClosedException extends ClaudeSDKException {
 
-	public CLIConnectionException(String message) {
+	public SessionClosedException(String message) {
 		super(message);
 	}
 
-	public CLIConnectionException(String message, Throwable cause) {
+	public SessionClosedException(String message, Throwable cause) {
 		super(message, cause);
 	}
 

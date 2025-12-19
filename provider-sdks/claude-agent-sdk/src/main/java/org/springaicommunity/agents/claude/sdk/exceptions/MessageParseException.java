@@ -19,29 +19,47 @@ package org.springaicommunity.agents.claude.sdk.exceptions;
 import java.util.Map;
 
 /**
- * Raised when unable to parse a message from CLI output. Corresponds to MessageParseError
- * in Python SDK.
+ * Raised when unable to parse a message from CLI output. Includes JSON decode errors.
+ *
+ * <p>
+ * Combines the functionality of MessageParseError and CLIJSONDecodeError from Python SDK.
  */
 public class MessageParseException extends ClaudeSDKException {
 
 	private final Map<String, Object> data;
 
+	private final String rawInput;
+
 	public MessageParseException(String message) {
-		this(message, (Map<String, Object>) null);
+		super(message);
+		this.data = null;
+		this.rawInput = null;
 	}
 
 	public MessageParseException(String message, Map<String, Object> data) {
 		super(message);
 		this.data = data;
+		this.rawInput = null;
 	}
 
 	public MessageParseException(String message, Throwable cause) {
 		super(message, cause);
 		this.data = null;
+		this.rawInput = null;
+	}
+
+	public MessageParseException(String message, String rawInput, Throwable cause) {
+		super(message, cause);
+		this.data = null;
+		this.rawInput = rawInput;
 	}
 
 	public Map<String, Object> getData() {
 		return data;
+	}
+
+	public String getRawInput() {
+		return rawInput;
 	}
 
 	/**
@@ -49,6 +67,14 @@ public class MessageParseException extends ClaudeSDKException {
 	 */
 	public static MessageParseException withData(String message, Map<String, Object> data) {
 		return new MessageParseException(message, data);
+	}
+
+	/**
+	 * Creates a MessageParseException for JSON decode failures.
+	 */
+	public static MessageParseException jsonDecodeError(String json, Exception cause) {
+		String truncated = json.length() > 100 ? json.substring(0, 100) + "..." : json;
+		return new MessageParseException("Failed to decode JSON: " + truncated, json, cause);
 	}
 
 }

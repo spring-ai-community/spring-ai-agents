@@ -16,50 +16,53 @@
 
 package org.springaicommunity.agents.claude.sdk.transport;
 
-import org.springaicommunity.agents.claude.sdk.config.OutputFormat;
-import org.springaicommunity.agents.claude.sdk.exceptions.*;
-import org.springaicommunity.agents.claude.sdk.parsing.MessageParser;
+import org.springaicommunity.agents.claude.sdk.exceptions.ClaudeSDKException;
+import org.springaicommunity.agents.claude.sdk.exceptions.TransportException;
+import org.springaicommunity.agents.claude.sdk.parsing.ParsedMessage;
 import org.springaicommunity.agents.claude.sdk.resilience.ResilienceManager;
 import org.springaicommunity.agents.claude.sdk.resilience.RetryConfiguration;
 import org.springaicommunity.agents.claude.sdk.types.Message;
+import org.springaicommunity.agents.claude.sdk.types.ResultMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.zeroturnaround.exec.ProcessExecutor;
-import org.zeroturnaround.exec.ProcessResult;
-import org.zeroturnaround.exec.StartedProcess;
-import org.zeroturnaround.exec.stream.LogOutputStream;
-import org.zeroturnaround.exec.stream.slf4j.Slf4jStream;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Reactive wrapper for CLITransport providing true non-blocking streaming. Implements
- * Project Reactor patterns for real-time message processing.
+ * Reactive wrapper providing true non-blocking streaming for one-shot queries.
+ *
+ * <p>
+ * This transport uses {@link BidirectionalTransport} internally for robust message
+ * handling, while exposing a simple reactive API for single queries. For multi-turn
+ * conversations, use
+ * {@link org.springaicommunity.agents.claude.sdk.session.ClaudeSession} directly.
+ * </p>
+ *
+ * <p>
+ * Key features:
+ * </p>
+ * <ul>
+ * <li>True non-blocking with backpressure support</li>
+ * <li>Resilience via retry and circuit breaker patterns</li>
+ * <li>Automatic session lifecycle management</li>
+ * <li>Uses robust BidirectionalTransport internally</li>
+ * </ul>
  */
 public class ReactiveTransport implements AutoCloseable {
 
 	private static final Logger logger = LoggerFactory.getLogger(ReactiveTransport.class);
 
-	private final CLITransport cliTransport;
-
-	private final String claudeCommand;
-
 	private final Path workingDirectory;
 
-	private final MessageParser messageParser;
-
 	private final Duration defaultTimeout;
+
+	private final String claudePath;
 
 	private final ResilienceManager resilienceManager;
 
@@ -76,15 +79,21 @@ public class ReactiveTransport implements AutoCloseable {
 	public ReactiveTransport(Path workingDirectory, Duration defaultTimeout, String claudePath) {
 		this.workingDirectory = workingDirectory;
 		this.defaultTimeout = defaultTimeout;
-		this.messageParser = new MessageParser();
-		this.cliTransport = new CLITransport(workingDirectory, defaultTimeout);
-		this.claudeCommand = claudePath != null ? claudePath : discoverClaudeCommand();
+		this.claudePath = claudePath;
 		this.resilienceManager = new ResilienceManager(RetryConfiguration.defaultNetwork(), defaultTimeout);
 	}
 
 	/**
 	 * Executes a reactive query returning a Flux of messages as they arrive. True
 	 * non-blocking implementation with backpressure support and resilience.
+	 *
+	 * <p>
+	 * This method creates an ephemeral session using BidirectionalTransport, streams
+	 * messages until completion, and cleans up automatically.
+	 * </p>
+	 * @param prompt the prompt to send
+	 * @param options CLI options for the query
+	 * @return Flux of messages that completes when the query finishes
 	 */
 	public Flux<Message> executeReactiveQuery(String prompt, CLIOptions options) {
 		return resilienceManager.executeResilientFlux("reactive-query",
@@ -92,314 +101,131 @@ public class ReactiveTransport implements AutoCloseable {
 	}
 
 	/**
-	 * Internal implementation of reactive query without resilience wrapper.
+	 * Internal implementation using BidirectionalTransport for robust streaming.
+	 * <p>
+	 * Uses Flux.create() to ensure subscription happens BEFORE startSession begins
+	 * emitting messages, avoiding the unicast sink race condition.
+	 * </p>
 	 */
 	private Flux<Message> executeReactiveQueryInternal(String prompt, CLIOptions options) {
+		if (closed.get()) {
+			return Flux.error(new ClaudeSDKException("Transport is closed"));
+		}
+
 		return Flux.<Message>create(sink -> {
-			if (closed.get()) {
-				sink.error(new ClaudeSDKException("Transport is closed"));
+			logger.info("Starting reactive query with BidirectionalTransport");
+
+			// Create ephemeral transport for this query
+			BidirectionalTransport transport = new BidirectionalTransport(workingDirectory,
+					options.getTimeout() != null ? options.getTimeout() : defaultTimeout, claudePath, null);
+
+			AtomicBoolean completed = new AtomicBoolean(false);
+
+			// Subscribe to inbound flux FIRST (before startSession emits)
+			transport.getInboundFlux()
+				.filter(ParsedMessage::isRegularMessage)
+				.map(ParsedMessage::asMessage)
+				.takeUntil(msg -> msg instanceof ResultMessage)
+				.subscribe(message -> {
+					sink.next(message);
+					if (message instanceof ResultMessage) {
+						if (completed.compareAndSet(false, true)) {
+							sink.complete();
+						}
+					}
+				}, error -> {
+					logger.error("Reactive query failed", error);
+					sink.error(error);
+				}, () -> {
+					if (completed.compareAndSet(false, true)) {
+						sink.complete();
+					}
+				});
+
+			// THEN start session (messages now flow to subscriber)
+			try {
+				transport.startSession(prompt, options, msg -> {
+				}, request -> {
+					return org.springaicommunity.agents.claude.sdk.types.control.ControlResponse
+						.success(request.requestId(), java.util.Map.of("behavior", "allow"));
+				});
+			}
+			catch (Exception e) {
+				transport.close();
+				sink.error(new TransportException("Failed to start reactive session", e));
 				return;
 			}
 
-			try {
-				List<String> command = buildCommand(prompt, options);
-				logger.info("🔍 CLAUDE CLI REACTIVE COMMAND: {}", command);
+			// Cleanup on disposal
+			sink.onDispose(() -> {
+				logger.debug("Closing ephemeral transport on disposal");
+				transport.close();
+			});
 
-				// Create reactive message processor
-				ReactiveMessageProcessor processor = new ReactiveMessageProcessor(sink);
-
-				// Start process asynchronously
-				StartedProcess process = new ProcessExecutor().command(command)
-					.directory(workingDirectory.toFile())
-					.environment("CLAUDE_CODE_ENTRYPOINT", "sdk-java")
-					.redirectOutput(processor)
-					.redirectError(Slf4jStream.of(getClass()).asError())
-					.start();
-
-				// Handle process completion
-				CompletableFuture<Void> completion = CompletableFuture.runAsync(() -> {
-					try {
-						process.getFuture().get(options.getTimeout().toMillis(), TimeUnit.MILLISECONDS);
-						int exitCode = process.getProcess().exitValue();
-
-						if (exitCode == 0) {
-							sink.complete();
-						}
-						else if (exitCode == 1 && processor.hasReceivedMessages()) {
-							// Claude CLI has a bug where streaming operations return exit
-							// code 1
-							// even when successful. If we received messages, treat it as
-							// success.
-							logger.debug("Claude CLI returned exit code 1 but received messages - treating as success");
-							sink.complete();
-						}
-						else {
-							sink.error(ProcessExecutionException.withExitCode("Claude CLI process failed", exitCode));
-						}
-					}
-					catch (Exception e) {
-						sink.error(new ProcessExecutionException("Process execution failed", e));
-					}
-				});
-
-				// Handle cancellation
-				sink.onCancel(() -> {
-					logger.debug("Reactive query cancelled, terminating process");
-					try {
-						process.getProcess().destroyForcibly();
-						completion.cancel(true);
-					}
-					catch (Exception e) {
-						logger.warn("Error cancelling process", e);
-					}
-				});
-
-			}
-			catch (Exception e) {
-				sink.error(new ProcessExecutionException("Failed to start reactive query", e));
-			}
-		})
-			.doOnSubscribe(subscription -> logger.info("Starting reactive query"))
-			.doOnComplete(() -> logger.info("Reactive query completed"))
-			.doOnError(error -> logger.error("Reactive query failed", error))
-			.subscribeOn(Schedulers.boundedElastic());
+		}).subscribeOn(Schedulers.boundedElastic());
 	}
 
 	/**
 	 * Executes a reactive query returning a Mono with the complete result. Collects all
-	 * messages and builds a QueryResult with resilience.
+	 * messages and returns them as a list with resilience.
+	 * @param prompt the prompt to send
+	 * @param options CLI options for the query
+	 * @return Mono containing list of all messages
 	 */
 	public Mono<List<Message>> executeReactiveQueryComplete(String prompt, CLIOptions options) {
 		return resilienceManager.executeResilientMono("complete-query",
 				() -> executeReactiveQuery(prompt, options).collectList()
-					.timeout(options.getTimeout())
+					.timeout(options.getTimeout() != null ? options.getTimeout() : defaultTimeout)
 					.doOnSuccess(messages -> logger.info("Collected {} messages", messages.size())));
 	}
 
 	/**
 	 * Tests if Claude CLI is available reactively with resilience.
+	 * @return Mono that emits true if CLI is available, false otherwise
 	 */
 	public Mono<Boolean> isAvailableAsync() {
-		return resilienceManager
-			.executeResilientMono("availability-check",
-					() -> Mono.fromCallable(() -> cliTransport.isAvailable()).subscribeOn(Schedulers.boundedElastic()))
-			.onErrorReturn(false);
+		return resilienceManager.executeResilientMono("availability-check", () -> Mono.fromCallable(() -> {
+			try {
+				BidirectionalTransport transport = new BidirectionalTransport(workingDirectory, Duration.ofSeconds(10),
+						claudePath, null);
+				transport.close();
+				return true;
+			}
+			catch (Exception e) {
+				return false;
+			}
+		}).subscribeOn(Schedulers.boundedElastic())).onErrorReturn(false);
 	}
 
 	/**
 	 * Gets the Claude CLI version reactively with resilience.
+	 * @return Mono containing the CLI version string
 	 */
 	public Mono<String> getVersionAsync() {
-		return resilienceManager.executeResilientMono("version-check",
-				() -> Mono.fromCallable(() -> cliTransport.getVersion()).subscribeOn(Schedulers.boundedElastic()));
+		return resilienceManager.executeResilientMono("version-check", () -> Mono.fromCallable(() -> {
+			// Use simple process execution for version check
+			ProcessBuilder pb = new ProcessBuilder(claudePath != null ? claudePath : "claude", "--version");
+			pb.directory(workingDirectory.toFile());
+			Process process = pb.start();
+			String version = new String(process.getInputStream().readAllBytes()).trim();
+			process.waitFor();
+			return version;
+		}).subscribeOn(Schedulers.boundedElastic()));
 	}
 
 	/**
 	 * Gets resilience manager metrics for monitoring.
+	 * @return the resilience manager
 	 */
 	public ResilienceManager getResilienceManager() {
 		return resilienceManager;
 	}
 
-	private List<String> buildCommand(String prompt, CLIOptions options) {
-		List<String> command = new ArrayList<>();
-		command.add(claudeCommand);
-		command.add("--print"); // Essential for autonomous operations - enables
-								// programmatic execution
-
-		// For reactive transport, prefer streaming formats but respect user choice
-		OutputFormat format = options.getOutputFormat();
-		if (format == OutputFormat.TEXT) {
-			// TEXT format doesn't work well with reactive streams, warn and use
-			// STREAM_JSON
-			logger.warn("TEXT format not recommended for reactive streams, using STREAM_JSON instead");
-			format = OutputFormat.STREAM_JSON;
-		}
-
-		command.add("--output-format");
-		command.add(format.getValue());
-
-		// Add --verbose flag for streaming formats
-		if (format == OutputFormat.STREAM_JSON) {
-			command.add("--verbose"); // Critical: Required with stream-json
-		}
-
-		// Add options
-		if (options.getModel() != null) {
-			command.add("--model");
-			command.add(options.getModel());
-		}
-
-		if (options.getSystemPrompt() != null) {
-			command.add("--append-system-prompt");
-			command.add(options.getSystemPrompt());
-		}
-
-		// Note: Claude CLI doesn't support --max-tokens option
-		// Token limits are controlled by the model configuration
-
-		// Add tool configuration
-		if (!options.getAllowedTools().isEmpty()) {
-			command.add("--allowed-tools");
-			command.add(String.join(",", options.getAllowedTools()));
-		}
-
-		if (!options.getDisallowedTools().isEmpty()) {
-			command.add("--disallowed-tools");
-			command.add(String.join(",", options.getDisallowedTools()));
-		}
-
-		// Add permission mode
-		if (options.getPermissionMode() != null && options
-			.getPermissionMode() != org.springaicommunity.agents.claude.sdk.config.PermissionMode.DEFAULT) {
-			command.add("--permission-mode");
-			command.add(options.getPermissionMode().getValue());
-		}
-
-		// Add interactive mode
-		if (options.isInteractive()) {
-			command.add("--interactive");
-		}
-
-		// Add setting sources (Claude Agent SDK v0.1.0)
-		if (options.getSettingSources() != null && !options.getSettingSources().isEmpty()) {
-			command.add("--setting-sources");
-			command.add(String.join(",", options.getSettingSources()));
-		}
-
-		// Add agents JSON (Claude Agent SDK v0.1.0)
-		if (options.getAgents() != null && !options.getAgents().trim().isEmpty()) {
-			command.add("--agents");
-			command.add(options.getAgents());
-		}
-
-		// Add fork session flag (Claude Agent SDK v0.1.0)
-		if (options.isForkSession()) {
-			command.add("--fork-session");
-		}
-
-		// Add include partial messages flag (Claude Agent SDK v0.1.0)
-		if (options.isIncludePartialMessages()) {
-			command.add("--include-partial-messages");
-		}
-
-		// Add the prompt
-		command.add("--print");
-		command.add(prompt);
-
-		return command;
-	}
-
-	private String discoverClaudeCommand() {
-		String[] candidates = { "claude", "claude-code", System.getProperty("user.home") + "/.local/bin/claude" };
-
-		for (String candidate : candidates) {
-			try {
-				ProcessResult result = new ProcessExecutor().command(candidate, "--version")
-					.timeout(5, TimeUnit.SECONDS)
-					.readOutput(true)
-					.execute();
-
-				if (result.getExitValue() == 0) {
-					logger.info("Found Claude CLI at: {}", candidate);
-					return candidate;
-				}
-			}
-			catch (Exception e) {
-				logger.debug("Claude CLI not found at: {}", candidate);
-			}
-		}
-
-		logger.warn("Claude CLI not found, using default 'claude'");
-		return "claude";
-	}
-
 	@Override
 	public void close() {
 		if (!closed.getAndSet(true)) {
-			try {
-				cliTransport.close();
-			}
-			catch (Exception e) {
-				logger.warn("Error closing underlying transport", e);
-			}
 			logger.debug("ReactiveTransport closed");
 		}
-	}
-
-	/**
-	 * Reactive message processor for streaming responses. Provides backpressure and error
-	 * recovery.
-	 */
-	private class ReactiveMessageProcessor extends LogOutputStream {
-
-		private final FluxSink<Message> sink;
-
-		private final StringBuilder buffer = new StringBuilder();
-
-		private final AtomicBoolean receivedMessages = new AtomicBoolean(false);
-
-		public ReactiveMessageProcessor(FluxSink<Message> sink) {
-			this.sink = sink;
-		}
-
-		public boolean hasReceivedMessages() {
-			return receivedMessages.get();
-		}
-
-		@Override
-		protected void processLine(String line) {
-			try {
-				if (sink.isCancelled()) {
-					return; // Stop processing if cancelled
-				}
-
-				if (line.trim().startsWith("{") && line.trim().endsWith("}")) {
-					// Complete JSON line
-					Message message = parseMessage(line);
-					if (message != null) {
-						receivedMessages.set(true);
-						sink.next(message);
-					}
-				}
-				else {
-					// Buffer partial JSON
-					buffer.append(line).append("\n");
-
-					// Try to parse buffered content
-					String buffered = buffer.toString().trim();
-					if (buffered.startsWith("{") && buffered.endsWith("}")) {
-						Message message = parseMessage(buffered);
-						if (message != null) {
-							receivedMessages.set(true);
-							sink.next(message);
-							buffer.setLength(0); // Clear buffer
-						}
-					}
-
-					// Prevent buffer overflow
-					if (buffer.length() > 64 * 1024) { // 64KB limit
-						logger.warn("JSON buffer overflow, clearing buffer");
-						buffer.setLength(0);
-					}
-				}
-			}
-			catch (Exception e) {
-				logger.warn("Failed to process reactive line: {}", line, e);
-				// Continue processing - don't fail the entire stream for one bad message
-			}
-		}
-
-		private Message parseMessage(String json) {
-			try {
-				return messageParser.parseMessage(json);
-			}
-			catch (Exception e) {
-				logger.warn("Failed to parse reactive JSON: {}", json.substring(0, Math.min(100, json.length())), e);
-				return null;
-			}
-		}
-
 	}
 
 }
