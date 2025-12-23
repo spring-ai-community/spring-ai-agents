@@ -222,6 +222,9 @@ public class DefaultClaudeSession implements ClaudeSession {
 			messageIterator = new MessageStreamIterator();
 			blockingReceiver = new BlockingMessageReceiver();
 
+			// Build effective prompt
+			String effectivePrompt = initialPrompt != null ? initialPrompt : "Hello";
+
 			// Start session with control request and response handling
 			// Pass null for initial prompt - we'll send it after initialization
 			transport.startSession(null, options, this::handleMessage, this::handleControlRequest,
@@ -235,14 +238,12 @@ public class DefaultClaudeSession implements ClaudeSession {
 			}
 
 			// Now send the initial prompt
-			if (initialPrompt != null) {
-				transport.sendUserMessage(initialPrompt, "default");
-				logger.info("Session connected with prompt: {}",
-						initialPrompt.substring(0, Math.min(50, initialPrompt.length())));
-			} else {
-				logger.info("Session connected without prompt");
+			if (effectivePrompt != null) {
+				transport.sendUserMessage(effectivePrompt, "default");
 			}
 
+			logger.info("Session connected with prompt: {}",
+					effectivePrompt.substring(0, Math.min(50, effectivePrompt.length())));
 		}
 		catch (Exception e) {
 			cleanup();
