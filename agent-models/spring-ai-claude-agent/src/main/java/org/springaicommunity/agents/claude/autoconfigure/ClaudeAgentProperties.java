@@ -80,6 +80,16 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class ClaudeAgentProperties {
 
 	/**
+	 * Base URL for the Claude API.
+	 */
+	private String baseUrl;
+
+	/**
+	 * API key for the Claude API.
+	 */
+	private String apiKey;
+
+	/**
 	 * Claude model to use for agent tasks.
 	 */
 	private String model = "claude-sonnet-4-5";
@@ -194,6 +204,22 @@ public class ClaudeAgentProperties {
 	 * Unix user to run the CLI process as (requires sudo configuration).
 	 */
 	private String user;
+
+	public String getBaseUrl() {
+		return baseUrl;
+	}
+
+	public void setBaseUrl(String baseUrl) {
+		this.baseUrl = baseUrl;
+	}
+
+	public String getApiKey() {
+		return apiKey;
+	}
+
+	public void setApiKey(String apiKey) {
+		this.apiKey = apiKey;
+	}
 
 	public String getModel() {
 		return model;
@@ -381,6 +407,16 @@ public class ClaudeAgentProperties {
 	 */
 	public CLIOptions buildCLIOptions() {
 		CLIOptions.Builder builder = CLIOptions.builder().model(model).timeout(timeout);
+
+		// Base URL for the Claude API
+		if (baseUrl != null && !baseUrl.isBlank()) {
+			builder.baseUrl(baseUrl);
+		}
+
+		// API key for the Claude API
+		if (apiKey != null && !apiKey.isBlank()) {
+			builder.apiKey(apiKey);
+		}
 
 		// Permission mode: explicit setting takes precedence over yolo
 		if (permissionMode != null && !permissionMode.isBlank()) {

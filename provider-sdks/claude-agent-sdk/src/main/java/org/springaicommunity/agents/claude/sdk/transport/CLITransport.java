@@ -177,8 +177,21 @@ public class CLITransport implements AutoCloseable {
 					.redirectError(Slf4jStream.of(getClass()).asError())
 					.readOutput(true);
 
+				// Pass through ANTHROPIC_BASE_URL if set
+				if (options.baseUrl() != null && !options.baseUrl().isBlank()) {
+					logger.info("Setting ANTHROPIC_BASE_URL environment variable for Claude CLI (base URL: {})",
+							options.baseUrl());
+					executor.environment("ANTHROPIC_BASE_URL", options.baseUrl());
+				}
+
 				// Pass through ANTHROPIC_API_KEY if set
-				String apiKey = System.getenv("ANTHROPIC_API_KEY");
+				String apiKey;
+				if (options.apiKey() != null && !options.apiKey().isBlank()) {
+					apiKey = options.apiKey();
+				}
+				else {
+					apiKey = System.getenv("ANTHROPIC_API_KEY");
+				}
 				if (apiKey != null) {
 					logger.info("Setting ANTHROPIC_API_KEY environment variable for Claude CLI (key present: {})",
 							apiKey.length() > 0);
