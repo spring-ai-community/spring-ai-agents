@@ -628,11 +628,11 @@ public class BidirectionalTransport implements AutoCloseable {
 			}
 		}
 
-		// 2. Always pass API key if available
 		if (options.baseUrl() != null && !options.baseUrl().isBlank()) {
 			env.put("ANTHROPIC_BASE_URL", options.baseUrl());
 		}
 
+        // 2. Always pass API key if available
 		String apiKey;
 		if (options.apiKey() != null && !options.apiKey().isBlank()) {
 			apiKey = options.apiKey();
