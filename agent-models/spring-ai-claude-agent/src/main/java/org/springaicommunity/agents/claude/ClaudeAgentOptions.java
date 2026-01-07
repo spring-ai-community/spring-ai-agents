@@ -33,6 +33,16 @@ import java.util.Map;
 public class ClaudeAgentOptions implements AgentOptions {
 
 	/**
+	 * Base URL for Claude API
+	 */
+	private String baseUrl;
+
+	/**
+	 * API key for Claude API
+	 */
+	private String apiKey;
+
+	/**
 	 * The model name to use (e.g., "claude-sonnet-4-20250514" or "sonnet").
 	 */
 	private String model;
@@ -155,6 +165,22 @@ public class ClaudeAgentOptions implements AgentOptions {
 
 	public ClaudeAgentOptions(String model) {
 		this.model = model;
+	}
+
+	public String getBaseUrl() {
+		return baseUrl;
+	}
+
+	public void setBaseUrl(String baseUrl) {
+		this.baseUrl = baseUrl;
+	}
+
+	public String getApiKey() {
+		return apiKey;
+	}
+
+	public void setApiKey(String apiKey) {
+		this.apiKey = apiKey;
 	}
 
 	public String getModel() {
@@ -346,6 +372,16 @@ public class ClaudeAgentOptions implements AgentOptions {
 		private final ClaudeAgentOptions options = new ClaudeAgentOptions();
 
 		private Builder() {
+		}
+
+		public Builder baseUrl(String baseUrl) {
+			options.setBaseUrl(baseUrl);
+			return this;
+		}
+
+		public Builder apiKey(String apiKey) {
+			options.setApiKey(apiKey);
+			return this;
 		}
 
 		public Builder model(String model) {

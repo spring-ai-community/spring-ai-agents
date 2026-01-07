@@ -66,6 +66,16 @@ public class ClaudeAgentAutoConfiguration {
 			.yolo(properties.isYolo())
 			.executablePath(properties.getExecutablePath());
 
+		// Claude API base URL
+		if (properties.getBaseUrl() != null && !properties.getBaseUrl().isBlank()) {
+			optionsBuilder.baseUrl(properties.getBaseUrl());
+		}
+
+		// Claude API key
+		if (properties.getApiKey() != null && !properties.getApiKey().isBlank()) {
+			optionsBuilder.apiKey(properties.getApiKey());
+		}
+
 		// Extended thinking
 		if (properties.getMaxThinkingTokens() != null) {
 			optionsBuilder.maxThinkingTokens(properties.getMaxThinkingTokens());

@@ -32,11 +32,12 @@ import java.util.Map;
  * Configuration options for Claude CLI commands. Corresponds to ClaudeAgentOptions in
  * Python SDK.
  */
-public record CLIOptions(String model, String systemPrompt, Integer maxTokens, Integer maxThinkingTokens,
-		Duration timeout, List<String> allowedTools, List<String> disallowedTools, PermissionMode permissionMode,
-		boolean interactive, OutputFormat outputFormat, List<String> settingSources, String agents, boolean forkSession,
-		boolean includePartialMessages, Map<String, Object> jsonSchema, Map<String, McpServerConfig> mcpServers,
-		Integer maxTurns, Double maxBudgetUsd, String fallbackModel, String appendSystemPrompt,
+public record CLIOptions(String baseUrl, String apiKey, String model, String systemPrompt, Integer maxTokens,
+		Integer maxThinkingTokens, Duration timeout, List<String> allowedTools, List<String> disallowedTools,
+		PermissionMode permissionMode, boolean interactive, OutputFormat outputFormat, List<String> settingSources,
+		String agents, boolean forkSession, boolean includePartialMessages, Map<String, Object> jsonSchema,
+		Map<String, McpServerConfig> mcpServers, Integer maxTurns, Double maxBudgetUsd, String fallbackModel,
+		String appendSystemPrompt,
 		// Advanced options for full Python SDK parity
 		List<Path> addDirs, String settings, String permissionPromptToolName, Map<String, String> extraArgs,
 		List<PluginConfig> plugins, Map<String, String> env, Integer maxBufferSize, String user,
@@ -101,7 +102,7 @@ public record CLIOptions(String model, String systemPrompt, Integer maxTokens, I
 	}
 
 	public static CLIOptions defaultOptions() {
-		return new CLIOptions(null, null, null, null, Duration.ofMinutes(2), List.of(), List.of(),
+		return new CLIOptions(null, null, null, null, null, null, Duration.ofMinutes(2), List.of(), List.of(),
 				PermissionMode.DANGEROUSLY_SKIP_PERMISSIONS, false, OutputFormat.JSON, List.of(), null, false, false,
 				null, Map.of(), null, null, null, null, List.of(), null, null, Map.of(), List.of(), Map.of(), null,
 				null, null, null);
@@ -235,6 +236,10 @@ public record CLIOptions(String model, String systemPrompt, Integer maxTokens, I
 
 	public static class Builder {
 
+		private String baseUrl;
+
+		private String apiKey;
+
 		private String model;
 
 		private String systemPrompt;
@@ -295,6 +300,16 @@ public record CLIOptions(String model, String systemPrompt, Integer maxTokens, I
 		private StderrHandler stderrHandler;
 
 		private ToolPermissionCallback toolPermissionCallback;
+
+		public Builder baseUrl(String baseUrl) {
+			this.baseUrl = baseUrl;
+			return this;
+		}
+
+		public Builder apiKey(String apiKey) {
+			this.apiKey = apiKey;
+			return this;
+		}
 
 		public Builder model(String model) {
 			this.model = model;
@@ -611,9 +626,9 @@ public record CLIOptions(String model, String systemPrompt, Integer maxTokens, I
 		}
 
 		public CLIOptions build() {
-			return new CLIOptions(model, systemPrompt, maxTokens, maxThinkingTokens, timeout, allowedTools,
-					disallowedTools, permissionMode, interactive, outputFormat, settingSources, agents, forkSession,
-					includePartialMessages, jsonSchema, mcpServers, maxTurns, maxBudgetUsd, fallbackModel,
+			return new CLIOptions(baseUrl, apiKey, model, systemPrompt, maxTokens, maxThinkingTokens, timeout,
+					allowedTools, disallowedTools, permissionMode, interactive, outputFormat, settingSources, agents,
+					forkSession, includePartialMessages, jsonSchema, mcpServers, maxTurns, maxBudgetUsd, fallbackModel,
 					appendSystemPrompt, addDirs, settings, permissionPromptToolName, extraArgs, plugins, env,
 					maxBufferSize, user, stderrHandler, toolPermissionCallback);
 		}
