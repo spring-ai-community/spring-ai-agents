@@ -108,10 +108,10 @@ jobs:
             echo "✅ All commit messages are clean - proceeding"
           fi
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
           server-id: central
