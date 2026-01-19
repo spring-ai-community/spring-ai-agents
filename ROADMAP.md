@@ -1,6 +1,6 @@
 # spring-ai-agents Roadmap
 
-**Last Updated**: 2026-01-16
+**Last Updated**: 2026-01-19
 **Status**: Active Development
 
 ---
@@ -218,9 +218,87 @@ spring-ai-agents (depends on spring-ai-judge-core)
 ### Step 2b: Extract Sandbox to Standalone Project
 
 **Priority**: HIGH
-**Status**: PENDING
+**Status**: COMPLETE (migration in progress)
 
 See `plans/learnings/SANDBOX-EXTRACTION.md` for full rationale.
+
+#### Completion Summary
+
+The `agent-sandbox` project has been created and extracted:
+- **Repository**: `spring-ai-community/agent-sandbox`
+- **Modules**: `agent-sandbox-core`, `agent-sandbox-docker`, `agent-sandbox-e2b`
+- **Package**: `org.springaicommunity.sandbox`
+
+**Key Changes:**
+- `spring-ai-agents` now depends on `agent-sandbox-core`
+- `ExecResult` signature changed: `(int, String, Duration)` → `(int, String, String, Duration)` (added stderr)
+- `SandboxFiles` accessor implemented for file operations
+
+**Migration Status:**
+- [x] Sandbox extracted to standalone project
+- [x] spring-ai-agents parent POM updated with `agent-sandbox-core` dependency
+- [x] Main code updated to use new imports
+- [ ] Test files need updating for new `ExecResult` 4-arg constructor (see Step 2b-1)
+- [ ] Claude adapter module needs API migration (see Step 2b-2)
+
+---
+
+### Step 2b-1: Update Test Files for ExecResult API Change
+
+**Priority**: HIGH
+**Status**: PENDING
+
+#### Problem
+The `ExecResult` record changed from 3 args to 4 args:
+```java
+// Old (spring-ai-agents tests)
+new ExecResult(exitCode, output, duration)
+
+// New (agent-sandbox-core)
+new ExecResult(exitCode, stdout, stderr, duration)
+```
+
+#### Files to Update
+- `agent-models/spring-ai-gemini/src/test/java/.../GeminiAgentModelTest.java`
+- `agent-models/spring-ai-gemini/src/test/java/.../GeminiAgentModelSandboxTest.java`
+- Any other test files creating `ExecResult` directly
+
+#### Solution
+Update test code to use 4-arg constructor with empty stderr where appropriate:
+```java
+new ExecResult(0, "output", "", Duration.ofSeconds(1))
+```
+
+---
+
+### Step 2b-2: Claude Agent SDK API Migration
+
+**Priority**: HIGH
+**Status**: PENDING
+
+#### Problem
+The `claude-agent-sdk-java` project was extracted with a new API:
+- **Old API** (expected by spring-ai-agents): `ClaudeSession` interface
+- **New API** (in claude-code-sdk): `ClaudeSyncClient`, `ClaudeAsyncClient`
+
+#### Affected Modules
+- `provider-sdks/claude-agent-sdk` - `SandboxClaudeSession` implements missing `ClaudeSession`
+- `agent-models/spring-ai-claude-agent` - Depends on claude-agent-sdk
+- All modules with test dependencies on spring-ai-claude-agent
+
+#### Solution Options
+1. **Update spring-ai-agents adapter** to use new `ClaudeSyncClient` API
+2. **Add ClaudeSession to claude-code-sdk** as backwards compatibility layer
+
+#### Implementation Tasks
+- [ ] Analyze `ClaudeSyncClient` API in `~/community/claude-agent-sdk-java`
+- [ ] Update `SandboxClaudeSession` → `SandboxClaudeSyncClient` (or equivalent)
+- [ ] Update `ClaudeAgentModel` to work with new client API
+- [ ] Update all dependent tests
+
+---
+
+### Step 2b (Original): Extract Sandbox to Standalone Project ✅
 
 #### Goal
 
@@ -549,4 +627,4 @@ See `plans/learnings/TUI-ARCHITECTURE-DECISION.md`:
 
 ---
 
-*Last updated: 2026-01-16*
+*Last updated: 2026-01-19*

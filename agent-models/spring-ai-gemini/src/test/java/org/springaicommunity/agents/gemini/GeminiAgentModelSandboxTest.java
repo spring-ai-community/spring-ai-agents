@@ -100,7 +100,7 @@ class GeminiAgentModelSandboxTest {
 		when(mockGeminiClient.buildCommand(anyString(), any(CLIOptions.class))).thenReturn(command);
 
 		// Mock sandbox execution
-		ExecResult execResult = new ExecResult(0, "Test output", Duration.ofSeconds(1));
+		ExecResult execResult = new ExecResult(0, "Test output", "", Duration.ofSeconds(1));
 		when(mockSandbox.exec(any(ExecSpec.class))).thenReturn(execResult);
 
 		// Mock parseResult
@@ -155,7 +155,7 @@ class GeminiAgentModelSandboxTest {
 		List<String> command = List.of("gemini", "-m", "gemini-2.0-flash-exp", "-y", "-p", "test prompt");
 		when(mockGeminiClient.buildCommand(anyString(), any(CLIOptions.class))).thenReturn(command);
 
-		ExecResult execResult = new ExecResult(0, "Test output", Duration.ofSeconds(1));
+		ExecResult execResult = new ExecResult(0, "Test output", "", Duration.ofSeconds(1));
 		when(mockSandbox.exec(any(ExecSpec.class))).thenReturn(execResult);
 
 		QueryResult queryResult = new QueryResult(List.of(), createMockMetadata(1000), ResultStatus.SUCCESS);

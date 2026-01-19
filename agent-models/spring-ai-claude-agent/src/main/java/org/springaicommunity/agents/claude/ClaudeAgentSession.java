@@ -21,7 +21,6 @@ import org.springaicommunity.claude.agent.sdk.hooks.HookCallback;
 import org.springaicommunity.claude.agent.sdk.hooks.HookRegistry;
 import org.springaicommunity.claude.agent.sdk.types.control.HookEvent;
 import org.springaicommunity.claude.agent.sdk.parsing.ParsedMessage;
-import org.springaicommunity.claude.agent.sdk.session.ClaudeSession;
 import org.springaicommunity.agents.claude.sdk.session.SandboxClaudeSession;
 import org.springaicommunity.claude.agent.sdk.transport.CLIOptions;
 import org.springaicommunity.claude.agent.sdk.types.AssistantMessage;

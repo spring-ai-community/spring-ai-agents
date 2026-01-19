@@ -41,7 +41,7 @@ import org.springaicommunity.claude.agent.sdk.types.control.HookOutput;
 import org.springaicommunity.claude.agent.sdk.permission.PermissionResult;
 import org.springaicommunity.claude.agent.sdk.permission.ToolPermissionCallback;
 import org.springaicommunity.claude.agent.sdk.permission.ToolPermissionContext;
-import org.springaicommunity.claude.agent.sdk.session.ClaudeSession;
+import org.springaicommunity.claude.agent.sdk.ClaudeSyncClient;
 import org.springaicommunity.sandbox.Sandbox;
 
 import reactor.core.publisher.Mono;
@@ -56,7 +56,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Default implementation of {@link ClaudeSession} providing persistent session support.
+ * Sandbox-aware implementation of {@link ClaudeSyncClient} providing persistent session
+ * support with optional sandbox-based process execution.
  *
  * <p>
  * This implementation maintains a persistent connection to the Claude CLI, allowing
@@ -69,10 +70,9 @@ import java.util.concurrent.atomic.AtomicReference;
  * responses.
  * </p>
  *
- * @see ClaudeSession
- * @see BidirectionalTransport
+ * @see ClaudeSyncClient
  */
-public class SandboxClaudeSession implements ClaudeSession {
+public class SandboxClaudeSession implements ClaudeSyncClient {
 
 	private static final Logger logger = LoggerFactory.getLogger(SandboxClaudeSession.class);
 
@@ -404,6 +404,48 @@ public class SandboxClaudeSession implements ClaudeSession {
 			cleanup();
 			logger.info("Session closed");
 		}
+	}
+
+	// ========== Convenience Methods (ClaudeSyncClient interface) ==========
+
+	@Override
+	public Iterable<Message> messages() {
+		ensureConnected();
+		return () -> new MessageIteratorAdapter(receiveResponse());
+	}
+
+	@Override
+	public Iterable<Message> connectAndReceive(String prompt) {
+		connect(prompt);
+		return messages();
+	}
+
+	@Override
+	public Iterable<Message> queryAndReceive(String prompt) {
+		query(prompt);
+		return messages();
+	}
+
+	@Override
+	public String connectText(String prompt) {
+		StringBuilder text = new StringBuilder();
+		for (Message msg : connectAndReceive(prompt)) {
+			if (msg instanceof org.springaicommunity.claude.agent.sdk.types.AssistantMessage assistant) {
+				text.append(assistant.content());
+			}
+		}
+		return text.toString();
+	}
+
+	@Override
+	public String queryText(String prompt) {
+		StringBuilder text = new StringBuilder();
+		for (Message msg : queryAndReceive(prompt)) {
+			if (msg instanceof org.springaicommunity.claude.agent.sdk.types.AssistantMessage assistant) {
+				text.append(assistant.content());
+			}
+		}
+		return text.toString();
 	}
 
 	/**
@@ -802,6 +844,47 @@ public class SandboxClaudeSession implements ClaudeSession {
 				throw new NoSuchElementException("No element available. Did you call hasNext() first?");
 			}
 			ParsedMessage result = next;
+			next = null;
+			return result;
+		}
+
+	}
+
+	/**
+	 * Adapter that converts Iterator&lt;ParsedMessage&gt; to Iterator&lt;Message&gt;,
+	 * filtering to only regular messages.
+	 */
+	private static class MessageIteratorAdapter implements Iterator<Message> {
+
+		private final Iterator<ParsedMessage> delegate;
+
+		private Message next;
+
+		MessageIteratorAdapter(Iterator<ParsedMessage> delegate) {
+			this.delegate = delegate;
+		}
+
+		@Override
+		public boolean hasNext() {
+			if (next != null) {
+				return true;
+			}
+			while (delegate.hasNext()) {
+				ParsedMessage parsed = delegate.next();
+				if (parsed.isRegularMessage()) {
+					next = parsed.asMessage();
+					return true;
+				}
+			}
+			return false;
+		}
+
+		@Override
+		public Message next() {
+			if (next == null && !hasNext()) {
+				throw new NoSuchElementException();
+			}
+			Message result = next;
 			next = null;
 			return result;
 		}
