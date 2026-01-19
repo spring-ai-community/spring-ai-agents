@@ -52,6 +52,10 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -100,6 +104,21 @@ public class ClaudeAgentModel implements AgentModel, StreamingAgentModel, Iterab
 
 	private static final Logger logger = LoggerFactory.getLogger(ClaudeAgentModel.class);
 
+	/**
+	 * Default executor using cached thread pool with daemon threads. Java 21 users can
+	 * provide {@code Executors.newVirtualThreadPerTaskExecutor()} via the builder.
+	 */
+	private static final ExecutorService DEFAULT_EXECUTOR = Executors.newCachedThreadPool(new ThreadFactory() {
+		private final AtomicInteger counter = new AtomicInteger(0);
+
+		@Override
+		public Thread newThread(Runnable r) {
+			Thread t = new Thread(r, "claude-agent-async-" + counter.incrementAndGet());
+			t.setDaemon(true);
+			return t;
+		}
+	});
+
 	private final Path workingDirectory;
 
 	private final Duration timeout;
@@ -112,6 +131,8 @@ public class ClaudeAgentModel implements AgentModel, StreamingAgentModel, Iterab
 
 	private final ClaudeAgentOptions defaultOptions;
 
+	private final Executor asyncExecutor;
+
 	private final AtomicInteger requestIdCounter = new AtomicInteger(0);
 
 	private final ObjectMapper objectMapper = new ObjectMapper();
@@ -123,6 +144,7 @@ public class ClaudeAgentModel implements AgentModel, StreamingAgentModel, Iterab
 		this.sandbox = builder.sandbox;
 		this.hookRegistry = builder.hookRegistry != null ? builder.hookRegistry : new HookRegistry();
 		this.defaultOptions = builder.defaultOptions != null ? builder.defaultOptions : new ClaudeAgentOptions();
+		this.asyncExecutor = builder.asyncExecutor != null ? builder.asyncExecutor : DEFAULT_EXECUTOR;
 	}
 
 	/**
@@ -306,7 +328,7 @@ public class ClaudeAgentModel implements AgentModel, StreamingAgentModel, Iterab
 	public Flux<AgentResponse> stream(AgentTaskRequest request) {
 		Sinks.Many<AgentResponse> sink = Sinks.many().multicast().onBackpressureBuffer();
 
-		Thread.startVirtualThread(() -> {
+		asyncExecutor.execute(() -> {
 			try {
 				streamInternal(request, sink);
 			}
@@ -386,7 +408,7 @@ public class ClaudeAgentModel implements AgentModel, StreamingAgentModel, Iterab
 	private MessageStreamIterator createIterator(AgentTaskRequest request) {
 		MessageStreamIterator iterator = new MessageStreamIterator();
 
-		Thread.startVirtualThread(() -> {
+		asyncExecutor.execute(() -> {
 			try {
 				streamToIterator(request, iterator);
 			}
@@ -671,6 +693,8 @@ public class ClaudeAgentModel implements AgentModel, StreamingAgentModel, Iterab
 
 		private ClaudeAgentOptions defaultOptions;
 
+		private Executor asyncExecutor;
+
 		private Builder() {
 		}
 
@@ -735,6 +759,27 @@ public class ClaudeAgentModel implements AgentModel, StreamingAgentModel, Iterab
 		 */
 		public Builder defaultOptions(ClaudeAgentOptions defaultOptions) {
 			this.defaultOptions = defaultOptions;
+			return this;
+		}
+
+		/**
+		 * Sets the executor for async operations (streaming, iteration).
+		 * <p>
+		 * By default, uses a cached thread pool with daemon threads. Java 21 users can
+		 * provide {@code Executors.newVirtualThreadPerTaskExecutor()} for virtual thread
+		 * support.
+		 * </p>
+		 * <pre>{@code
+		 * // Java 21 with virtual threads:
+		 * ClaudeAgentModel.builder()
+		 *     .asyncExecutor(Executors.newVirtualThreadPerTaskExecutor())
+		 *     .build();
+		 * }</pre>
+		 * @param asyncExecutor the executor for async operations
+		 * @return this builder
+		 */
+		public Builder asyncExecutor(Executor asyncExecutor) {
+			this.asyncExecutor = asyncExecutor;
 			return this;
 		}
 

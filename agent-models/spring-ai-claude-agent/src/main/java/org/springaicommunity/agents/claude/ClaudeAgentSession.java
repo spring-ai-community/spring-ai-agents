@@ -40,6 +40,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * High-level session API for multi-turn conversations with Claude.
@@ -83,9 +88,26 @@ import java.util.NoSuchElementException;
  */
 public class ClaudeAgentSession implements AutoCloseable {
 
+	/**
+	 * Default executor using cached thread pool with daemon threads. Java 21 users can
+	 * provide {@code Executors.newVirtualThreadPerTaskExecutor()} via the builder.
+	 */
+	private static final ExecutorService DEFAULT_EXECUTOR = Executors.newCachedThreadPool(new ThreadFactory() {
+		private final AtomicInteger counter = new AtomicInteger(0);
+
+		@Override
+		public Thread newThread(Runnable r) {
+			Thread t = new Thread(r, "claude-session-async-" + counter.incrementAndGet());
+			t.setDaemon(true);
+			return t;
+		}
+	});
+
 	private final SandboxClaudeSession delegate;
 
 	private final HookRegistry hookRegistry;
+
+	private final Executor asyncExecutor;
 
 	/**
 	 * Creates a session with the given delegate and hook registry.
@@ -93,8 +115,19 @@ public class ClaudeAgentSession implements AutoCloseable {
 	 * @param hookRegistry the hook registry (may be shared with parent model)
 	 */
 	ClaudeAgentSession(SandboxClaudeSession delegate, HookRegistry hookRegistry) {
+		this(delegate, hookRegistry, DEFAULT_EXECUTOR);
+	}
+
+	/**
+	 * Creates a session with the given delegate, hook registry, and executor.
+	 * @param delegate the underlying session implementation
+	 * @param hookRegistry the hook registry (may be shared with parent model)
+	 * @param asyncExecutor the executor for async operations
+	 */
+	ClaudeAgentSession(SandboxClaudeSession delegate, HookRegistry hookRegistry, Executor asyncExecutor) {
 		this.delegate = delegate;
 		this.hookRegistry = hookRegistry;
+		this.asyncExecutor = asyncExecutor;
 	}
 
 	/**
@@ -172,7 +205,7 @@ public class ClaudeAgentSession implements AutoCloseable {
 	public Flux<AgentResponse> receiveResponseFlux() {
 		Sinks.Many<AgentResponse> sink = Sinks.many().multicast().onBackpressureBuffer();
 
-		Thread.startVirtualThread(() -> {
+		asyncExecutor.execute(() -> {
 			try {
 				for (AgentResponse response : receiveResponse()) {
 					sink.tryEmitNext(response);
@@ -380,6 +413,8 @@ public class ClaudeAgentSession implements AutoCloseable {
 
 		private HookRegistry hookRegistry;
 
+		private Executor asyncExecutor;
+
 		public Builder workingDirectory(Path workingDirectory) {
 			this.workingDirectory = workingDirectory;
 			return this;
@@ -410,11 +445,33 @@ public class ClaudeAgentSession implements AutoCloseable {
 			return this;
 		}
 
+		/**
+		 * Sets a custom executor for async operations.
+		 *
+		 * <p>
+		 * By default, a cached thread pool with daemon threads is used. Java 21+ users
+		 * can provide a virtual thread executor for better scalability:
+		 * </p>
+		 * <pre>{@code
+		 * ClaudeAgentSession session = ClaudeAgentSession.builder()
+		 *     .workingDirectory(dir)
+		 *     .asyncExecutor(Executors.newVirtualThreadPerTaskExecutor())
+		 *     .build();
+		 * }</pre>
+		 * @param executor the executor for async operations
+		 * @return this builder
+		 */
+		public Builder asyncExecutor(Executor executor) {
+			this.asyncExecutor = executor;
+			return this;
+		}
+
 		public ClaudeAgentSession build() {
 			if (workingDirectory == null) {
 				workingDirectory = Path.of(System.getProperty("user.dir"));
 			}
 			HookRegistry registry = hookRegistry != null ? hookRegistry : new HookRegistry();
+			Executor executor = asyncExecutor != null ? asyncExecutor : DEFAULT_EXECUTOR;
 			SandboxClaudeSession delegate = SandboxClaudeSession.builder()
 				.workingDirectory(workingDirectory)
 				.options(options)
@@ -423,7 +480,7 @@ public class ClaudeAgentSession implements AutoCloseable {
 				.sandbox(sandbox)
 				.hookRegistry(registry)
 				.build();
-			return new ClaudeAgentSession(delegate, registry);
+			return new ClaudeAgentSession(delegate, registry, executor);
 		}
 
 	}
