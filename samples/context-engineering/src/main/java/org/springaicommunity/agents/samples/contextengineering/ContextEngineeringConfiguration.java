@@ -38,10 +38,7 @@ public class ContextEngineeringConfiguration {
 
 	@Bean
 	public AgentModel claudeAgentModel() {
-		ClaudeAgentOptions options = ClaudeAgentOptions.builder()
-			.model("claude-sonnet-4-20250514")
-			.yolo(true)
-			.build();
+		ClaudeAgentOptions options = ClaudeAgentOptions.builder().model("claude-sonnet-4-20250514").yolo(true).build();
 
 		return ClaudeAgentModel.builder()
 			.workingDirectory(Path.of(System.getProperty("user.dir")))

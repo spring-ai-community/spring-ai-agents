@@ -186,17 +186,13 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          # Temporarily skipping tests to debug Maven Central publishing
-          echo "TEMPORARY: Skipping all tests for quick Maven Central publish test"
-          ./mvnw --batch-mode --quiet clean install -DskipTests -Dmaven.test.skip=true -Dfailsafe.skip=true
-          # TODO: Re-enable tests after Maven Central publishing is verified
-          # if [[ "${{ github.event.inputs.skip_all_tests }}" == "true" ]]; then
-          #   echo "Skipping all tests - build only for quick publishing"
-          #   ./mvnw --batch-mode --quiet clean install -DskipTests -Dmaven.test.skip=true -Dfailsafe.skip=true
-          # else
-          #   echo "Running full test suite including integration tests"
-          #   ./mvnw --batch-mode --quiet clean install -Pfailsafe
-          # fi
+          if [[ "${{ github.event.inputs.skip_all_tests }}" == "true" ]]; then
+            echo "Skipping all tests - build only for quick publishing"
+            ./mvnw --batch-mode --quiet clean install -DskipTests -Dmaven.test.skip=true -Dfailsafe.skip=true
+          else
+            echo "Running unit tests"
+            ./mvnw --batch-mode clean install
+          fi
 
       - name: Upload test reports
         if: always()  # Upload reports even on failure

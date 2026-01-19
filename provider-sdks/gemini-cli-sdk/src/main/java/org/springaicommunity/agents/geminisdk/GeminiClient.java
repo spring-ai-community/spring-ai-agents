@@ -199,6 +199,14 @@ public class GeminiClient implements AutoCloseable {
 		return QueryResult.of(messages, metadata, ResultStatus.SUCCESS);
 	}
 
+	/**
+	 * Returns the default CLI options used by this client.
+	 * @return the default CLIOptions
+	 */
+	public CLIOptions getOptions() {
+		return this.defaultOptions;
+	}
+
 	private void validateConnected() throws GeminiSDKException {
 		if (!connected) {
 			throw new GeminiSDKException("Not connected to Gemini CLI. Call connect() first.");

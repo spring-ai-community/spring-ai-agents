@@ -43,9 +43,9 @@ import static org.assertj.core.api.Assertions.*;
  * containing only the 3 most basic integration tests for smoke testing.
  * </p>
  */
-class GeminiQuerySmokeTest extends BaseGeminiIT {
+class GeminiQuerySmokeIT extends BaseGeminiIT {
 
-	private static final Logger logger = LoggerFactory.getLogger(GeminiQuerySmokeTest.class);
+	private static final Logger logger = LoggerFactory.getLogger(GeminiQuerySmokeIT.class);
 
 	private GeminiClient client;
 
@@ -81,7 +81,7 @@ class GeminiQuerySmokeTest extends BaseGeminiIT {
 		client.connect(true);
 
 		CLIOptions options = CLIOptions.builder()
-			.model("gemini-2.0-flash-exp")
+			.model("gemini-pro")
 			.timeout(Duration.ofSeconds(30))
 			.yoloMode(true)
 			.build();
@@ -92,6 +92,8 @@ class GeminiQuerySmokeTest extends BaseGeminiIT {
 		assertThat(result.status()).isEqualTo(ResultStatus.SUCCESS);
 		assertThat(result.isSuccessful()).isTrue();
 		assertThat(result.hasResponse()).isTrue();
+		// Should contain the answer "4" somewhere
+		assertThat(result.getResponse().orElse("")).containsAnyOf("4", "four", "Four");
 	}
 
 	@Test

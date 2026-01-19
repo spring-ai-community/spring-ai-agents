@@ -161,4 +161,17 @@ class GeminiClientIT extends BaseGeminiIT {
 		logger.info("Error handling test passed");
 	}
 
+	@Test
+	void testGetOptions() throws GeminiSDKException {
+		CLIOptions testOptions = CLIOptions.builder()
+			.model("gemini-pro")
+			.timeout(Duration.ofSeconds(30))
+			.yoloMode(false)
+			.build();
+
+		try (GeminiClient testClient = GeminiClient.create(testOptions)) {
+			assertThat(testClient.getOptions()).isEqualTo(testOptions);
+		}
+	}
+
 }
