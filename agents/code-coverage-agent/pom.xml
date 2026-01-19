@@ -43,6 +43,11 @@
             <artifactId>spring-ai-agents-judge</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- Agent Judge exec module for Maven/JaCoCo utilities -->
+        <dependency>
+            <groupId>org.springaicommunity</groupId>
+            <artifactId>agent-judge-exec</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-model</artifactId>

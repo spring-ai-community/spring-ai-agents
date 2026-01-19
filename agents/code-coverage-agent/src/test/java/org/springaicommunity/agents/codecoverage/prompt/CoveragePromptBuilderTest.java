@@ -17,7 +17,7 @@
 package org.springaicommunity.agents.codecoverage.prompt;
 
 import org.junit.jupiter.api.Test;
-import org.springaicommunity.agents.judge.coverage.JaCoCoReportParser.CoverageMetrics;
+import org.springaicommunity.judge.coverage.JaCoCoReportParser.CoverageMetrics;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

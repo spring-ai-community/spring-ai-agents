@@ -16,7 +16,7 @@
 
 package org.springaicommunity.agents.codecoverage.prompt;
 
-import org.springaicommunity.agents.judge.coverage.JaCoCoReportParser.CoverageMetrics;
+import org.springaicommunity.judge.coverage.JaCoCoReportParser.CoverageMetrics;
 import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.core.io.ClassPathResource;
 
