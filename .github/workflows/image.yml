@@ -24,7 +24,7 @@ jobs:
       - name: Set versions
         run: |
           # Pin versions for reproducibility
-          echo "MAVEN_VERSION=3.9.11" >> $GITHUB_ENV
+          echo "MAVEN_VERSION=3.9.12" >> $GITHUB_ENV
           # Use latest for now, but can pin later
           echo "CLAUDE_CODE_VERSION=latest" >> $GITHUB_ENV
           echo "GEMINI_CLI_VERSION=latest" >> $GITHUB_ENV
