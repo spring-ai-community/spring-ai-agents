@@ -30,9 +30,9 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springaicommunity.agents.model.AgentResponse;
 import org.springaicommunity.agents.model.AgentTaskRequest;
-import org.springaicommunity.agents.model.sandbox.ExecResult;
-import org.springaicommunity.agents.model.sandbox.ExecSpec;
-import org.springaicommunity.agents.model.sandbox.Sandbox;
+import org.springaicommunity.sandbox.ExecResult;
+import org.springaicommunity.sandbox.ExecSpec;
+import org.springaicommunity.sandbox.Sandbox;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;

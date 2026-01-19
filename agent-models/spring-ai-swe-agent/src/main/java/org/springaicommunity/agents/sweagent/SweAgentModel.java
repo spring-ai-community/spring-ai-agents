@@ -28,9 +28,9 @@ import org.springaicommunity.agents.model.AgentGeneration;
 import org.springaicommunity.agents.model.AgentGenerationMetadata;
 import org.springaicommunity.agents.model.AgentModel;
 import org.springaicommunity.agents.model.AgentTaskRequest;
-import org.springaicommunity.agents.model.sandbox.Sandbox;
-import org.springaicommunity.agents.model.sandbox.ExecResult;
-import org.springaicommunity.agents.model.sandbox.ExecSpec;
+import org.springaicommunity.sandbox.Sandbox;
+import org.springaicommunity.sandbox.ExecResult;
+import org.springaicommunity.sandbox.ExecSpec;
 
 import java.nio.file.Path;
 import java.time.Duration;

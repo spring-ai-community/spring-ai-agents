@@ -17,9 +17,9 @@ package org.springaicommunity.agents.claude.autoconfigure;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springaicommunity.agents.model.sandbox.DockerSandbox;
-import org.springaicommunity.agents.model.sandbox.LocalSandbox;
-import org.springaicommunity.agents.model.sandbox.Sandbox;
+import org.springaicommunity.sandbox.docker.DockerSandbox;
+import org.springaicommunity.sandbox.LocalSandbox;
+import org.springaicommunity.sandbox.Sandbox;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;

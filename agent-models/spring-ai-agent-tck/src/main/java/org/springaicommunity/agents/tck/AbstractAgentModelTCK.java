@@ -23,7 +23,7 @@ import org.springaicommunity.agents.model.AgentModel;
 import org.springaicommunity.agents.model.AgentOptions;
 import org.springaicommunity.agents.model.AgentResponse;
 import org.springaicommunity.agents.model.AgentTaskRequest;
-import org.springaicommunity.agents.model.sandbox.Sandbox;
+import org.springaicommunity.sandbox.Sandbox;
 
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;

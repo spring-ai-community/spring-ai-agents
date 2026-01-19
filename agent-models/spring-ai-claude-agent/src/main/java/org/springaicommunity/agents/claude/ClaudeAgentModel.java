@@ -41,7 +41,7 @@ import org.springaicommunity.agents.model.AgentResponseMetadata;
 import org.springaicommunity.agents.model.AgentTaskRequest;
 import org.springaicommunity.agents.model.IterableAgentModel;
 import org.springaicommunity.agents.model.StreamingAgentModel;
-import org.springaicommunity.agents.model.sandbox.Sandbox;
+import org.springaicommunity.sandbox.Sandbox;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 

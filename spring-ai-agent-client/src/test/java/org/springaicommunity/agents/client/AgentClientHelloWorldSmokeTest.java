@@ -28,7 +28,7 @@ import org.springaicommunity.agents.claude.ClaudeAgentModel;
 import org.springaicommunity.agents.claude.ClaudeAgentOptions;
 import org.springaicommunity.claude.agent.sdk.config.ClaudeCliDiscovery;
 import org.springaicommunity.agents.gemini.GeminiAgentModel;
-import org.springaicommunity.agents.model.sandbox.LocalSandbox;
+import org.springaicommunity.sandbox.LocalSandbox;
 import org.springaicommunity.agents.gemini.GeminiAgentOptions;
 import org.springaicommunity.agents.geminisdk.GeminiClient;
 import org.springaicommunity.agents.geminisdk.util.GeminiCliDiscovery;

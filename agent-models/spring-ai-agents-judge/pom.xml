@@ -18,6 +18,12 @@
     <description>Judge API for evaluating agent execution results - deterministic and LLM-powered</description>
 
     <dependencies>
+        <!-- Agent Judge Core - provides Judge, Judgment, Score, Jury APIs -->
+        <dependency>
+            <groupId>org.springaicommunity</groupId>
+            <artifactId>agent-judge-core</artifactId>
+        </dependency>
+
         <!-- Agent Model interfaces -->
         <dependency>
             <groupId>org.springaicommunity.agents</groupId>

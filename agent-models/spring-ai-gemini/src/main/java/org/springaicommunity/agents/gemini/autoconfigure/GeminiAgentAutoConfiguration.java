@@ -26,7 +26,7 @@ import org.springaicommunity.agents.gemini.GeminiAgentModel;
 import org.springaicommunity.agents.gemini.GeminiAgentOptions;
 import org.springaicommunity.agents.geminisdk.GeminiClient;
 import org.springaicommunity.agents.geminisdk.transport.CLIOptions;
-import org.springaicommunity.agents.model.sandbox.Sandbox;
+import org.springaicommunity.sandbox.Sandbox;
 
 /**
  * Auto-configuration for Gemini agent model support.

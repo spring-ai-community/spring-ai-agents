@@ -32,7 +32,7 @@ import org.springaicommunity.agents.gemini.GeminiAgentOptions;
 import org.springaicommunity.agents.geminisdk.GeminiClient;
 import org.springaicommunity.agents.geminisdk.util.GeminiCliDiscovery;
 import org.springaicommunity.agents.model.AgentModel;
-import org.springaicommunity.agents.model.sandbox.LocalSandbox;
+import org.springaicommunity.sandbox.LocalSandbox;
 
 import java.nio.file.Files;
 import java.nio.file.Path;

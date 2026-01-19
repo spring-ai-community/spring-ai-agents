@@ -22,7 +22,7 @@ import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.springaicommunity.agents.sweagentsdk.transport.SweCliApi;
 import org.springaicommunity.agents.tck.AbstractAgentModelTCK;
 import org.springaicommunity.agents.model.AgentOptions;
-import org.springaicommunity.agents.model.sandbox.DockerSandbox;
+import org.springaicommunity.sandbox.docker.DockerSandbox;
 
 import java.time.Duration;
 import java.util.List;

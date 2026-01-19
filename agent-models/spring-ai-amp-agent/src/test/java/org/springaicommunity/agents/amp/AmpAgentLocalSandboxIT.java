@@ -22,7 +22,7 @@ import org.springaicommunity.agents.ampsdk.AmpClient;
 import org.springaicommunity.agents.ampsdk.types.ExecuteOptions;
 import org.springaicommunity.agents.tck.AbstractAgentModelTCK;
 import org.springaicommunity.agents.model.AgentOptions;
-import org.springaicommunity.agents.model.sandbox.LocalSandbox;
+import org.springaicommunity.sandbox.LocalSandbox;
 
 import java.time.Duration;
 

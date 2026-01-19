@@ -15,8 +15,8 @@
  */
 package org.springaicommunity.agents.claude.config;
 
-import org.springaicommunity.agents.model.sandbox.LocalSandbox;
-import org.springaicommunity.agents.model.sandbox.Sandbox;
+import org.springaicommunity.sandbox.LocalSandbox;
+import org.springaicommunity.sandbox.Sandbox;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;

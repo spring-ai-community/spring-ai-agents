@@ -24,20 +24,23 @@
             <artifactId>spring-ai-model</artifactId>
         </dependency>
 
-        <!-- TestContainers for Docker sandbox -->
+        <!-- Sandbox for process execution (LocalSandbox) -->
         <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>testcontainers</artifactId>
+            <groupId>org.springaicommunity</groupId>
+            <artifactId>agent-sandbox-core</artifactId>
+        </dependency>
+
+        <!-- Docker sandbox (optional, for container-based isolation) -->
+        <dependency>
+            <groupId>org.springaicommunity</groupId>
+            <artifactId>agent-sandbox-docker</artifactId>
+            <optional>true</optional>
         </dependency>
 
         <!-- SLF4J for logging -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.zeroturnaround</groupId>
-            <artifactId>zt-exec</artifactId>
         </dependency>
 
         <!-- Test dependencies -->
@@ -49,6 +52,13 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Sandbox TCK for testing -->
+        <dependency>
+            <groupId>org.springaicommunity</groupId>
+            <artifactId>agent-sandbox-core</artifactId>
+            <type>test-jar</type>
             <scope>test</scope>
         </dependency>
     </dependencies>

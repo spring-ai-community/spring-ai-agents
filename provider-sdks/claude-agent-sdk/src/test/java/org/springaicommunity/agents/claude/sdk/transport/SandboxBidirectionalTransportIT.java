@@ -22,8 +22,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.mockito.ArgumentCaptor;
-import org.springaicommunity.agents.model.sandbox.ExecSpec;
-import org.springaicommunity.agents.model.sandbox.Sandbox;
+import org.springaicommunity.sandbox.ExecSpec;
+import org.springaicommunity.sandbox.Sandbox;
 import org.springaicommunity.claude.agent.sdk.transport.CLIOptions;
 
 import java.io.ByteArrayInputStream;

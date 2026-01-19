@@ -21,7 +21,7 @@ import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 import org.springaicommunity.agents.sweagentsdk.transport.SweCliApi;
 import org.springaicommunity.agents.tck.AbstractAgentModelTCK;
 import org.springaicommunity.agents.model.AgentOptions;
-import org.springaicommunity.agents.model.sandbox.LocalSandbox;
+import org.springaicommunity.sandbox.LocalSandbox;
 
 import java.time.Duration;
 

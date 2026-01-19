@@ -39,7 +39,7 @@ import org.springaicommunity.agents.judge.exec.util.MavenBuildRunner.BuildResult
 import org.springaicommunity.agents.judge.exec.util.MavenTestRunner;
 import org.springaicommunity.agents.judge.exec.util.MavenTestRunner.TestRunResult;
 import org.springaicommunity.agents.model.AgentModel;
-import org.springaicommunity.agents.model.sandbox.LocalSandbox;
+import org.springaicommunity.sandbox.LocalSandbox;
 import org.zeroturnaround.exec.ProcessExecutor;
 import org.zeroturnaround.exec.ProcessResult;
 

@@ -18,6 +18,12 @@
     <description>Judge advisor for Spring AI Agents - integrates Judge API with AgentClient</description>
 
     <dependencies>
+        <!-- Agent Judge Core - provides Judge, Judgment, Score, Jury APIs -->
+        <dependency>
+            <groupId>org.springaicommunity</groupId>
+            <artifactId>agent-judge-core</artifactId>
+        </dependency>
+
         <!-- Agent Client for AgentCallAdvisor integration -->
         <dependency>
             <groupId>org.springaicommunity.agents</groupId>
@@ -25,7 +31,7 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!-- Judge API for evaluation -->
+        <!-- Spring AI Agents Judge for AgentJudge -->
         <dependency>
             <groupId>org.springaicommunity.agents</groupId>
             <artifactId>spring-ai-agents-judge</artifactId>

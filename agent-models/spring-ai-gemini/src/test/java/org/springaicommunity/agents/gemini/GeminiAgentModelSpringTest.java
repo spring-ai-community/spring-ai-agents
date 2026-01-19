@@ -18,8 +18,8 @@ package org.springaicommunity.agents.gemini;
 
 import org.junit.jupiter.api.Test;
 import org.springaicommunity.agents.geminisdk.GeminiClient;
-import org.springaicommunity.agents.model.sandbox.LocalSandbox;
-import org.springaicommunity.agents.model.sandbox.Sandbox;
+import org.springaicommunity.sandbox.LocalSandbox;
+import org.springaicommunity.sandbox.Sandbox;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;

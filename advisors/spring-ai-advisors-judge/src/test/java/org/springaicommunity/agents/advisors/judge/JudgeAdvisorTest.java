@@ -26,13 +26,11 @@ import org.springaicommunity.agents.client.AgentClientRequest;
 import org.springaicommunity.agents.client.AgentClientResponse;
 import org.springaicommunity.agents.client.Goal;
 import org.springaicommunity.agents.client.advisor.api.AgentCallAdvisorChain;
-import org.springaicommunity.agents.judge.Judge;
-import org.springaicommunity.agents.judge.JudgeMetadata;
-import org.springaicommunity.agents.judge.JudgeType;
-import org.springaicommunity.agents.judge.context.AgentExecutionStatus;
-import org.springaicommunity.agents.judge.context.JudgmentContext;
-import org.springaicommunity.agents.judge.result.Judgment;
-import org.springaicommunity.agents.judge.score.BooleanScore;
+import org.springaicommunity.judge.Judge;
+import org.springaicommunity.judge.Judges;
+import org.springaicommunity.judge.context.ExecutionStatus;
+import org.springaicommunity.judge.context.JudgmentContext;
+import org.springaicommunity.judge.result.Judgment;
 import org.springaicommunity.agents.model.AgentGeneration;
 import org.springaicommunity.agents.model.AgentGenerationMetadata;
 import org.springaicommunity.agents.model.AgentOptions;
@@ -115,7 +113,7 @@ class JudgeAdvisorTest {
 
 	@Test
 	void getNameIncludesJudgeName() {
-		Judge testJudge = org.springaicommunity.agents.judge.Judges.named(new TestJudge(true), "TestJudge");
+		Judge testJudge = Judges.named(new TestJudge(true), "TestJudge");
 		JudgeAdvisor advisor = new JudgeAdvisor(testJudge);
 
 		assertThat(advisor.getName()).isEqualTo("JudgeAdvisor[TestJudge]");
@@ -160,7 +158,7 @@ class JudgeAdvisorTest {
 		assertThat(context.agentOutput()).isPresent();
 		assertThat(context.executionTime()).isNotNull();
 		assertThat(context.startedAt()).isNotNull();
-		assertThat(context.status()).isEqualTo(AgentExecutionStatus.SUCCESS);
+		assertThat(context.status()).isEqualTo(ExecutionStatus.SUCCESS);
 	}
 
 	// Helper methods and test implementations

@@ -23,11 +23,11 @@ import org.springaicommunity.agents.client.AgentClientRequest;
 import org.springaicommunity.agents.client.AgentClientResponse;
 import org.springaicommunity.agents.client.advisor.api.AgentCallAdvisor;
 import org.springaicommunity.agents.client.advisor.api.AgentCallAdvisorChain;
-import org.springaicommunity.agents.judge.Judge;
-import org.springaicommunity.agents.judge.Judges;
-import org.springaicommunity.agents.judge.context.AgentExecutionStatus;
-import org.springaicommunity.agents.judge.context.JudgmentContext;
-import org.springaicommunity.agents.judge.result.Judgment;
+import org.springaicommunity.judge.Judge;
+import org.springaicommunity.judge.Judges;
+import org.springaicommunity.judge.context.ExecutionStatus;
+import org.springaicommunity.judge.context.JudgmentContext;
+import org.springaicommunity.judge.result.Judgment;
 
 /**
  * Advisor that evaluates agent execution results using a {@link Judge}.
@@ -148,18 +148,18 @@ public class JudgeAdvisor implements AgentCallAdvisor {
 	 * @param response the agent client response
 	 * @return the execution status
 	 */
-	private AgentExecutionStatus determineStatus(AgentClientResponse response) {
+	private ExecutionStatus determineStatus(AgentClientResponse response) {
 		if (response.isSuccessful()) {
-			return AgentExecutionStatus.SUCCESS;
+			return ExecutionStatus.SUCCESS;
 		}
 
 		// Check for error/exception in metadata or context
 		if (response.context().containsKey("error") || response.context().containsKey("exception")) {
-			return AgentExecutionStatus.FAILED;
+			return ExecutionStatus.FAILED;
 		}
 
 		// Default to FAILED if not successful
-		return AgentExecutionStatus.FAILED;
+		return ExecutionStatus.FAILED;
 	}
 
 	/**

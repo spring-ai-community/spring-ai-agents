@@ -19,7 +19,7 @@ package org.springaicommunity.agents.model;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.springaicommunity.agents.model.sandbox.Sandbox;
+import org.springaicommunity.sandbox.Sandbox;
 
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;

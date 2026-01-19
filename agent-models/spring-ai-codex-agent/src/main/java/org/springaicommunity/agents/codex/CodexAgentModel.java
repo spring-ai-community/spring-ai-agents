@@ -22,7 +22,7 @@ import org.springaicommunity.agents.codexsdk.CodexClient;
 import org.springaicommunity.agents.codexsdk.types.ExecuteOptions;
 import org.springaicommunity.agents.codexsdk.types.ExecuteResult;
 import org.springaicommunity.agents.model.*;
-import org.springaicommunity.agents.model.sandbox.Sandbox;
+import org.springaicommunity.sandbox.Sandbox;
 
 import java.util.List;
 import java.util.Map;

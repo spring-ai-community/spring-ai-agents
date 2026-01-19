@@ -21,7 +21,7 @@ import org.springaicommunity.agents.amp.AmpAgentOptions;
 import org.springaicommunity.agents.ampsdk.AmpClient;
 import org.springaicommunity.agents.ampsdk.types.ExecuteOptions;
 import org.springaicommunity.agents.model.AgentModel;
-import org.springaicommunity.agents.model.sandbox.Sandbox;
+import org.springaicommunity.sandbox.Sandbox;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;

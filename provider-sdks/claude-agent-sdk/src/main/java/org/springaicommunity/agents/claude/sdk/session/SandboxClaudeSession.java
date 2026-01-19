@@ -42,7 +42,7 @@ import org.springaicommunity.claude.agent.sdk.permission.PermissionResult;
 import org.springaicommunity.claude.agent.sdk.permission.ToolPermissionCallback;
 import org.springaicommunity.claude.agent.sdk.permission.ToolPermissionContext;
 import org.springaicommunity.claude.agent.sdk.session.ClaudeSession;
-import org.springaicommunity.agents.model.sandbox.Sandbox;
+import org.springaicommunity.sandbox.Sandbox;
 
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;

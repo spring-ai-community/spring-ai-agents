@@ -23,10 +23,10 @@ import org.springaicommunity.agents.client.AgentClientRequest;
 import org.springaicommunity.agents.client.AgentClientResponse;
 import org.springaicommunity.agents.client.advisor.api.AgentCallAdvisor;
 import org.springaicommunity.agents.client.advisor.api.AgentCallAdvisorChain;
-import org.springaicommunity.agents.judge.context.AgentExecutionStatus;
-import org.springaicommunity.agents.judge.context.JudgmentContext;
-import org.springaicommunity.agents.judge.jury.Jury;
-import org.springaicommunity.agents.judge.jury.Verdict;
+import org.springaicommunity.judge.context.ExecutionStatus;
+import org.springaicommunity.judge.context.JudgmentContext;
+import org.springaicommunity.judge.jury.Jury;
+import org.springaicommunity.judge.jury.Verdict;
 
 /**
  * Advisor that evaluates agent execution results using a {@link Jury}.
@@ -72,11 +72,11 @@ import org.springaicommunity.agents.judge.jury.Verdict;
  * <ul>
  * <li>{@code verdict} - The complete {@link Verdict} object</li>
  * <li>{@code verdict.aggregated} - The aggregated
- * {@link org.springaicommunity.agents.judge.result.Judgment}</li>
+ * {@link org.springaicommunity.judge.result.Judgment}</li>
  * <li>{@code verdict.pass} - Boolean indicating pass/fail based on aggregated
  * judgment</li>
  * <li>{@code verdict.status} - The
- * {@link org.springaicommunity.agents.judge.result.JudgmentStatus}</li>
+ * {@link org.springaicommunity.judge.result.JudgmentStatus}</li>
  * </ul>
  *
  * @author Mark Pollack
@@ -158,18 +158,18 @@ public class JuryAdvisor implements AgentCallAdvisor {
 	 * @param response the agent client response
 	 * @return the execution status
 	 */
-	private AgentExecutionStatus determineStatus(AgentClientResponse response) {
+	private ExecutionStatus determineStatus(AgentClientResponse response) {
 		if (response.isSuccessful()) {
-			return AgentExecutionStatus.SUCCESS;
+			return ExecutionStatus.SUCCESS;
 		}
 
 		// Check for error/exception in metadata or context
 		if (response.context().containsKey("error") || response.context().containsKey("exception")) {
-			return AgentExecutionStatus.FAILED;
+			return ExecutionStatus.FAILED;
 		}
 
 		// Default to FAILED if not successful
-		return AgentExecutionStatus.FAILED;
+		return ExecutionStatus.FAILED;
 	}
 
 	/**

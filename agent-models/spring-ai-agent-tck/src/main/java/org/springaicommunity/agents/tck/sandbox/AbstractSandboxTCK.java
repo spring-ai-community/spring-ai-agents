@@ -18,11 +18,11 @@ package org.springaicommunity.agents.tck.sandbox;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.springaicommunity.agents.model.sandbox.ExecResult;
-import org.springaicommunity.agents.model.sandbox.ExecSpec;
-import org.springaicommunity.agents.model.sandbox.Sandbox;
-import org.springaicommunity.agents.model.sandbox.SandboxException;
-import org.springaicommunity.agents.model.sandbox.TimeoutException;
+import org.springaicommunity.sandbox.ExecResult;
+import org.springaicommunity.sandbox.ExecSpec;
+import org.springaicommunity.sandbox.Sandbox;
+import org.springaicommunity.sandbox.SandboxException;
+import org.springaicommunity.sandbox.TimeoutException;
 
 import java.time.Duration;
 import java.util.Map;

@@ -29,9 +29,9 @@ import org.springaicommunity.agents.model.AgentGeneration;
 import org.springaicommunity.agents.model.AgentGenerationMetadata;
 import org.springaicommunity.agents.model.AgentModel;
 import org.springaicommunity.agents.model.AgentTaskRequest;
-import org.springaicommunity.agents.model.sandbox.ExecResult;
-import org.springaicommunity.agents.model.sandbox.ExecSpec;
-import org.springaicommunity.agents.model.sandbox.Sandbox;
+import org.springaicommunity.sandbox.ExecResult;
+import org.springaicommunity.sandbox.ExecSpec;
+import org.springaicommunity.sandbox.Sandbox;
 
 import java.io.IOException;
 import java.util.Map;
@@ -141,7 +141,7 @@ public class GeminiAgentModel implements AgentModel {
 	 */
 	private QueryResult executeViaSandbox(String prompt, CLIOptions cliOptions, AgentTaskRequest request)
 			throws GeminiSDKException, IOException, InterruptedException,
-			org.springaicommunity.agents.model.sandbox.TimeoutException {
+			org.springaicommunity.sandbox.TimeoutException {
 		logger.info("Executing Gemini query via sandbox");
 		logger.info("Working directory: {}", request.workingDirectory());
 		logger.info("Prompt length: {} characters", prompt.length());

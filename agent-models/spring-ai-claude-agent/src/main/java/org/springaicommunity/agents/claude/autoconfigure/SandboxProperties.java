@@ -20,7 +20,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.springaicommunity.agents.model.sandbox.ExecSpecCustomizer;
+import org.springaicommunity.sandbox.ExecSpecCustomizer;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**

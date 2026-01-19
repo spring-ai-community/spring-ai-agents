@@ -21,7 +21,7 @@ import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import org.springaicommunity.agents.codexsdk.CodexClient;
 import org.springaicommunity.agents.codexsdk.types.ExecuteOptions;
 import org.springaicommunity.agents.model.AgentOptions;
-import org.springaicommunity.agents.model.sandbox.LocalSandbox;
+import org.springaicommunity.sandbox.LocalSandbox;
 import org.springaicommunity.agents.tck.AbstractAgentModelTCK;
 import org.zeroturnaround.exec.ProcessExecutor;
 

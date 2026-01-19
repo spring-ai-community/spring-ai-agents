@@ -24,6 +24,13 @@
             <artifactId>spring-ai-agent-model</artifactId>
         </dependency>
 
+        <!-- Docker sandbox for Docker infrastructure TCK -->
+        <dependency>
+            <groupId>org.springaicommunity</groupId>
+            <artifactId>agent-sandbox-docker</artifactId>
+            <optional>true</optional>
+        </dependency>
+
         <!-- JUnit Jupiter - TCK uses JUnit 5 (compile scope for TCK API) -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>

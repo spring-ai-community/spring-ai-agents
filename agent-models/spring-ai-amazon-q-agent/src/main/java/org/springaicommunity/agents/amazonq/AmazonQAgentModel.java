@@ -22,7 +22,7 @@ import org.springaicommunity.agents.amazonqsdk.AmazonQClient;
 import org.springaicommunity.agents.amazonqsdk.types.ExecuteOptions;
 import org.springaicommunity.agents.amazonqsdk.types.ExecuteResult;
 import org.springaicommunity.agents.model.*;
-import org.springaicommunity.agents.model.sandbox.Sandbox;
+import org.springaicommunity.sandbox.Sandbox;
 
 import java.util.List;
 import java.util.Map;

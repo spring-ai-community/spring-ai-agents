@@ -19,8 +19,8 @@ package org.springaicommunity.agents.claude;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.springaicommunity.agents.tck.sandbox.AbstractDockerInfrastructureTCK;
-import org.springaicommunity.agents.model.sandbox.ExecResult;
-import org.springaicommunity.agents.model.sandbox.ExecSpec;
+import org.springaicommunity.sandbox.ExecResult;
+import org.springaicommunity.sandbox.ExecSpec;
 
 import java.time.Duration;
 import java.util.Map;

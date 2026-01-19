@@ -21,7 +21,7 @@ import org.springaicommunity.agents.codex.CodexAgentOptions;
 import org.springaicommunity.agents.codexsdk.CodexClient;
 import org.springaicommunity.agents.codexsdk.types.ExecuteOptions;
 import org.springaicommunity.agents.model.AgentModel;
-import org.springaicommunity.agents.model.sandbox.Sandbox;
+import org.springaicommunity.sandbox.Sandbox;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;

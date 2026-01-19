@@ -19,7 +19,7 @@ package org.springaicommunity.agents.amazonq.autoconfigure;
 import org.springaicommunity.agents.amazonq.AmazonQAgentModel;
 import org.springaicommunity.agents.amazonq.AmazonQAgentOptions;
 import org.springaicommunity.agents.amazonqsdk.AmazonQClient;
-import org.springaicommunity.agents.model.sandbox.Sandbox;
+import org.springaicommunity.sandbox.Sandbox;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;

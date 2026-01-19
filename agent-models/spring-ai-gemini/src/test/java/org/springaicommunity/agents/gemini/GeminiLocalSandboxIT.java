@@ -23,7 +23,7 @@ import org.springaicommunity.agents.geminisdk.exceptions.GeminiSDKException;
 import org.springaicommunity.agents.geminisdk.transport.CLIOptions;
 import org.springaicommunity.agents.tck.AbstractAgentModelTCK;
 import org.springaicommunity.agents.model.AgentOptions;
-import org.springaicommunity.agents.model.sandbox.LocalSandbox;
+import org.springaicommunity.sandbox.LocalSandbox;
 
 import java.time.Duration;
 

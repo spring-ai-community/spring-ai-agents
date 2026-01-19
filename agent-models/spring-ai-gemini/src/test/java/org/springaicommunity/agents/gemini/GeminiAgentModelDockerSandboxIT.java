@@ -24,7 +24,7 @@ import org.springaicommunity.agents.geminisdk.exceptions.GeminiSDKException;
 import org.springaicommunity.agents.geminisdk.transport.CLIOptions;
 import org.springaicommunity.agents.tck.AbstractAgentModelTCK;
 import org.springaicommunity.agents.model.AgentOptions;
-import org.springaicommunity.agents.model.sandbox.DockerSandbox;
+import org.springaicommunity.sandbox.docker.DockerSandbox;
 
 import java.time.Duration;
 import java.util.List;

@@ -18,14 +18,14 @@ package org.springaicommunity.agents.judge.agent;
 
 import org.springaicommunity.agents.client.AgentClient;
 import org.springaicommunity.agents.client.AgentClientResponse;
-import org.springaicommunity.agents.judge.JudgeMetadata;
-import org.springaicommunity.agents.judge.JudgeType;
-import org.springaicommunity.agents.judge.JudgeWithMetadata;
-import org.springaicommunity.agents.judge.context.JudgmentContext;
-import org.springaicommunity.agents.judge.result.Judgment;
-import org.springaicommunity.agents.judge.result.JudgmentStatus;
-import org.springaicommunity.agents.judge.score.BooleanScore;
-import org.springaicommunity.agents.judge.score.NumericalScore;
+import org.springaicommunity.judge.JudgeMetadata;
+import org.springaicommunity.judge.JudgeType;
+import org.springaicommunity.judge.JudgeWithMetadata;
+import org.springaicommunity.judge.context.JudgmentContext;
+import org.springaicommunity.judge.result.Judgment;
+import org.springaicommunity.judge.result.JudgmentStatus;
+import org.springaicommunity.judge.score.BooleanScore;
+import org.springaicommunity.judge.score.NumericalScore;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
