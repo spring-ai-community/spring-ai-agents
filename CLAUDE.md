@@ -41,9 +41,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Git Commit Guidelines
 - **NEVER add Claude Code attribution** in commit messages
-- **NEVER reference internal planning documents** (plans/, roadmap files, internal notes) in commit messages
 - Keep commit messages clean and professional without AI attribution
-- Commit messages should describe what changed and why, not reference planning artifacts
 
 ### JBang Agent Launcher
 - `jbang jbang/launcher.java hello-world path=test.txt` - Run agents without build process
@@ -384,10 +382,9 @@ Maven Central has a known UI bug that prevents browsing SNAPSHOT artifacts via t
 
 ### Commit Messages
 - **Do NOT credit Claude Code in commit messages**
-- **Do NOT reference internal planning documents** (plans/, roadmap files, internal notes)
 - Use clear, descriptive commit messages that explain the change
 - Follow conventional commit format when appropriate (feat:, fix:, docs:, etc.)
-- Focus on what changed and why, not planning artifacts or internal processes
+- Focus on what the change accomplishes, not who created it
 
 ### Test Policy
 - **NEVER disable Claude Code or Gemini CLI tests to fix CI issues**
