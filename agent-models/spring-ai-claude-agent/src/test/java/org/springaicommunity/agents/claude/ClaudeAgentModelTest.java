@@ -25,7 +25,6 @@ import org.springaicommunity.claude.agent.sdk.hooks.HookRegistry;
 import org.springaicommunity.claude.agent.sdk.types.control.HookEvent;
 import org.springaicommunity.claude.agent.sdk.types.control.HookOutput;
 import org.springaicommunity.agents.model.AgentModel;
-import org.springaicommunity.agents.model.AgentTaskRequest;
 import org.springaicommunity.agents.model.IterableAgentModel;
 import org.springaicommunity.agents.model.StreamingAgentModel;
 

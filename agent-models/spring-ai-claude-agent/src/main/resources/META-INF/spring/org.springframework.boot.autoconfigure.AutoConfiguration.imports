@@ -1,3 +1,2 @@
 org.springaicommunity.agents.claude.autoconfigure.ClaudeHookAutoConfiguration
 org.springaicommunity.agents.claude.autoconfigure.ClaudeAgentAutoConfiguration
-org.springaicommunity.agents.claude.autoconfigure.SandboxAutoConfiguration

@@ -16,23 +16,17 @@
 
 package org.springaicommunity.agents.claude;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springaicommunity.claude.agent.sdk.exceptions.ClaudeSDKException;
+import org.springaicommunity.claude.agent.sdk.ClaudeClient;
+import org.springaicommunity.claude.agent.sdk.ClaudeSyncClient;
 import org.springaicommunity.claude.agent.sdk.hooks.HookCallback;
 import org.springaicommunity.claude.agent.sdk.hooks.HookRegistry;
 import org.springaicommunity.claude.agent.sdk.parsing.ParsedMessage;
-import org.springaicommunity.claude.agent.sdk.streaming.MessageStreamIterator;
-import org.springaicommunity.agents.claude.sdk.transport.SandboxBidirectionalTransport;
 import org.springaicommunity.claude.agent.sdk.transport.CLIOptions;
 import org.springaicommunity.claude.agent.sdk.types.AssistantMessage;
 import org.springaicommunity.claude.agent.sdk.types.Message;
 import org.springaicommunity.claude.agent.sdk.types.ResultMessage;
-import org.springaicommunity.claude.agent.sdk.types.control.ControlRequest;
-import org.springaicommunity.claude.agent.sdk.types.control.ControlResponse;
-import org.springaicommunity.claude.agent.sdk.types.control.HookInput;
-import org.springaicommunity.claude.agent.sdk.types.control.HookOutput;
 import org.springaicommunity.agents.model.AgentGeneration;
 import org.springaicommunity.agents.model.AgentGenerationMetadata;
 import org.springaicommunity.agents.model.AgentModel;
@@ -41,14 +35,12 @@ import org.springaicommunity.agents.model.AgentResponseMetadata;
 import org.springaicommunity.agents.model.AgentTaskRequest;
 import org.springaicommunity.agents.model.IterableAgentModel;
 import org.springaicommunity.agents.model.StreamingAgentModel;
-import org.springaicommunity.sandbox.Sandbox;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -56,7 +48,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -125,23 +116,16 @@ public class ClaudeAgentModel implements AgentModel, StreamingAgentModel, Iterab
 
 	private final String claudePath;
 
-	private final Sandbox sandbox;
-
 	private final HookRegistry hookRegistry;
 
 	private final ClaudeAgentOptions defaultOptions;
 
 	private final Executor asyncExecutor;
 
-	private final AtomicInteger requestIdCounter = new AtomicInteger(0);
-
-	private final ObjectMapper objectMapper = new ObjectMapper();
-
 	private ClaudeAgentModel(Builder builder) {
 		this.workingDirectory = builder.workingDirectory;
 		this.timeout = builder.timeout;
 		this.claudePath = builder.claudePath;
-		this.sandbox = builder.sandbox;
 		this.hookRegistry = builder.hookRegistry != null ? builder.hookRegistry : new HookRegistry();
 		this.defaultOptions = builder.defaultOptions != null ? builder.defaultOptions : new ClaudeAgentOptions();
 		this.asyncExecutor = builder.asyncExecutor != null ? builder.asyncExecutor : DEFAULT_EXECUTOR;
@@ -230,60 +214,6 @@ public class ClaudeAgentModel implements AgentModel, StreamingAgentModel, Iterab
 		return hookRegistry;
 	}
 
-	// ========== Session Support ==========
-
-	/**
-	 * Creates a new session for multi-turn conversations.
-	 *
-	 * <p>
-	 * A session maintains conversation context across multiple queries, allowing Claude
-	 * to remember previous messages and build on prior context.
-	 * </p>
-	 *
-	 * <p>
-	 * Example:
-	 * </p>
-	 * <pre>{@code
-	 * try (ClaudeAgentSession session = model.createSession()) {
-	 *     session.connect("Help me understand this problem");
-	 *     for (AgentResponse response : session.receiveResponse()) {
-	 *         System.out.println(response.getTextOutput());
-	 *     }
-	 *
-	 *     session.query("Now implement the solution");
-	 *     for (AgentResponse response : session.receiveResponse()) {
-	 *         System.out.println(response.getTextOutput());
-	 *     }
-	 * }
-	 * }</pre>
-	 * @return a new session instance
-	 */
-	public ClaudeAgentSession createSession() {
-		return ClaudeAgentSession.builder()
-			.workingDirectory(workingDirectory)
-			.timeout(timeout)
-			.claudePath(claudePath)
-			.sandbox(sandbox)
-			.hookRegistry(hookRegistry)
-			.build();
-	}
-
-	/**
-	 * Creates a new session with custom CLI options.
-	 * @param options the CLI options to use for this session
-	 * @return a new session instance
-	 */
-	public ClaudeAgentSession createSession(CLIOptions options) {
-		return ClaudeAgentSession.builder()
-			.workingDirectory(workingDirectory)
-			.options(options)
-			.timeout(timeout)
-			.claudePath(claudePath)
-			.sandbox(sandbox)
-			.hookRegistry(hookRegistry)
-			.build();
-	}
-
 	// ========== AgentModel (Blocking) ==========
 
 	@Override
@@ -293,8 +223,22 @@ public class ClaudeAgentModel implements AgentModel, StreamingAgentModel, Iterab
 		Instant startTime = Instant.now();
 		StringBuilder fullText = new StringBuilder();
 
-		try (MessageStreamIterator iterator = createIterator(request)) {
-			for (ParsedMessage parsed : iterator) {
+		Path effectiveWorkingDir = request.workingDirectory() != null ? request.workingDirectory() : workingDirectory;
+		CLIOptions options = buildCLIOptions(request);
+
+		try (ClaudeSyncClient client = ClaudeClient.sync(options)
+			.workingDirectory(effectiveWorkingDir)
+			.timeout(timeout)
+			.claudePath(claudePath)
+			.hookRegistry(hookRegistry)
+			.build()) {
+
+			String prompt = formatPrompt(request);
+			client.connect(prompt);
+
+			Iterator<ParsedMessage> response = client.receiveResponse();
+			while (response.hasNext()) {
+				ParsedMessage parsed = response.next();
 				if (parsed.isRegularMessage()) {
 					Message message = parsed.asMessage();
 					if (message instanceof AssistantMessage assistantMessage) {
@@ -345,13 +289,30 @@ public class ClaudeAgentModel implements AgentModel, StreamingAgentModel, Iterab
 
 	@Override
 	public Iterator<AgentResponse> iterate(AgentTaskRequest request) {
-		MessageStreamIterator messageIterator = createIterator(request);
+		Path effectiveWorkingDir = request.workingDirectory() != null ? request.workingDirectory() : workingDirectory;
+		CLIOptions options = buildCLIOptions(request);
+
+		ClaudeSyncClient client = ClaudeClient.sync(options)
+			.workingDirectory(effectiveWorkingDir)
+			.timeout(timeout)
+			.claudePath(claudePath)
+			.hookRegistry(hookRegistry)
+			.build();
+
+		String prompt = formatPrompt(request);
+		client.connect(prompt);
+		Iterator<ParsedMessage> messageIterator = client.receiveResponse();
 
 		return new Iterator<>() {
 			private AgentResponse next = null;
 
+			private boolean closed = false;
+
 			@Override
 			public boolean hasNext() {
+				if (closed) {
+					return false;
+				}
 				if (next != null) {
 					return true;
 				}
@@ -364,6 +325,11 @@ public class ClaudeAgentModel implements AgentModel, StreamingAgentModel, Iterab
 							return true;
 						}
 					}
+				}
+				// Close the client when iteration is complete
+				if (!closed) {
+					closed = true;
+					client.close();
 				}
 				return false;
 			}
@@ -385,9 +351,13 @@ public class ClaudeAgentModel implements AgentModel, StreamingAgentModel, Iterab
 	@Override
 	public boolean isAvailable() {
 		try {
-			SandboxBidirectionalTransport transport = new SandboxBidirectionalTransport(workingDirectory, timeout,
-					claudePath, sandbox);
-			transport.close();
+			// Try to create a client to verify CLI is available
+			ClaudeSyncClient client = ClaudeClient.sync()
+				.workingDirectory(workingDirectory != null ? workingDirectory : Path.of(System.getProperty("user.dir")))
+				.timeout(Duration.ofSeconds(5))
+				.claudePath(claudePath)
+				.build();
+			client.close();
 			return true;
 		}
 		catch (Exception e) {
@@ -405,128 +375,36 @@ public class ClaudeAgentModel implements AgentModel, StreamingAgentModel, Iterab
 
 	// ========== Internal Implementation ==========
 
-	private MessageStreamIterator createIterator(AgentTaskRequest request) {
-		MessageStreamIterator iterator = new MessageStreamIterator();
-
-		asyncExecutor.execute(() -> {
-			try {
-				streamToIterator(request, iterator);
-			}
-			catch (Exception e) {
-				logger.error("Streaming failed", e);
-				iterator.completeWithError(e);
-			}
-		});
-
-		return iterator;
-	}
-
 	private void streamInternal(AgentTaskRequest request, Sinks.Many<AgentResponse> sink) {
 		Path effectiveWorkingDir = request.workingDirectory() != null ? request.workingDirectory() : workingDirectory;
-		SandboxBidirectionalTransport transport = new SandboxBidirectionalTransport(effectiveWorkingDir, timeout,
-				claudePath, sandbox);
+		CLIOptions options = buildCLIOptions(request);
 
-		try {
-			CLIOptions options = buildCLIOptions(request);
+		try (ClaudeSyncClient client = ClaudeClient.sync(options)
+			.workingDirectory(effectiveWorkingDir)
+			.timeout(timeout)
+			.claudePath(claudePath)
+			.hookRegistry(hookRegistry)
+			.build()) {
+
 			String prompt = formatPrompt(request);
-			AtomicBoolean initialized = new AtomicBoolean(false);
+			client.connect(prompt);
 
-			transport.startSession(prompt, options, parsed -> {
+			Iterator<ParsedMessage> response = client.receiveResponse();
+			while (response.hasNext()) {
+				ParsedMessage parsed = response.next();
 				if (parsed.isRegularMessage()) {
-					AgentResponse response = convertMessageToResponse(parsed.asMessage());
-					if (response != null) {
-						sink.tryEmitNext(response);
+					AgentResponse agentResponse = convertMessageToResponse(parsed.asMessage());
+					if (agentResponse != null) {
+						sink.tryEmitNext(agentResponse);
 					}
 				}
-			}, controlRequest -> handleControlRequest(controlRequest, transport, initialized));
+			}
 
-			transport.waitForCompletion(timeout);
 			sink.tryEmitComplete();
 
 		}
 		catch (Exception e) {
 			sink.tryEmitError(e);
-		}
-		finally {
-			transport.close();
-		}
-	}
-
-	private void streamToIterator(AgentTaskRequest request, MessageStreamIterator iterator) {
-		Path effectiveWorkingDir = request.workingDirectory() != null ? request.workingDirectory() : workingDirectory;
-		SandboxBidirectionalTransport transport = new SandboxBidirectionalTransport(effectiveWorkingDir, timeout,
-				claudePath, sandbox);
-
-		try {
-			CLIOptions options = buildCLIOptions(request);
-			String prompt = formatPrompt(request);
-			AtomicBoolean initialized = new AtomicBoolean(false);
-
-			transport.startSession(prompt, options, iterator::offer,
-					controlRequest -> handleControlRequest(controlRequest, transport, initialized));
-
-			transport.waitForCompletion(timeout);
-			iterator.complete();
-
-		}
-		catch (Exception e) {
-			iterator.completeWithError(e);
-		}
-		finally {
-			transport.close();
-		}
-	}
-
-	private ControlResponse handleControlRequest(ControlRequest request, SandboxBidirectionalTransport transport,
-			AtomicBoolean initialized) {
-		logger.debug("Handling control request: type={}",
-				request.request() != null ? request.request().subtype() : "null");
-
-		ControlRequest.ControlRequestPayload payload = request.request();
-
-		if (payload instanceof ControlRequest.CanUseToolRequest) {
-			return ControlResponse.success(request.requestId(), true);
-		}
-		else if (payload instanceof ControlRequest.HookCallbackRequest hookCallback) {
-			String hookId = hookCallback.callbackId();
-			HookInput hookInput = parseHookInput(hookCallback.input());
-
-			HookOutput output = hookRegistry.executeHook(hookId, hookInput);
-			if (output == null) {
-				output = HookOutput.allow();
-			}
-
-			return ControlResponse.success(request.requestId(), output);
-		}
-		else if (payload instanceof ControlRequest.InitializeRequest) {
-			if (!initialized.getAndSet(true) && hookRegistry.hasHooks()) {
-				try {
-					String initRequestId = "init_" + requestIdCounter.getAndIncrement();
-					hookRegistry.createInitializeRequest(initRequestId);
-					transport.sendResponse(ControlResponse.success(request.requestId(), true));
-				}
-				catch (ClaudeSDKException e) {
-					logger.error("Failed to send initialization", e);
-				}
-			}
-			return ControlResponse.success(request.requestId(), true);
-		}
-		else {
-			return ControlResponse.success(request.requestId(), null);
-		}
-	}
-
-	private HookInput parseHookInput(Map<String, Object> inputMap) {
-		if (inputMap == null) {
-			return null;
-		}
-		try {
-			String json = objectMapper.writeValueAsString(inputMap);
-			return objectMapper.readValue(json, HookInput.class);
-		}
-		catch (Exception e) {
-			logger.warn("Failed to parse hook input: {}", e.getMessage());
-			return null;
 		}
 	}
 
@@ -687,8 +565,6 @@ public class ClaudeAgentModel implements AgentModel, StreamingAgentModel, Iterab
 
 		private String claudePath;
 
-		private Sandbox sandbox;
-
 		private HookRegistry hookRegistry;
 
 		private ClaudeAgentOptions defaultOptions;
@@ -725,20 +601,6 @@ public class ClaudeAgentModel implements AgentModel, StreamingAgentModel, Iterab
 		 */
 		public Builder claudePath(String claudePath) {
 			this.claudePath = claudePath;
-			return this;
-		}
-
-		/**
-		 * Sets the sandbox for process execution.
-		 * <p>
-		 * Use this to execute Claude CLI in a Docker container or other isolated
-		 * environment.
-		 * </p>
-		 * @param sandbox the sandbox for process execution (null for local execution)
-		 * @return this builder
-		 */
-		public Builder sandbox(Sandbox sandbox) {
-			this.sandbox = sandbox;
 			return this;
 		}
 

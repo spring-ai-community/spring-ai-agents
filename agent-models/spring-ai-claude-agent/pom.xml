@@ -24,10 +24,10 @@
             <artifactId>spring-ai-agent-model</artifactId>
         </dependency>
 
-        <!-- Claude Agent SDK -->
+        <!-- Claude Code SDK (from Maven Central) -->
         <dependency>
-            <groupId>org.springaicommunity.agents</groupId>
-            <artifactId>claude-agent-sdk</artifactId>
+            <groupId>org.springaicommunity</groupId>
+            <artifactId>claude-code-sdk</artifactId>
         </dependency>
 
         <!-- Spring Boot AutoConfiguration -->
@@ -40,20 +40,6 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-        </dependency>
-
-        <!-- Docker Sandbox (optional - for DockerSandbox auto-configuration) -->
-        <dependency>
-            <groupId>org.springaicommunity</groupId>
-            <artifactId>agent-sandbox-docker</artifactId>
-            <optional>true</optional>
-        </dependency>
-
-        <!-- Testcontainers (optional - for Docker availability check) -->
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>testcontainers</artifactId>
-            <optional>true</optional>
         </dependency>
 
         <!-- Testing dependencies -->

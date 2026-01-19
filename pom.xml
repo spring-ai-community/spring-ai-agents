@@ -45,7 +45,6 @@
         <module>spring-ai-agent-client</module>
 
         <!-- SDK modules -->
-        <module>provider-sdks/claude-agent-sdk</module>
         <module>provider-sdks/gemini-cli-sdk</module>
         <module>provider-sdks/swe-agent-sdk</module>
         <module>provider-sdks/amp-cli-sdk</module>
@@ -353,10 +352,11 @@
                 <artifactId>spring-ai-agent-model</artifactId>
                 <version>${spring-ai-agents.version}</version>
             </dependency>
+            <!-- Claude Code SDK (from Maven Central) -->
             <dependency>
-                <groupId>org.springaicommunity.agents</groupId>
-                <artifactId>claude-agent-sdk</artifactId>
-                <version>${spring-ai-agents.version}</version>
+                <groupId>org.springaicommunity</groupId>
+                <artifactId>claude-code-sdk</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.springaicommunity.agents</groupId>
