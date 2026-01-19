@@ -274,7 +274,13 @@ new ExecResult(0, "output", "", Duration.ofSeconds(1))
 ### Step 2b-2: Claude Agent SDK API Migration
 
 **Priority**: HIGH
-**Status**: PENDING
+**Status**: PENDING (to be continued in separate session)
+
+#### Java 17 Compatibility (COMPLETE)
+Restored Java 17 baseline by replacing `Thread.startVirtualThread()` with configurable `Executor`:
+- Default: cached thread pool with daemon threads (Java 17 compatible)
+- Java 21+ users can opt-in: `.asyncExecutor(Executors.newVirtualThreadPerTaskExecutor())`
+- See `plans/learnings/java-17-21-compatibility.md`
 
 #### Problem
 The `claude-agent-sdk-java` project was extracted with a new API:
@@ -617,6 +623,7 @@ See `plans/learnings/TUI-ARCHITECTURE-DECISION.md`:
 
 | Document | Location |
 |----------|----------|
+| Java 17/21 Compatibility | `plans/learnings/java-17-21-compatibility.md` |
 | Sandbox Extraction | `plans/learnings/SANDBOX-EXTRACTION.md` |
 | Agent-Judging Boundary | `spring-ai-judge/plans/learnings/AGENT-JUDGING-BOUNDARY.md` |
 | TUI Architecture Decision | `plans/learnings/TUI-ARCHITECTURE-DECISION.md` |
