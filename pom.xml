@@ -290,19 +290,19 @@
             <dependency>
                 <groupId>org.springaicommunity</groupId>
                 <artifactId>agent-sandbox-core</artifactId>
-                <version>0.1.0-SNAPSHOT</version>
+                <version>0.9.0-SNAPSHOT</version>
             </dependency>
 
             <!-- Agent Judge for evaluation framework -->
             <dependency>
                 <groupId>org.springaicommunity</groupId>
                 <artifactId>agent-judge-core</artifactId>
-                <version>0.1.0-SNAPSHOT</version>
+                <version>0.9.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.springaicommunity</groupId>
                 <artifactId>agent-judge-exec</artifactId>
-                <version>0.1.0-SNAPSHOT</version>
+                <version>0.9.0-SNAPSHOT</version>
             </dependency>
 
             <!-- zt-exec for process execution (used by CLI SDKs) -->
@@ -314,14 +314,14 @@
             <dependency>
                 <groupId>org.springaicommunity</groupId>
                 <artifactId>agent-sandbox-core</artifactId>
-                <version>0.1.0-SNAPSHOT</version>
+                <version>0.9.0-SNAPSHOT</version>
                 <type>test-jar</type>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.springaicommunity</groupId>
                 <artifactId>agent-sandbox-docker</artifactId>
-                <version>0.1.0-SNAPSHOT</version>
+                <version>0.9.0-SNAPSHOT</version>
             </dependency>
 
             <!-- MCP Java SDK (Spring-independent core) -->
