@@ -8,7 +8,7 @@
     <parent>
         <groupId>org.springaicommunity.agents</groupId>
         <artifactId>spring-ai-agents-starters</artifactId>
-        <version>0.2.0-SNAPSHOT</version>
+        <version>0.9.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>spring-ai-starter-agent-amp</artifactId>
