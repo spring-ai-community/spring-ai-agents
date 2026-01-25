@@ -162,3 +162,7 @@ docs/src/main/antora/node_modules/
 docs/src/main/antora/package-lock.json
 node_modules/
 package-lock.json
+
+# Local development notes
+CLAUDE.md
+ROADMAP.md

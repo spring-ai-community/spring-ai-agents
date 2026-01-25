@@ -13,7 +13,7 @@ The easiest way to use Spring AI Agents is through the JBang catalog:
 ```bash
 # One-time setup: Add the catalog
 jbang catalog add --name=springai \
-  https://raw.githubusercontent.com/spring-ai-community/spring-ai-agents/main/jbang-catalog.json
+  https://raw.githubusercontent.com/spring-ai-community/agent-client/main/jbang-catalog.json
 
 # Verify installation
 jbang catalog list | grep springai
@@ -35,7 +35,7 @@ jbang agents@springai hello-world-agent-ai \
 You can also run the launcher directly without the catalog:
 
 ```bash
-jbang https://raw.githubusercontent.com/spring-ai-community/spring-ai-agents/main/jbang/launcher.java \
+jbang https://raw.githubusercontent.com/spring-ai-community/agent-client/main/jbang/launcher.java \
   hello-world \
   path=greeting.txt \
   content="Hello from Direct URL!"
@@ -122,7 +122,7 @@ This launcher can be distributed via JBang catalog:
 
 ```bash
 # Add the catalog
-jbang catalog add springai https://raw.githubusercontent.com/spring-ai-community/spring-ai-agents/main/jbang-catalog.json
+jbang catalog add springai https://raw.githubusercontent.com/spring-ai-community/agent-client/main/jbang-catalog.json
 
 # Use the alias
 jbang springai@agents hello-world path=test.txt content="Hello World!"

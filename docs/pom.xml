@@ -27,12 +27,12 @@
     <artifactId>spring-ai-agents-docs</artifactId>
     <name>Spring AI Agents Documentation</name>
     <description>Spring AI Agents documentation</description>
-    <url>https://github.com/spring-ai-community/spring-ai-agents</url>
+    <url>https://github.com/spring-ai-community/agent-client</url>
 
     <scm>
-        <url>https://github.com/spring-ai-community/spring-ai-agents</url>
-        <connection>git://github.com/spring-ai-community/spring-ai-agents.git</connection>
-        <developerConnection>git@github.com:spring-ai-community/spring-ai-agents.git</developerConnection>
+        <url>https://github.com/spring-ai-community/agent-client</url>
+        <connection>git://github.com/spring-ai-community/agent-client.git</connection>
+        <developerConnection>git@github.com:spring-ai-community/agent-client.git</developerConnection>
     </scm>
 
     <properties>

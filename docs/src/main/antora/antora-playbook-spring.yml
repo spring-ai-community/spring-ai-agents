@@ -1,6 +1,6 @@
 site:
   title: Spring AI Agents Reference
-  url: https://spring-ai-community.github.io/spring-ai-agents/
+  url: https://spring-ai-community.github.io/agent-client/
   robots: allow
 
 git:

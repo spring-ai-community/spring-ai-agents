@@ -1,16 +1,23 @@
 # Spring AI Agents
 
-> **⚠️ Important Notice for Fork Owners**: We cleaned up git history on Sept 28, 2025. If you have a fork, please see [Issue #2](https://github.com/spring-ai-community/spring-ai-agents/issues/2) for update instructions.
+> **Note**: This project was renamed from `spring-ai-agents` to `agent-client` in version 0.9.0.
+> Update your git remote: `git remote set-url origin git@github.com:spring-ai-community/agent-client.git`
+>
+> Additionally, shared infrastructure has been extracted to separate repositories:
+> - **[agent-sandbox](https://github.com/spring-ai-community/agent-sandbox)** - Sandbox execution infrastructure (Docker/Local)
+> - **[agent-judge](https://github.com/spring-ai-community/agent-judge)** - Agent evaluation and judging framework
+
+> **⚠️ Important Notice for Fork Owners**: We cleaned up git history on Sept 28, 2025. If you have a fork, please see [Issue #2](https://github.com/spring-ai-community/agent-client/issues/2) for update instructions.
 
 ## 📊 SpringOne 2025 Presentation
 This project was featured in a talk at SpringOne 2025 by Mark Pollack. View the presentation: [springone-2025-presentation.html](springone-2025-presentation.html)
 
-<!-- [![Build Status](https://github.com/spring-ai-community/spring-ai-agents/workflows/CI/badge.svg)](https://github.com/spring-ai-community/spring-ai-agents/actions) -->
+<!-- [![Build Status](https://github.com/spring-ai-community/agent-client/workflows/CI/badge.svg)](https://github.com/spring-ai-community/agent-client/actions) -->
 <!-- [![Maven Central](https://img.shields.io/maven-central/v/org.springaicommunity.agents/spring-ai-agents-parent.svg)](https://search.maven.org/search?q=g:org.springaicommunity.agents) -->
 
 **Maven Snapshot Artifacts**: Available from [Maven Central Snapshots](https://central.sonatype.com/repository/maven-snapshots/org/springaicommunity/agents/)
 
-📖 **[Documentation](https://spring-ai-community.github.io/spring-ai-agents/)** | [Getting Started](https://spring-ai-community.github.io/spring-ai-agents/getting-started.html) | [API Reference](https://spring-ai-community.github.io/spring-ai-agents/api/agentclient.html) | [Spring AI Bench](https://github.com/spring-ai-community/spring-ai-bench)
+📖 **[Documentation](https://spring-ai-community.github.io/agent-client/)** | [Getting Started](https://spring-ai-community.github.io/agent-client/getting-started.html) | [API Reference](https://spring-ai-community.github.io/agent-client/api/agentclient.html) | [Spring AI Bench](https://github.com/spring-ai-community/spring-ai-bench)
 
 > **Note**: This project is currently in development. The repository structure and APIs are subject to change.
 
@@ -32,7 +39,7 @@ The fastest way to try Spring AI Agents - no cloning, no building, just run:
 
 ```bash
 # One-time setup: Add the catalog
-jbang catalog add --name=springai https://raw.githubusercontent.com/spring-ai-community/spring-ai-agents/main/jbang-catalog.json
+jbang catalog add --name=springai https://raw.githubusercontent.com/spring-ai-community/agent-client/main/jbang-catalog.json
 
 # Static content example
 jbang agents@springai hello-world \
@@ -89,7 +96,7 @@ An autonomous agent that increased test coverage from **0% to 71.4%** on Spring'
 
 > **Model quality matters**: Same coverage, different code quality. Claude generated production-ready tests while Gemini used slower patterns (@SpringBootTest).
 
-📖 **[Read the complete analysis with test code examples →](https://spring-ai-community.github.io/spring-ai-agents/getting-started/code-coverage-agent.html)**
+📖 **[Read the complete analysis with test code examples →](https://spring-ai-community.github.io/agent-client/getting-started/code-coverage-agent.html)**
 
 ### Agent Advisors
 
@@ -138,7 +145,7 @@ AgentClient client = AgentClient.builder(agentModel)
 - **Security**: Goal validation, dangerous operation blocking
 - **Observability**: Metrics collection, execution logging, performance tracking
 
-See the [Agent Advisors documentation](https://spring-ai-community.github.io/spring-ai-agents/api/advisors.html) for complete details.
+See the [Agent Advisors documentation](https://spring-ai-community.github.io/agent-client/api/advisors.html) for complete details.
 
 ### Configuration
 

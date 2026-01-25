@@ -1,39 +1,39 @@
-# CI workflow for agent-client
+# Snapshot publishing workflow for agent-client
 # Uses centralized reusable workflow from community-workflows
 
-name: CI Build
+name: Publish Snapshot
 
 on:
-  schedule:
-    - cron: '0 9 * * 1-5'    # 9:00 AM UTC weekdays
-    - cron: '0 21 * * 1-5'   # 9:00 PM UTC weekdays
   push:
     branches: [main]
     paths-ignore:
       - 'docs/**'
       - '*.md'
-  pull_request:
-    branches: [main]
-    paths-ignore:
-      - 'docs/**'
-      - '*.md'
   workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: 'Skip tests for quick publishing'
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: publish-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build:
+  publish:
     if: github.repository_owner == 'spring-ai-community'
-    uses: spring-ai-community/community-workflows/.github/workflows/ci-build-with-cli.yml@main
+    uses: spring-ai-community/community-workflows/.github/workflows/publish-snapshot-with-cli.yml@main
     with:
       java-version: '17'
       install-claude-cli: true
       install-gemini-cli: true
       install-vendir-cli: true
       validate-commits: true
-      maven-goals: 'clean install -B'
+      skip-tests: ${{ inputs.skip_tests || false }}
     secrets:
+      MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
+      MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}

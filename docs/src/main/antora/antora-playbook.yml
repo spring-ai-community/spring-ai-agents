@@ -8,7 +8,7 @@ antora:
       root_component_name: 'spring-ai-agents'
 site:
   title: Spring AI Agents Reference
-  url: https://spring-ai-community.github.io/spring-ai-agents/
+  url: https://spring-ai-community.github.io/agent-client/
   robots: allow
 git:
   ensure_git_suffix: false  

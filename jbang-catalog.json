@@ -1,12 +1,12 @@
 {
   "catalogs": {
     "springai": {
-      "catalog-ref": "https://raw.githubusercontent.com/spring-ai-community/spring-ai-agents/main/jbang-catalog.json"
+      "catalog-ref": "https://raw.githubusercontent.com/spring-ai-community/agent-client/main/jbang-catalog.json"
     }
   },
   "aliases": {
     "agents": {
-      "script-ref": "https://raw.githubusercontent.com/spring-ai-community/spring-ai-agents/main/jbang/launcher.java",
+      "script-ref": "https://raw.githubusercontent.com/spring-ai-community/agent-client/main/jbang/launcher.java",
       "description": "Spring AI Agents launcher - run AI agents on your codebase"
     }
   },

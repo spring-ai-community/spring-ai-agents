@@ -28,7 +28,7 @@ The catalog approach provides the best developer experience - no cloning, no bui
 ----
 # One-time setup: Add the catalog
 jbang catalog add --name=springai \
-  https://raw.githubusercontent.com/spring-ai-community/spring-ai-agents/main/jbang-catalog.json
+  https://raw.githubusercontent.com/spring-ai-community/agent-client/main/jbang-catalog.json
 
 # Verify catalog installation
 jbang catalog list | grep springai
@@ -51,7 +51,7 @@ No catalog setup needed, but longer command:
 
 [source,bash]
 ----
-jbang https://raw.githubusercontent.com/spring-ai-community/spring-ai-agents/main/jbang/launcher.java \
+jbang https://raw.githubusercontent.com/spring-ai-community/agent-client/main/jbang/launcher.java \
   hello-world \
   path=greeting.txt \
   content="Hello from Direct URL!"
@@ -63,7 +63,7 @@ Clone the repository for local development and testing:
 
 [source,bash]
 ----
-git clone https://github.com/spring-ai-community/spring-ai-agents.git
+git clone https://github.com/spring-ai-community/agent-client.git
 cd spring-ai-agents
 
 # Build all modules first

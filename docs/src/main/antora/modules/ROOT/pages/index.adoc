@@ -6,7 +6,7 @@
 
 **Spring AI Agents is the pragmatic integration layer for autonomous agents in Java enterprise development.**
 
-**GitHub Repository**: https://github.com/spring-ai-community/spring-ai-agents[github.com/spring-ai-community/spring-ai-agents]
+**GitHub Repository**: https://github.com/spring-ai-community/agent-client[github.com/spring-ai-community/agent-client]
 
 == What Is an Agent?
 
@@ -265,7 +265,7 @@ We welcome contributions to Spring AI Agents! Please see our xref:contribution-g
 == Resources
 
 * **Spring AI Agents**
-** GitHub: https://github.com/spring-ai-community/spring-ai-agents[github.com/spring-ai-community/spring-ai-agents]
+** GitHub: https://github.com/spring-ai-community/agent-client[github.com/spring-ai-community/agent-client]
 ** Documentation: This site
 
 * **Spring AI Bench**
